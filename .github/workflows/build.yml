@@ -34,29 +34,50 @@ jobs:
       - name: Build with PyInstaller
         shell: bash
         run: |
-          CMD="pyinstaller --windowed -n DeveloperTools main.py --noconfirm"
-          
-          if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
-            ICON="images/app.ico"
-            SEP=";"
-            CMD="$CMD -F"
-          elif [[ "${{ matrix.os }}" == "macos-latest" ]]; then
-            ICON="images/app.icns"
-            SEP=":"
-          else  # ubuntu-latest
-            ICON="images/app.png"
-            SEP=":"
-            CMD="$CMD -F"
+          if [[ "${{ matrix.os }}" == "macos-latest" ]]; then
+            echo "Building for macOS using .spec file"
+            VERSION="${{ github.event.inputs.version || github.ref_name }}"
+            # 去掉开头的 'v'（例如 v1.0.0 -> 1.0.0）
+            VERSION=${VERSION#v}
+            # 修改 .spec 文件中的 CFBundleShortVersionString
+            sed -i "s/'CFBundleShortVersionString': '.*'/'CFBundleShortVersionString': '$VERSION'/" DeveloperTools.spec
+            pyinstaller DeveloperTools.spec
+          else
+            CMD="pyinstaller --windowed -n DeveloperTools main.py --noconfirm"
+            
+            if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
+              ICON="images/app.ico"
+              SEP=";"
+              CMD="$CMD -F"
+            #elif [[ "${{ matrix.os }}" == "macos-latest" ]]; then
+            #  ICON="images/app.icns"
+            #  SEP=":"
+            else  # ubuntu-latest
+              ICON="images/app.png"
+              SEP=":"
+              CMD="$CMD -F"
+            fi
+            
+            if [[ -n "$ICON" ]]; then
+              CMD="$CMD --icon=$ICON"
+            fi
+            
+            CMD="$CMD --add-data \"images${SEP}images\""
+            
+            echo "Running: $CMD"
+            eval $CMD
           fi
-          
-          if [[ -n "$ICON" ]]; then
-            CMD="$CMD --icon=$ICON"
+
+      - name: Strip debug symbols (macOS only)
+        if: runner.os == 'macOS'
+        run: |
+          # Checks if the executable exists before stripping
+          if [ -f "dist/DeveloperTools.app/Contents/MacOS/DeveloperTools" ]; then
+            strip -S "dist/DeveloperTools.app/Contents/MacOS/DeveloperTools"
+            echo "✅ Successfully stripped debug symbols."
+          else
+            echo "⚠️ Executable not found, skipping strip."
           fi
-          
-          CMD="$CMD --add-data \"images${SEP}images\""
-          
-          echo "Running: $CMD"
-          eval $CMD
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -79,13 +100,23 @@ jobs:
         run: ls -R artifacts
         shell: bash
 
-      - name: Zip macOS app
+      - name: Zip macOS app with ditto
         run: |
           if [ -d "artifacts/DeveloperTools-macos-latest/DeveloperTools.app" ]; then
+            # 进入 artifacts 目录
             cd artifacts/DeveloperTools-macos-latest
-            zip -r DeveloperTools-macos.zip DeveloperTools.app
+            
+            # 保险措施：手动确保可执行文件有执行权限
+            chmod +x DeveloperTools.app/Contents/MacOS/DeveloperTools
+            
+            # 使用 ditto 命令打包，它能保留权限和签名
+            ditto -c -k --keepParent DeveloperTools.app DeveloperTools-macos.zip
+            
+            # 压缩完成后，可以选择删除原来的 .app 目录以节省空间
+            rm -rf DeveloperTools.app
+            
             cd ../../
-            echo "✅ 已打包 macOS 应用: artifacts/DeveloperTools-macos-latest/DeveloperTools-macos.zip"
+            echo "✅ 已使用 ditto 打包 macOS 应用: artifacts/DeveloperTools-macos-latest/DeveloperTools-macos.zip"
           else
             echo "⚠️ 未找到 DeveloperTools.app，跳过打包"
           fi
