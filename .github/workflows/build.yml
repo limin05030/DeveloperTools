@@ -15,6 +15,14 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
+        # 使用 include 为不同平台定义精准的输出路径
+        include:
+          - os: windows-latest
+            out_path: dist/DeveloperTools.exe
+          - os: ubuntu-latest
+            out_path: dist/DeveloperTools
+          - os: macos-latest
+            out_path: DeveloperTools-macos.tar.gz
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout code
@@ -37,18 +45,18 @@ jobs:
           if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
             ICON="images/app.ico"
             SEP=";"
-            OPTS="-F"
+            PYINSTALLER_OPTS="-F"
           elif [[ "${{ matrix.os }}" == "macos-latest" ]]; then
             ICON="images/app.icns"
             SEP=":"
-            OPTS=""
+            PYINSTALLER_OPTS=""
           else  # ubuntu-latest
             ICON="images/app.png"
             SEP=":"
-            OPTS="-F"
+            PYINSTALLER_OPTS="-F"
           fi
           
-          CMD="pyinstaller --windowed -n DeveloperTools main.py --noconfirm $OPTS"
+          CMD="pyinstaller --windowed -n DeveloperTools main.py --noconfirm $PYINSTALLER_OPTS"
           
           if [[ -n "$ICON" ]]; then
             CMD="$CMD --icon=$ICON"
@@ -63,9 +71,9 @@ jobs:
         if: matrix.os == 'macos-latest'
         shell: bash
         run: |
-          INFO_PLIST="dist/DeveloperTools.app/Contents/Info.plist"
           VERSION="${{ github.event.inputs.version || github.ref_name }}"
           VERSION=${VERSION#v}
+          INFO_PLIST="dist/DeveloperTools.app/Contents/Info.plist"
           
           if [ -f "$INFO_PLIST" ]; then
             # CFBundleShortVersionString
@@ -96,31 +104,22 @@ jobs:
             else
               /usr/libexec/PlistBuddy -c "Add :CFBundleDisplayName string 'Developer Tools'" "$INFO_PLIST"
             fi
-          
-            echo "✅ Info.plist updated"
-          else
-            echo "⚠️ Info.plist not found, skipping version injection"
           fi
           
-          # 移除调试符号
           if [ -f "dist/DeveloperTools.app/Contents/MacOS/DeveloperTools" ]; then
             strip -S "dist/DeveloperTools.app/Contents/MacOS/DeveloperTools"
           fi
           
-          # 在 macOS 运行器上直接打包，保留权限和 App 结构
           cd dist
           tar -czf ../DeveloperTools-macos.tar.gz DeveloperTools.app
           cd ..
-          echo "✅ Pre-packaged DeveloperTools-macos.tar.gz"
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: DeveloperTools-${{ matrix.os }}
-          path: ｜
-            dist/DeveloperTools.exe
-            dist/DeveloperTools
-            DeveloperTools-macos.tar.gz
+          # 使用矩阵中定义的精准路径
+          path: ${{ matrix.out_path }}
 
   release:
     needs: build
@@ -133,8 +132,12 @@ jobs:
         with:
           path: artifacts
 
-      - name: Display structure of downloaded files (debug only)
-        run: ls -R artifacts
+      - name: Prepare Assets for Release
+        run: |
+          mkdir -p release_assets
+          # 查找所有下载的二进制文件并统一汇总，不分目录
+          find artifacts -type f \( -name "DeveloperTools.exe" -o -name "DeveloperTools" -o -name "*.tar.gz" \) -exec cp {} release_assets/ \;
+          ls -R release_assets
         shell: bash
 
       - name: Create GitHub Release and upload assets
@@ -142,8 +145,5 @@ jobs:
         with:
           tag_name: ${{ github.event.inputs.version || github.ref_name }}
           name: Release ${{ github.event.inputs.version || github.ref_name }}
-          files: |
-            artifacts/DeveloperTools-windows-latest/DeveloperTools.exe
-            artifacts/DeveloperTools-ubuntu-latest/DeveloperTools
-            artifacts/DeveloperTools-macos-latest/DeveloperTools-macos.tar.gz
-          fail_on_unmatched_files: true   # 如果任一文件不存在，发布步骤将失败
+          files: release_assets/*
+          fail_on_unmatched_files: true
