@@ -20,9 +20,18 @@ class ToolApp:
     def __init__(self, _root):
         self.root = _root
         self.root.title("开发者工具")
-        self.root.geometry("880x900")
+        # 窗口居中
+        width = 880
+        height = 900
+        screen_width = self.root.winfo_screenwidth()
+        screen_height = self.root.winfo_screenheight()
+        x = (screen_width // 2) - (width // 2)
+        y = (screen_height // 2) - (height // 2)
+        self.root.geometry(f"{width}x{height}+{x}+{y}")
         
         self.style = ttk.Style()
+        if self.root.tk.call('tk', 'windowingsystem') == 'aqua':
+            self.style.theme_use('aqua')
         
         # 提前定义所有成员变量 (Member Variables)
         self.APPLE_OFFSET = 978307200

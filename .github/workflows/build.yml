@@ -75,7 +75,6 @@ jobs:
           APP_PATH="dist/DeveloperTools.app"
           INFO_PLIST="$APP_PATH/Contents/Info.plist"
           
-          # 1. 修改 Info.plist
           if [ -f "$INFO_PLIST" ]; then
             # CFBundleShortVersionString
             if /usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "$INFO_PLIST" &>/dev/null; then
@@ -84,7 +83,7 @@ jobs:
               /usr/libexec/PlistBuddy -c "Add :CFBundleShortVersionString string $VERSION" "$INFO_PLIST"
             fi
           
-            # CFBundleVersion
+            # CFBundleVersion (可能不存在)
             if /usr/libexec/PlistBuddy -c "Print :CFBundleVersion" "$INFO_PLIST" &>/dev/null; then
               /usr/libexec/PlistBuddy -c "Set :CFBundleVersion 100" "$INFO_PLIST"
             else
@@ -106,50 +105,16 @@ jobs:
               /usr/libexec/PlistBuddy -c "Add :CFBundleDisplayName string 'Developer Tools'" "$INFO_PLIST"
             fi
             
-            echo "✅ Info.plist updated"
+            # 🚀 增加 Retina 高分屏支持，解决 UI 模糊和样式缩放问题
+            /usr/libexec/PlistBuddy -c "Add :NSHighResolutionCapable bool true" "$INFO_PLIST" || /usr/libexec/PlistBuddy -c "Set :NSHighResolutionCapable true" "$INFO_PLIST"
+            
+            echo "✅ Info.plist updated with Retina support"
           fi
           
-          # ⚠️ 注意：移除了 strip 命令，因为它会破坏 PyInstaller 的嵌入式 PKG 归档
-
-          # 2. 关键修复：重新执行 Ad-hoc 签名
           echo "🔐 Re-signing app bundle..."
           codesign --force --deep --sign - "$APP_PATH"
           echo "✅ Re-signed successfully"
           
-          # 3. 打包
           cd dist
           tar -czf ../DeveloperTools-macos.tar.gz DeveloperTools.app
           cd ..
-          echo "✅ Pre-packaged DeveloperTools-macos.tar.gz"
-
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: DeveloperTools-${{ matrix.os }}
-          path: ${{ matrix.out_path }}
-
-  release:
-    needs: build
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - name: Download all build artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: artifacts
-
-      - name: Prepare Assets for Release
-        run: |
-          mkdir -p release_assets
-          find artifacts -type f \( -name "DeveloperTools.exe" -o -name "DeveloperTools" -o -name "*.tar.gz" \) -exec cp {} release_assets/ \;
-          ls -R release_assets
-        shell: bash
-
-      - name: Create GitHub Release and upload assets
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ github.event.inputs.version || github.ref_name }}
-          name: Release ${{ github.event.inputs.version || github.ref_name }}
-          files: release_assets/*
-          fail_on_unmatched_files: true
