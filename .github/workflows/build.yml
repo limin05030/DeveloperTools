@@ -15,7 +15,6 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        # 使用 include 为不同平台定义精准的输出路径
         include:
           - os: windows-latest
             out_path: dist/DeveloperTools.exe
@@ -73,8 +72,10 @@ jobs:
         run: |
           VERSION="${{ github.event.inputs.version || github.ref_name }}"
           VERSION=${VERSION#v}
-          INFO_PLIST="dist/DeveloperTools.app/Contents/Info.plist"
+          APP_PATH="dist/DeveloperTools.app"
+          INFO_PLIST="$APP_PATH/Contents/Info.plist"
           
+          # 1. 修改 Info.plist
           if [ -f "$INFO_PLIST" ]; then
             # CFBundleShortVersionString
             if /usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "$INFO_PLIST" &>/dev/null; then
@@ -83,7 +84,7 @@ jobs:
               /usr/libexec/PlistBuddy -c "Add :CFBundleShortVersionString string $VERSION" "$INFO_PLIST"
             fi
           
-            # CFBundleVersion
+            # CFBundleVersion (可能不存在)
             if /usr/libexec/PlistBuddy -c "Print :CFBundleVersion" "$INFO_PLIST" &>/dev/null; then
               /usr/libexec/PlistBuddy -c "Set :CFBundleVersion 100" "$INFO_PLIST"
             else
@@ -104,12 +105,23 @@ jobs:
             else
               /usr/libexec/PlistBuddy -c "Add :CFBundleDisplayName string 'Developer Tools'" "$INFO_PLIST"
             fi
+            
+            echo "✅ Info.plist updated"
           fi
           
-          if [ -f "dist/DeveloperTools.app/Contents/MacOS/DeveloperTools" ]; then
-            strip -S "dist/DeveloperTools.app/Contents/MacOS/DeveloperTools"
+          # 2. 移除调试符号 (注意：必须在签名之前做)
+          if [ -f "$APP_PATH/Contents/MacOS/DeveloperTools" ]; then
+            strip -S "$APP_PATH/Contents/MacOS/DeveloperTools"
+            echo "✅ Binary stripped"
           fi
+
+          # 3. 关键修复：重新执行 Ad-hoc 签名
+          # 由于我们修改了 Info.plist 和二进制文件，必须重新签名否则 macOS 会报“已损坏”
+          echo "🔐 Re-signing app bundle..."
+          codesign --force --deep --sign - "$APP_PATH"
+          echo "✅ Re-signed successfully"
           
+          # 4. 打包
           cd dist
           tar -czf ../DeveloperTools-macos.tar.gz DeveloperTools.app
           cd ..
@@ -118,7 +130,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: DeveloperTools-${{ matrix.os }}
-          # 使用矩阵中定义的精准路径
           path: ${{ matrix.out_path }}
 
   release:
@@ -135,7 +146,6 @@ jobs:
       - name: Prepare Assets for Release
         run: |
           mkdir -p release_assets
-          # 查找所有下载的二进制文件并统一汇总，不分目录
           find artifacts -type f \( -name "DeveloperTools.exe" -o -name "DeveloperTools" -o -name "*.tar.gz" \) -exec cp {} release_assets/ \;
           ls -R release_assets
         shell: bash
