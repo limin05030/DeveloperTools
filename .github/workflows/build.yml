@@ -138,5 +138,5 @@ jobs:
           files: |
             artifacts/DeveloperTools-windows-latest/DeveloperTools.exe
             artifacts/DeveloperTools-ubuntu-latest/DeveloperTools
-            artifacts/DeveloperTools-macos-latest/DeveloperTools-macos.zip
+            artifacts/DeveloperTools-macos-latest/DeveloperTools-macos.tar.gz
           fail_on_unmatched_files: true   # 如果任一文件不存在，发布步骤将失败
