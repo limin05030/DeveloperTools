@@ -118,3 +118,44 @@ jobs:
           cd dist
           tar -czf ../DeveloperTools-macos.tar.gz DeveloperTools.app
           cd ..
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: DeveloperTools-${{ matrix.os }}
+          path: |
+            dist/DeveloperTools.exe
+            dist/DeveloperTools
+            DeveloperTools-macos.tar.gz
+
+  release:
+      needs: build
+      runs-on: ubuntu-latest
+      permissions:
+        contents: write
+      steps:
+        - name: Download all build artifacts
+          uses: actions/download-artifact@v4
+          with:
+            path: artifacts
+
+        - name: Prepare Assets for Release
+          run: |
+            mkdir -p release_assets
+            # Windows
+            [ -f artifacts/DeveloperTools-windows-latest/DeveloperTools.exe ] && cp artifacts/DeveloperTools-windows-latest/DeveloperTools.exe release_assets/
+            # Linux
+            [ -f artifacts/DeveloperTools-ubuntu-latest/DeveloperTools ] && cp artifacts/DeveloperTools-ubuntu-latest/DeveloperTools release_assets/
+            # macOS (已经是 tar.gz)
+            [ -f artifacts/DeveloperTools-macos-latest/DeveloperTools-macos.tar.gz ] && cp artifacts/DeveloperTools-macos-latest/DeveloperTools-macos.tar.gz release_assets/
+            
+            ls -R release_assets
+          shell: bash
+
+        - name: Create GitHub Release and upload assets
+          uses: softprops/action-gh-release@v2
+          with:
+            tag_name: ${{ github.event.inputs.version || github.ref_name }}
+            name: Release ${{ github.event.inputs.version || github.ref_name }}
+            files: release_assets/*
+            fail_on_unmatched_files: true
