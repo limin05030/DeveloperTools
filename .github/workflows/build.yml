@@ -40,7 +40,7 @@ jobs:
             # 去掉开头的 'v'（例如 v1.0.0 -> 1.0.0）
             VERSION=${VERSION#v}
             # 修改 .spec 文件中的 CFBundleShortVersionString
-            sed -i "s/'CFBundleShortVersionString': '.*'/'CFBundleShortVersionString': '$VERSION'/" DeveloperTools.spec
+            sed -i '' "s/'CFBundleShortVersionString': '.*'/'CFBundleShortVersionString': '$VERSION'/" DeveloperTools.spec
             pyinstaller DeveloperTools.spec
           else
             CMD="pyinstaller --windowed -n DeveloperTools main.py --noconfirm"

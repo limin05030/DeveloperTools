@@ -46,7 +46,7 @@ app = BUNDLE(
         'CFBundleName': 'DeveloperTools',
         'CFBundleDisplayName': 'Developer Tools',
         'CFBundleShortVersionString': '1.0.3',
-        'CFBundleVersion': '1',
+        'CFBundleVersion': '100',
         'NSHumanReadableCopyright': 'Copyright © 2026 LM. All rights reserved.',
     }
 )
