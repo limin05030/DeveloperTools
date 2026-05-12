@@ -43,6 +43,7 @@ jobs:
           elif [[ "${{ matrix.os }}" == "macos-latest" ]]; then
             ICON="images/app.icns"
             SEP=":"
+            CMD="$CMD -F"
           else  # ubuntu-latest
             ICON="images/app.png"
             SEP=":"
@@ -95,6 +96,17 @@ jobs:
             else
               echo "⚠️ Info.plist not found, skipping version injection"
             fi
+          fi
+
+      - name: Strip debug symbols (macOS only)
+        if: runner.os == 'macOS'
+        run: |
+          # Checks if the executable exists before stripping
+          if [ -f "dist/DeveloperTools.app/Contents/MacOS/DeveloperTools" ]; then
+            strip -S "dist/DeveloperTools.app/Contents/MacOS/DeveloperTools"
+            echo "✅ Successfully stripped debug symbols."
+          else
+            echo "⚠️ Executable not found, skipping strip."
           fi
 
       - name: Upload artifacts
