@@ -84,7 +84,7 @@ jobs:
               /usr/libexec/PlistBuddy -c "Add :CFBundleShortVersionString string $VERSION" "$INFO_PLIST"
             fi
           
-            # CFBundleVersion (可能不存在)
+            # CFBundleVersion
             if /usr/libexec/PlistBuddy -c "Print :CFBundleVersion" "$INFO_PLIST" &>/dev/null; then
               /usr/libexec/PlistBuddy -c "Set :CFBundleVersion 100" "$INFO_PLIST"
             else
@@ -109,22 +109,18 @@ jobs:
             echo "✅ Info.plist updated"
           fi
           
-          # 2. 移除调试符号 (注意：必须在签名之前做)
-          if [ -f "$APP_PATH/Contents/MacOS/DeveloperTools" ]; then
-            strip -S "$APP_PATH/Contents/MacOS/DeveloperTools"
-            echo "✅ Binary stripped"
-          fi
+          # ⚠️ 注意：移除了 strip 命令，因为它会破坏 PyInstaller 的嵌入式 PKG 归档
 
-          # 3. 关键修复：重新执行 Ad-hoc 签名
-          # 由于我们修改了 Info.plist 和二进制文件，必须重新签名否则 macOS 会报“已损坏”
+          # 2. 关键修复：重新执行 Ad-hoc 签名
           echo "🔐 Re-signing app bundle..."
           codesign --force --deep --sign - "$APP_PATH"
           echo "✅ Re-signed successfully"
           
-          # 4. 打包
+          # 3. 打包
           cd dist
           tar -czf ../DeveloperTools-macos.tar.gz DeveloperTools.app
           cd ..
+          echo "✅ Pre-packaged DeveloperTools-macos.tar.gz"
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
