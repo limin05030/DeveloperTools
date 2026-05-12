@@ -97,17 +97,6 @@ jobs:
             fi
           fi
 
-      - name: Strip debug symbols (macOS only)
-        if: runner.os == 'macOS'
-        run: |
-          # Checks if the executable exists before stripping
-          if [ -f "dist/DeveloperTools.app/Contents/MacOS/DeveloperTools" ]; then
-            strip -S "dist/DeveloperTools.app/Contents/MacOS/DeveloperTools"
-            echo "✅ Successfully stripped debug symbols."
-          else
-            echo "⚠️ Executable not found, skipping strip."
-          fi
-
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
