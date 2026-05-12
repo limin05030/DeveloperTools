@@ -106,7 +106,7 @@ jobs:
             cd artifacts/DeveloperTools-macos-latest
 
             # 保险措施：手动确保可执行文件有执行权限
-            #chmod +x DeveloperTools.app/Contents/MacOS/DeveloperTools
+            chmod +x DeveloperTools.app/Contents/MacOS/DeveloperTools
 
             tar -czf DeveloperTools-macos.tar.gz DeveloperTools.app
             rm -rf DeveloperTools.app
