@@ -100,23 +100,26 @@ jobs:
         run: ls -R artifacts
         shell: bash
 
-      - name: Zip macOS app with ditto
+      - name: Package macOS app with tar
+        if: runner.os == 'Linux' && matrix.os == 'macos-latest'
         run: |
           if [ -d "artifacts/DeveloperTools-macos-latest/DeveloperTools.app" ]; then
             # 进入 artifacts 目录
             cd artifacts/DeveloperTools-macos-latest
-            
+
             # 保险措施：手动确保可执行文件有执行权限
             chmod +x DeveloperTools.app/Contents/MacOS/DeveloperTools
-            
-            # 使用 ditto 命令打包，它能保留权限和签名
-            ditto -c -k --keepParent DeveloperTools.app DeveloperTools-macos.zip
-            
+
+            # (1) 使用 tar 归档并压缩，完美保留权限和结构
+            tar -czf DeveloperTools-macos.tar.gz DeveloperTools.app
             # 压缩完成后，可以选择删除原来的 .app 目录以节省空间
-            rm -rf DeveloperTools.app
-            
+            # rm -rf DeveloperTools.app
+
+            # (2) 可选：如果你仍需要 .zip 格式，可以先用 tar 打包成 .tar，再转换成 .zip
+            # 但更推荐直接使用 .tar.gz，macOS 能直接解压
+
             cd ../../
-            echo "✅ 已使用 ditto 打包 macOS 应用: artifacts/DeveloperTools-macos-latest/DeveloperTools-macos.zip"
+            echo "✅ 已使用 tar 打包 macOS 应用: artifacts/DeveloperTools-macos-latest/DeveloperTools-macos.tar.gz"
           else
             echo "⚠️ 未找到 DeveloperTools.app，跳过打包"
           fi
