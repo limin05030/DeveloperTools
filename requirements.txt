@@ -2,13 +2,10 @@ altgraph==0.17.5
 beautifulsoup4==4.14.3
 certifi==2026.4.22
 charset-normalizer==3.4.7
-idna==3.13
 macholib==1.16.4
 packaging==26.2
 pyinstaller==6.20.0
 pyinstaller-hooks-contrib==2026.4
-requests==2.33.1
 setuptools==82.0.1
 soupsieve==2.8.3
 typing_extensions==4.15.0
-urllib3==2.6.3

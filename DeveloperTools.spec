@@ -21,6 +21,7 @@ exe = EXE(
     a.scripts,
     a.binaries,
     a.datas,
+    [],
     name='DeveloperTools',
     debug=False,
     bootloader_ignore_signals=False,
