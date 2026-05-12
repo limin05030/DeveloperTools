@@ -79,6 +79,18 @@ jobs:
         run: ls -R artifacts
         shell: bash
 
+      - name: Zip macOS app
+        run: |
+          if [ -d "artifacts/DeveloperTools-macos-latest/DeveloperTools.app" ]; then
+            cd artifacts/DeveloperTools-macos-latest
+            zip -r DeveloperTools-macos.zip DeveloperTools.app
+            cd ../../
+            echo "✅ 已打包 macOS 应用: artifacts/DeveloperTools-macos-latest/DeveloperTools-macos.zip"
+          else
+            echo "⚠️ 未找到 DeveloperTools.app，跳过打包"
+          fi
+        shell: bash
+
       - name: Create GitHub Release and upload assets
         uses: softprops/action-gh-release@v2
         with:
@@ -90,4 +102,7 @@ jobs:
 #            - 使用 PyInstaller 打包，无需额外安装 Python
 #            - 更多信息请查看 [README]
           files: |
-            artifacts/**/DeveloperTools*
+            artifacts/DeveloperTools-windows-latest/DeveloperTools.exe
+            artifacts/DeveloperTools-ubuntu-latest/DeveloperTools
+            artifacts/DeveloperTools-macos-latest/DeveloperTools-macos.zip
+          fail_on_unmatched_files: true   # 如果任一文件不存在，发布步骤将失败
