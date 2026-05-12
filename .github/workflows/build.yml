@@ -63,10 +63,34 @@ jobs:
             VERSION="${{ github.event.inputs.version || github.ref_name }}"
             VERSION=${VERSION#v}
             if [ -f "$INFO_PLIST" ]; then
-              /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $VERSION" "$INFO_PLIST"
-              /usr/libexec/PlistBuddy -c "Set :CFBundleVersion 100" "$INFO_PLIST"
-              /usr/libexec/PlistBuddy -c "Set :NSHumanReadableCopyright 'Copyright © 2026 LM. All rights reserved.'" "$INFO_PLIST"
-              /usr/libexec/PlistBuddy -c "Set :CFBundleDisplayName 'Developer Tools'" "$INFO_PLIST"
+              # CFBundleShortVersionString
+              if /usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "$INFO_PLIST" &>/dev/null; then
+                /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $VERSION" "$INFO_PLIST"
+              else
+                /usr/libexec/PlistBuddy -c "Add :CFBundleShortVersionString string $VERSION" "$INFO_PLIST"
+              fi
+            
+              # CFBundleVersion (可能不存在)
+              if /usr/libexec/PlistBuddy -c "Print :CFBundleVersion" "$INFO_PLIST" &>/dev/null; then
+                /usr/libexec/PlistBuddy -c "Set :CFBundleVersion 100" "$INFO_PLIST"
+              else
+                /usr/libexec/PlistBuddy -c "Add :CFBundleVersion string 100" "$INFO_PLIST"
+              fi
+            
+              # NSHumanReadableCopyright
+              COPYRIGHT="Copyright © 2026 LM. All rights reserved."
+              if /usr/libexec/PlistBuddy -c "Print :NSHumanReadableCopyright" "$INFO_PLIST" &>/dev/null; then
+                /usr/libexec/PlistBuddy -c "Set :NSHumanReadableCopyright '$COPYRIGHT'" "$INFO_PLIST"
+              else
+                /usr/libexec/PlistBuddy -c "Add :NSHumanReadableCopyright string '$COPYRIGHT'" "$INFO_PLIST"
+              fi
+            
+              # CFBundleDisplayName
+              if /usr/libexec/PlistBuddy -c "Print :CFBundleDisplayName" "$INFO_PLIST" &>/dev/null; then
+                /usr/libexec/PlistBuddy -c "Set :CFBundleDisplayName 'Developer Tools'" "$INFO_PLIST"
+              else
+                /usr/libexec/PlistBuddy -c "Add :CFBundleDisplayName string 'Developer Tools'" "$INFO_PLIST"
+              fi
               echo "✅ Info.plist updated with version $VERSION"
             else
               echo "⚠️ Info.plist not found, skipping version injection"
