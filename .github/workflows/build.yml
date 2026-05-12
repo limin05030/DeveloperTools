@@ -23,7 +23,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.12.13'
+          python-version: '3.12'
 
       - name: Install dependencies
         run: |
@@ -32,7 +32,31 @@ jobs:
           pip install pyinstaller
 
       - name: Build with PyInstaller
-        run: pyinstaller --windowed --icon=images/app.icns --add-data "images:images" -F -n DeveloperTools main.py --noconfirm
+        shell: bash
+        run: |
+          CMD="pyinstaller --windowed -n DeveloperTools main.py --noconfirm"
+          
+          if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
+            ICON="images/app.ico"
+            SEP=";"
+            CMD="$CMD -F"
+          elif [[ "${{ matrix.os }}" == "macos-latest" ]]; then
+            ICON="images/app.icns"
+            SEP=":"
+          else  # ubuntu-latest
+            ICON="images/app.png"
+            SEP=":"
+            CMD="$CMD -F"
+          fi
+          
+          if [[ -n "$ICON" ]]; then
+            CMD="$CMD --icon=$ICON"
+          fi
+          
+          CMD="$CMD --add-data \"images${SEP}images\""
+          
+          echo "Running: $CMD"
+          eval $CMD
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
