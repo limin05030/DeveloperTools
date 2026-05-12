@@ -34,21 +34,22 @@ jobs:
       - name: Build with PyInstaller
         shell: bash
         run: |
-          CMD="pyinstaller --windowed -n DeveloperTools main.py --noconfirm"
-          
           if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
             ICON="images/app.ico"
             SEP=";"
-            CMD="$CMD -F"
+            PYINSTALLER_OPTS="-F"
           elif [[ "${{ matrix.os }}" == "macos-latest" ]]; then
             ICON="images/app.icns"
             SEP=":"
-            CMD="$CMD -F"
+            # macOS 不使用 -F，以保证 .app 束结构完整和依赖收集准确
+            PYINSTALLER_OPTS=""
           else  # ubuntu-latest
             ICON="images/app.png"
             SEP=":"
-            CMD="$CMD -F"
+            PYINSTALLER_OPTS="-F"
           fi
+          
+          CMD="pyinstaller --windowed -n DeveloperTools main.py --noconfirm $PYINSTALLER_OPTS"
           
           if [[ -n "$ICON" ]]; then
             CMD="$CMD --icon=$ICON"
@@ -58,62 +59,43 @@ jobs:
           
           echo "Running: $CMD"
           eval $CMD
-          
-          if [[ "${{ matrix.os }}" == "macos-latest" ]]; then
-            INFO_PLIST="dist/DeveloperTools.app/Contents/Info.plist"
-            VERSION="${{ github.event.inputs.version || github.ref_name }}"
-            VERSION=${VERSION#v}
-            if [ -f "$INFO_PLIST" ]; then
-              # CFBundleShortVersionString
-              if /usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "$INFO_PLIST" &>/dev/null; then
-                /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $VERSION" "$INFO_PLIST"
-              else
-                /usr/libexec/PlistBuddy -c "Add :CFBundleShortVersionString string $VERSION" "$INFO_PLIST"
-              fi
-            
-              # CFBundleVersion (可能不存在)
-              if /usr/libexec/PlistBuddy -c "Print :CFBundleVersion" "$INFO_PLIST" &>/dev/null; then
-                /usr/libexec/PlistBuddy -c "Set :CFBundleVersion 100" "$INFO_PLIST"
-              else
-                /usr/libexec/PlistBuddy -c "Add :CFBundleVersion string 100" "$INFO_PLIST"
-              fi
-            
-              # NSHumanReadableCopyright
-              COPYRIGHT="Copyright © 2026 LM. All rights reserved."
-              if /usr/libexec/PlistBuddy -c "Print :NSHumanReadableCopyright" "$INFO_PLIST" &>/dev/null; then
-                /usr/libexec/PlistBuddy -c "Set :NSHumanReadableCopyright '$COPYRIGHT'" "$INFO_PLIST"
-              else
-                /usr/libexec/PlistBuddy -c "Add :NSHumanReadableCopyright string '$COPYRIGHT'" "$INFO_PLIST"
-              fi
-            
-              # CFBundleDisplayName
-              if /usr/libexec/PlistBuddy -c "Print :CFBundleDisplayName" "$INFO_PLIST" &>/dev/null; then
-                /usr/libexec/PlistBuddy -c "Set :CFBundleDisplayName 'Developer Tools'" "$INFO_PLIST"
-              else
-                /usr/libexec/PlistBuddy -c "Add :CFBundleDisplayName string 'Developer Tools'" "$INFO_PLIST"
-              fi
-              echo "✅ Info.plist updated with version $VERSION"
-            else
-              echo "⚠️ Info.plist not found, skipping version injection"
-            fi
-          fi
 
-      - name: Strip debug symbols (macOS only)
-        if: runner.os == 'macOS'
+      - name: Post-build (macOS only)
+        if: matrix.os == 'macos-latest'
+        shell: bash
         run: |
-          # Checks if the executable exists before stripping
+          VERSION="${{ github.event.inputs.version || github.ref_name }}"
+          VERSION=${VERSION#v}
+          INFO_PLIST="dist/DeveloperTools.app/Contents/Info.plist"
+          
+          if [ -f "$INFO_PLIST" ]; then
+            /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $VERSION" "$INFO_PLIST" || /usr/libexec/PlistBuddy -c "Add :CFBundleShortVersionString string $VERSION" "$INFO_PLIST"
+            /usr/libexec/PlistBuddy -c "Set :CFBundleVersion 100" "$INFO_PLIST" || /usr/libexec/PlistBuddy -c "Add :CFBundleVersion string 100" "$INFO_PLIST"
+            COPYRIGHT=\"Copyright © 2026 LM. All rights reserved.\"
+            /usr/libexec/PlistBuddy -c "Set :NSHumanReadableCopyright '$COPYRIGHT'" "$INFO_PLIST" || /usr/libexec/PlistBuddy -c "Add :NSHumanReadableCopyright string '$COPYRIGHT'" "$INFO_PLIST"
+            /usr/libexec/PlistBuddy -c "Set :CFBundleDisplayName 'Developer Tools'" "$INFO_PLIST" || /usr/libexec/PlistBuddy -c "Add :CFBundleDisplayName string 'Developer Tools'" "$INFO_PLIST"
+            echo "✅ Info.plist updated"
+          fi
+          
+          # 移除调试符号
           if [ -f "dist/DeveloperTools.app/Contents/MacOS/DeveloperTools" ]; then
             strip -S "dist/DeveloperTools.app/Contents/MacOS/DeveloperTools"
-            echo "✅ Successfully stripped debug symbols."
-          else
-            echo "⚠️ Executable not found, skipping strip."
           fi
+          
+          # 在 macOS 运行器上直接打包，保留权限和 App 结构
+          cd dist
+          tar -czf ../DeveloperTools-macos.tar.gz DeveloperTools.app
+          cd ..
+          echo "✅ Pre-packaged DeveloperTools-macos.tar.gz"
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: DeveloperTools-${{ matrix.os }}
-          path: dist/
+          path: |
+            dist/DeveloperTools.exe
+            dist/DeveloperTools
+            DeveloperTools-macos.tar.gz
 
   release:
     needs: build
@@ -126,26 +108,17 @@ jobs:
         with:
           path: artifacts
 
-      - name: Display structure of downloaded files (调试用)
-        run: ls -R artifacts
-        shell: bash
-
-      - name: Package macOS app with tar
+      - name: Prepare Assets for Release
         run: |
-          if [ -d "artifacts/DeveloperTools-macos-latest/DeveloperTools.app" ]; then
-            cd artifacts/DeveloperTools-macos-latest
-
-            # 保险措施：手动确保可执行文件有执行权限
-            chmod +x DeveloperTools.app/Contents/MacOS/DeveloperTools
-
-            tar -czf DeveloperTools-macos.tar.gz DeveloperTools.app
-            rm -rf DeveloperTools.app
-
-            cd ../../
-            echo "✅ package: artifacts/DeveloperTools-macos-latest/DeveloperTools-macos.tar.gz"
-          else
-            echo "⚠️ Not found DeveloperTools.app，package skip"
-          fi
+          mkdir -p release_assets
+          # Windows
+          [ -f artifacts/DeveloperTools-windows-latest/DeveloperTools.exe ] && cp artifacts/DeveloperTools-windows-latest/DeveloperTools.exe release_assets/
+          # Linux
+          [ -f artifacts/DeveloperTools-ubuntu-latest/DeveloperTools ] && cp artifacts/DeveloperTools-ubuntu-latest/DeveloperTools release_assets/
+          # macOS (已经是 tar.gz)
+          [ -f artifacts/DeveloperTools-macos-latest/DeveloperTools-macos.tar.gz ] && cp artifacts/DeveloperTools-macos-latest/DeveloperTools-macos.tar.gz release_assets/
+          
+          ls -R release_assets
         shell: bash
 
       - name: Create GitHub Release and upload assets
@@ -153,13 +126,5 @@ jobs:
         with:
           tag_name: ${{ github.event.inputs.version || github.ref_name }}
           name: Release ${{ github.event.inputs.version || github.ref_name }}
-#          body: |
-#            ## 自动构建的发布包
-#            - 支持 Windows、Linux、macOS
-#            - 使用 PyInstaller 打包，无需额外安装 Python
-#            - 更多信息请查看 [README]
-          files: |
-            artifacts/DeveloperTools-windows-latest/DeveloperTools.exe
-            artifacts/DeveloperTools-ubuntu-latest/DeveloperTools
-            artifacts/DeveloperTools-macos-latest/DeveloperTools-macos.tar.gz
-          fail_on_unmatched_files: true   # 如果任一文件不存在，发布步骤将失败
+          files: release_assets/*
+          fail_on_unmatched_files: true
