@@ -123,10 +123,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: DeveloperTools-${{ matrix.os }}
-          path: |
-            dist/DeveloperTools.exe
-            dist/DeveloperTools
-            DeveloperTools-macos.tar.gz
+          path: ${{ matrix.out_path }}
 
   release:
       needs: build
@@ -142,13 +139,7 @@ jobs:
         - name: Prepare Assets for Release
           run: |
             mkdir -p release_assets
-            # Windows
-            [ -f artifacts/DeveloperTools-windows-latest/DeveloperTools.exe ] && cp artifacts/DeveloperTools-windows-latest/DeveloperTools.exe release_assets/
-            # Linux
-            [ -f artifacts/DeveloperTools-ubuntu-latest/DeveloperTools ] && cp artifacts/DeveloperTools-ubuntu-latest/DeveloperTools release_assets/
-            # macOS (已经是 tar.gz)
-            [ -f artifacts/DeveloperTools-macos-latest/DeveloperTools-macos.tar.gz ] && cp artifacts/DeveloperTools-macos-latest/DeveloperTools-macos.tar.gz release_assets/
-            
+            find artifacts -type f \( -name "DeveloperTools.exe" -o -name "DeveloperTools" -o -name "*.tar.gz" \) -exec cp {} release_assets/ \;
             ls -R release_assets
           shell: bash
 
