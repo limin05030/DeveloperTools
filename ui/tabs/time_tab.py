@@ -1,137 +1,153 @@
 # -*- coding: utf-8 -*-
-# Author: sens
-# Date: 2026/05/12 14:20
-
-import tkinter as tk
-from tkinter import ttk, messagebox
+import wx
 import time
-from datetime import datetime
-from utils.common import get_system_tz_str, get_timezone_from_var, copy_to_clipboard
+from datetime import datetime, timezone, timedelta
+from ui.tabs.base_tab import BaseTab
+from ui.styles import ThemeManager
+from utils.common import get_system_tz_str
 
-class TimeTab:
-    """时间戳转换标签页"""
-    def __init__(self, parent, root):
-        self.parent = parent
-        self.root = root
+class TimeTab(BaseTab):
+
+    def __init__(self, parent):
+        super(TimeTab, self).__init__(parent)
         self.APPLE_OFFSET = 978307200
-        
-        # UI 变量
-        self.cur_tz_var = tk.StringVar(value=get_system_tz_str())
-        self.cur_time_var = tk.StringVar()
-        self.cur_ts_var = tk.StringVar()
-        
+        self.cur_tz_cb = None
+        self.cur_time_ctrl = None
+        self.cur_ts_ctrl = None
         self.ts_input = None
-        self.date_output = tk.StringVar()
-        self.t2d_tz_var = tk.StringVar(value=get_system_tz_str())
-        self.t2d_ios_var = tk.BooleanVar(value=False)
-        
+        self.date_output = None
+        self.t2d_tz_cb = None
+        self.t2d_ios_chk = None
         self.date_input = None
-        self.ts_output = tk.StringVar()
-        self.d2t_tz_var = tk.StringVar(value=get_system_tz_str())
-        self.d2t_ios_var = tk.BooleanVar(value=False)
+        self.ts_output = None
+        self.d2t_tz_cb = None
+        self.d2t_ios_chk = None
         
-        self._setup_ui()
-        self.update_clock()
+        self._init_ui()
+        self._on_update_clock(None)
+        ThemeManager.apply_theme(self)
 
-    def _setup_ui(self):
+    def _init_ui(self):
+        main_sizer = wx.BoxSizer(wx.VERTICAL)
         tz_values = [f"UTC{i:+d}" for i in range(-12, 15)]
-        
-        # 1. 当前时间面板
-        cur_frame = ttk.LabelFrame(self.parent, text="当前时间")
-        cur_frame.pack(fill="x", padx=10, pady=10)
-        
-        row1 = ttk.Frame(cur_frame)
-        row1.pack(fill="x", padx=10, pady=5)
-        ttk.Label(row1, text="显示时区:").pack(side="left")
-        cb = ttk.Combobox(row1, textvariable=self.cur_tz_var, values=tz_values, width=8, state="readonly")
-        cb.pack(side="left", padx=5)
-        ttk.Button(row1, text="刷新", command=self.update_clock).pack(side="left", padx=10)
-        
-        row2 = ttk.Frame(cur_frame)
-        row2.pack(fill="x", padx=10, pady=5)
-        ttk.Label(row2, text="当前时间:").pack(side="left")
-        # 增加 width 到 25 以适应毫秒显示
-        ttk.Entry(row2, textvariable=self.cur_time_var, state="readonly", font=("Courier", 11, "bold"), width=24).pack(side="left", padx=5)
-        ttk.Button(row2, text="复制", width=6, command=lambda: copy_to_clipboard(self.root, self.cur_time_var.get())).pack(side="left")
-        
-        ttk.Label(row2, text="  时间戳（毫秒）:").pack(side="left", padx=(15, 0))
-        ttk.Entry(row2, textvariable=self.cur_ts_var, state="readonly", font=("Courier", 11, "bold"), width=14).pack(side="left", padx=5)
-        ttk.Button(row2, text="复制", width=6, command=lambda: copy_to_clipboard(self.root, self.cur_ts_var.get())).pack(side="left")
 
-        # 2. 时间戳 -> 时间
-        t2d_frame = ttk.LabelFrame(self.parent, text="时间戳 -> 时间转换")
-        t2d_frame.pack(fill="x", padx=10, pady=10)
+        # 当前时间
+        cur_card, cur_content = self._create_card_sizer(self, "当前时间戳")
+        r1 = wx.BoxSizer(wx.HORIZONTAL)
+        r1.Add(self._create_label(self, "时区:"), 0, wx.CENTER | wx.RIGHT, 10)
+        self.cur_tz_cb = wx.ComboBox(self, value=get_system_tz_str(), choices=tz_values, style=wx.CB_READONLY)
+        r1.Add(self.cur_tz_cb, 0, wx.CENTER)
+        refresh_btn = wx.Button(self, label="刷新", size=wx.Size(80, 32))
+        refresh_btn.Bind(wx.EVT_BUTTON, self._on_update_clock)
+        r1.Add(refresh_btn, 0, wx.LEFT, 15)
+        cur_content.Add(r1, 0, wx.EXPAND | wx.BOTTOM, 15)
         
-        r1 = ttk.Frame(t2d_frame)
-        r1.pack(fill="x", padx=10, pady=2)
-        ttk.Label(r1, text="目标时区:").pack(side="left")
-        ttk.Combobox(r1, textvariable=self.t2d_tz_var, values=tz_values, width=8, state="readonly").pack(side="left", padx=5)
-        ttk.Checkbutton(r1, text="iOS格式 (2001起始)", variable=self.t2d_ios_var).pack(side="left", padx=10)
+        r2 = wx.BoxSizer(wx.HORIZONTAL)
+        r2.Add(self._create_label(self, "本地时间:"), 0, wx.CENTER | wx.RIGHT, 10)
+        # 移除固定高度，由 Sizer 的 wx.CENTER 处理垂直居中
+        self.cur_time_ctrl = wx.TextCtrl(self, style=wx.TE_READONLY, size=wx.Size(220, -1))
+        self.cur_time_ctrl.SetFont(ThemeManager.get_mono_font(12))
+        r2.Add(self.cur_time_ctrl, 0, wx.CENTER)
+        copy_t_btn = wx.Button(self, label="复制", size=wx.Size(60, 32))
+        copy_t_btn.Bind(wx.EVT_BUTTON, lambda e: self._on_copy(self.cur_time_ctrl))
+        r2.Add(copy_t_btn, 0, wx.LEFT | wx.CENTER, 10)
         
-        r2 = ttk.Frame(t2d_frame)
-        r2.pack(fill="x", padx=5, pady=5)
-        self.ts_input = ttk.Entry(r2, font=("Arial", 11))
-        self.ts_input.pack(side="left", padx=5, expand=True, fill="x")
-        ttk.Button(r2, text="转换", command=self.ts_to_date).pack(side="left")
-        ttk.Entry(r2, textvariable=self.date_output, state="readonly", font=("Courier", 11, "bold")).pack(side="left", padx=5, expand=True, fill="x")
+        r2.AddSpacer(30)
+        r2.Add(self._create_label(self, "时间戳:"), 0, wx.CENTER | wx.RIGHT, 10)
+        self.cur_ts_ctrl = wx.TextCtrl(self, style=wx.TE_READONLY, size=wx.Size(140, -1))
+        self.cur_ts_ctrl.SetFont(ThemeManager.get_mono_font(12))
+        r2.Add(self.cur_ts_ctrl, 0, wx.CENTER)
+        copy_ts_btn = wx.Button(self, label="复制", size=wx.Size(60, 32))
+        copy_ts_btn.Bind(wx.EVT_BUTTON, lambda e: self._on_copy(self.cur_ts_ctrl))
+        r2.Add(copy_ts_btn, 0, wx.LEFT | wx.CENTER, 10)
+        cur_content.Add(r2, 0, wx.EXPAND | wx.BOTTOM, 15)
+        main_sizer.Add(cur_card, 0, wx.EXPAND | wx.ALL, 15)
 
-        # 3. 时间 -> 时间戳
-        d2t_frame = ttk.LabelFrame(self.parent, text="时间 -> 时间戳转换")
-        d2t_frame.pack(fill="x", padx=10, pady=10)
-        
-        r3 = ttk.Frame(d2t_frame)
-        r3.pack(fill="x", padx=10, pady=2)
-        ttk.Label(r3, text="输入时区:").pack(side="left")
-        ttk.Combobox(r3, textvariable=self.d2t_tz_var, values=tz_values, width=8, state="readonly").pack(side="left", padx=5)
-        ttk.Checkbutton(r3, text="iOS格式 (2001起始)", variable=self.d2t_ios_var).pack(side="left", padx=10)
-        
-        r4 = ttk.Frame(d2t_frame)
-        r4.pack(fill="x", padx=5, pady=5)
-        self.date_input = ttk.Entry(r4, font=("Arial", 11))
-        self.date_input.insert(0, datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
-        self.date_input.pack(side="left", padx=5, expand=True, fill="x")
-        ttk.Button(r4, text="转换", command=self.date_to_ts).pack(side="left")
-        ttk.Entry(r4, textvariable=self.ts_output, state="readonly", font=("Courier", 11, "bold")).pack(side="left", padx=5, expand=True, fill="x")
+        # 转换器
+        panels_cfg = [
+            ("时间戳 转 日期", "转换", self._on_ts_to_date, "ts_input", "date_output", "t2d_tz_cb", "t2d_ios_chk"),
+            ("日期 转 时间戳", "转换", self._on_date_to_ts, "date_input", "ts_output", "d2t_tz_cb", "d2t_ios_chk")
+        ]
 
-    def update_clock(self):
+        for label, btn_lbl, handler, input_attr, output_attr, tz_attr, ios_attr in panels_cfg:
+            card, content = self._create_card_sizer(self, label)
+
+            r_top = wx.BoxSizer(wx.HORIZONTAL)
+            r_top.Add(self._create_label(self, "时区:"), 0, wx.CENTER | wx.RIGHT, 10)
+
+            cb = wx.ComboBox(self, value=get_system_tz_str(), choices=tz_values, style=wx.CB_READONLY)
+            setattr(self, tz_attr, cb)
+            r_top.Add(cb, 0, wx.CENTER)
+
+            chk = wx.CheckBox(self, label="iOS 格式 (自 2001 年起)")
+            setattr(self, ios_attr, chk)
+            r_top.Add(chk, 0, wx.CENTER | wx.LEFT, 25)
+            content.Add(r_top, 0, wx.EXPAND | wx.BOTTOM, 10)
+
+            r_mid = wx.BoxSizer(wx.HORIZONTAL)
+
+            in_ctrl = wx.TextCtrl(self)
+            setattr(self, input_attr, in_ctrl)
+            r_mid.Add(in_ctrl, 1, wx.CENTER | wx.RIGHT, 10)
+
+            btn = wx.Button(self, label=btn_lbl, size=wx.Size(80, 36))
+            btn.Bind(wx.EVT_BUTTON, handler)
+            r_mid.Add(btn, 0, wx.CENTER | wx.RIGHT, 10)
+
+            out_ctrl = wx.TextCtrl(self, style=wx.TE_READONLY)
+            out_ctrl.SetFont(ThemeManager.get_mono_font(12))
+            setattr(self, output_attr, out_ctrl)
+            r_mid.Add(out_ctrl, 1, wx.CENTER | wx.RIGHT, 20)
+
+            content.Add(r_mid, 0, wx.EXPAND | wx.BOTTOM, 10)
+            main_sizer.Add(card, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 15)
+
+        self.date_input.SetValue(datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+        self.SetSizer(main_sizer)
+
+    def _on_update_clock(self, e):
         now = time.time()
-        self.cur_ts_var.set(str(int(now * 1000)))
-        tz = get_timezone_from_var(self.cur_tz_var)
-        # 关键修改：增加 .%f 并截取前 3 位毫秒
+        self.cur_ts_ctrl.SetValue(str(int(now * 1000)))
+        tz_str = self.cur_tz_cb.GetValue()
+        offset = int(tz_str.replace("UTC", ""))
+        tz = timezone(timedelta(hours=offset))
         dt_str = datetime.fromtimestamp(now, tz=tz).strftime("%Y-%m-%d %H:%M:%S.%f")
-        self.cur_time_var.set(dt_str[:-3])
+        self.cur_time_ctrl.SetValue(dt_str[:-3])
 
-    def ts_to_date(self):
-        try:
-            val = self.ts_input.get().strip()
+    def _on_copy(self, ctrl):
+        val = ctrl.GetValue().strip()
+        if val and wx.TheClipboard.Open():
+            wx.TheClipboard.SetData(wx.TextDataObject(val))
+            wx.TheClipboard.Close()
+
+    def _on_ts_to_date(self, e):
+        def _conv():
+            val = self.ts_input.GetValue().strip()
             ts = float(val)
-            if self.t2d_ios_var.get(): ts += self.APPLE_OFFSET
-            show_ms = False
-            if ts > 10**11: # 毫秒
-                ts /= 1000.0
-                show_ms = True
-            elif "." in val: show_ms = True
-            
-            tz = get_timezone_from_var(self.t2d_tz_var)
+            if self.t2d_ios_chk.IsChecked(): ts += self.APPLE_OFFSET
+            show_ms = ts > 10**11 or "." in val
+            if ts > 10**11: ts /= 1000.0
+            tz_str = self.t2d_tz_cb.GetValue()
+            offset = int(tz_str.replace("UTC", ""))
+            tz = timezone(timedelta(hours=offset))
             dt = datetime.fromtimestamp(ts, tz=tz)
             fmt = "%Y-%m-%d %H:%M:%S.%f" if show_ms else "%Y-%m-%d %H:%M:%S"
             res = dt.strftime(fmt)
-            self.date_output.set(res[:-3] if show_ms else res)
-        except Exception:
-            messagebox.showerror("错误", "无效的时间戳格式")
+            return res[:-3] if show_ms else res
+        self._safe_exec(_conv, self.date_output)
 
-    def date_to_ts(self):
-        try:
-            dt_str = self.date_input.get().strip()
+    def _on_date_to_ts(self, e):
+        def _conv():
+            dt_str = self.date_input.GetValue().strip()
             fmt = "%Y-%m-%d %H:%M:%S.%f" if "." in dt_str else "%Y-%m-%d %H:%M:%S"
             dt = datetime.strptime(dt_str, fmt)
-            tz = get_timezone_from_var(self.d2t_tz_var)
+            tz_str = self.d2t_tz_cb.GetValue()
+            offset = int(tz_str.replace("UTC", ""))
+            tz = timezone(timedelta(hours=offset))
             unix_ts = dt.replace(tzinfo=tz).timestamp()
-            
-            if self.d2t_ios_var.get():
+            if self.d2t_ios_chk.IsChecked():
                 unix_ts -= self.APPLE_OFFSET
-                self.ts_output.set(f"{unix_ts:.3f}".rstrip('0').rstrip('.'))
+                return f"{unix_ts:.3f}".rstrip('0').rstrip('.')
             else:
-                self.ts_output.set(str(int(unix_ts * 1000)) if "." in dt_str else str(int(unix_ts)))
-        except Exception:
-            messagebox.showerror("错误", "日期格式不正确")
+                return str(int(unix_ts * 1000)) if "." in dt_str else str(int(unix_ts))
+        self._safe_exec(_conv, self.ts_output)

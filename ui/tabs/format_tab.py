@@ -1,155 +1,141 @@
 # -*- coding: utf-8 -*-
-# Author: sens
-# Date: 2026/05/12 15:30
-
-import tkinter as tk
-from tkinter import ttk, messagebox, filedialog
+import wx
 import json
 import re
 import os
 from bs4 import BeautifulSoup
-from ui.styles import StyleManager
-from utils.common import copy_to_clipboard
+from ui.tabs.base_tab import BaseTab
+from ui.styles import ThemeManager
 
-class FormatTab:
-    """数据格式化标签页：JSON, HTML/XML, JS/TS"""
-    def __init__(self, parent, root):
-        self.parent = parent
-        self.root = root
-        self.format_mode_tabs = None
-        self.format_input = None
-        self.format_file_path = None
-        self.format_output = None
-        self._setup_ui()
-
-    def _setup_ui(self):
-        text_style = StyleManager.get_text_area_style()
+class FormatTab(BaseTab):
+    def __init__(self, parent):
+        super(FormatTab, self).__init__(parent)
+        self.nb = None
+        self.txt_panel = None
+        self.input_ctrl = None
+        self.file_panel = None
+        self.file_path_ctrl = None
+        self.output_ctrl = None
         
-        self.format_mode_tabs = ttk.Notebook(self.parent)
-        fmt_sub_text = ttk.Frame(self.format_mode_tabs)
-        fmt_sub_file = ttk.Frame(self.format_mode_tabs)
-        self.format_mode_tabs.add(fmt_sub_text, text="文本模式")
-        self.format_mode_tabs.add(fmt_sub_file, text="文件模式")
-        self.format_mode_tabs.pack(fill="x", padx=0, pady=5)
+        self._init_ui()
+        ThemeManager.apply_theme(self)
 
-        # 文本模式输入
-        self.format_input = tk.Text(fmt_sub_text, height=10, **text_style)
-        self.format_input.pack(fill="x", padx=5, pady=5)
-        ttk.Button(fmt_sub_text, text="清空输入", command=lambda: self.format_input.delete("1.0", tk.END)).pack(side="right", padx=5)
+    def _init_ui(self):
+        main_sizer = wx.BoxSizer(wx.VERTICAL)
+        self.nb = wx.Notebook(self)
+        
+        # 文本模式
+        self.txt_panel = wx.Panel(self.nb)
+        txt_sizer = wx.BoxSizer(wx.VERTICAL)
+        self.input_ctrl = wx.TextCtrl(self.txt_panel, style=wx.TE_MULTILINE, size=wx.Size(-1, 150))
+        self.input_ctrl.SetFont(ThemeManager.get_font(12))
+        self._apply_focus_effect(self.input_ctrl)
+        txt_sizer.Add(self.input_ctrl, 1, wx.EXPAND | wx.ALL, 15)
+        clear_in_btn = wx.Button(self.txt_panel, label="清空输入")
+        clear_in_btn.Bind(wx.EVT_BUTTON, lambda e: self.input_ctrl.Clear())
+        txt_sizer.Add(clear_in_btn, 0, wx.ALIGN_RIGHT | wx.RIGHT | wx.BOTTOM, 15)
+        self.txt_panel.SetSizer(txt_sizer)
+        
+        # 文件模式
+        self.file_panel = wx.Panel(self.nb)
+        file_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        lbl = self._create_label(self.file_panel, "路径:")
+        file_sizer.Add(lbl, 0, wx.CENTER | wx.LEFT, 15)
+        # 移除固定高度
+        self.file_path_ctrl = wx.TextCtrl(self.file_panel)
+        file_sizer.Add(self.file_path_ctrl, 1, wx.CENTER | wx.ALL, 15)
+        browse_btn = wx.Button(self.file_panel, label="选择文件")
+        browse_btn.Bind(wx.EVT_BUTTON, self._on_browse)
+        file_sizer.Add(browse_btn, 0, wx.CENTER | wx.RIGHT, 15)
+        self.file_panel.SetSizer(file_sizer)
 
-        # 文件模式输入
-        fmt_file_frame = ttk.Frame(fmt_sub_file)
-        fmt_file_frame.pack(fill="x", padx=5, pady=25)
-        ttk.Label(fmt_file_frame, text="文件路径:").pack(side="left")
-        self.format_file_path = ttk.Entry(fmt_file_frame, font=("Arial", 11))
-        self.format_file_path.pack(side="left", padx=5, expand=True, fill="x")
-        ttk.Button(fmt_file_frame, text="选择文件", command=self.select_file).pack(side="left")
+        self.nb.AddPage(self.txt_panel, "文本模式")
+        self.nb.AddPage(self.file_panel, "文件模式")
+        main_sizer.Add(self.nb, 0, wx.EXPAND | wx.ALL, 15)
 
         # 按钮区
-        btn_frame = ttk.Frame(self.parent)
-        btn_frame.pack(fill="x", padx=10, pady=0)
+        btn_sizer = wx.GridSizer(1, 6, 10, 10)
         btns = [
-            ("JSON 格式化", self.json_format), ("JSON 压缩", self.json_compress),
-            ("HTML/XML 格式化", self.html_xml_format), ("JS/TS 格式化", self.js_ts_format),
-            ("JS/TS 压缩", self.js_ts_compress)
+            ("JSON 格式化", self._json_format), ("JSON 压缩", self._json_compress),
+            ("HTML/XML 美化", self._html_xml_format), ("JS/TS 格式化", self._js_ts_format)
         ]
-        for i, (t, c) in enumerate(btns):
-            btn = ttk.Button(btn_frame, text=t, command=c)
-            btn.grid(row=i//6, column=i%6, padx=5, pady=2, sticky="ew")
+        for label, handler in btns:
+            btn = wx.Button(self, label=label)
+            btn.Bind(wx.EVT_BUTTON, handler)
+            btn_sizer.Add(btn, 0, wx.EXPAND)
+        main_sizer.Add(btn_sizer, 0, wx.EXPAND | wx.LEFT | wx.RIGHT, 25)
 
-        # 结果区（带滚动条）
-        res_frame = ttk.LabelFrame(self.parent, text="格式化结果")
-        res_frame.pack(fill="both", expand=True, padx=10, pady=15)
+        # 结果区
+        res_card, res_content = self._create_card_sizer(self, "美化结果")
+        self.output_ctrl = wx.TextCtrl(self, style=wx.TE_MULTILINE | wx.TE_DONTWRAP | wx.TE_READONLY)
+        self.output_ctrl.SetFont(ThemeManager.get_mono_font(12))
+        self._apply_focus_effect(self.output_ctrl)
+        res_content.Add(self.output_ctrl, 1, wx.EXPAND | wx.RIGHT, 20)
         
-        container = ttk.Frame(res_frame)
-        container.pack(fill="both", expand=True, padx=5, pady=5)
-        
-        res_style = text_style.copy()
-        res_style.update({
-            "font": ("Courier", 11),
-            "wrap": "none",
-            "padx": 5,  # 水平内边距
-            "pady": 5   # 垂直内边距
-        })
-        self.format_output = tk.Text(container, **res_style)
-        v_scroll = ttk.Scrollbar(container, orient="vertical", command=self.format_output.yview)
-        h_scroll = ttk.Scrollbar(container, orient="horizontal", command=self.format_output.xview)
-        self.format_output.configure(xscrollcommand=h_scroll.set, yscrollcommand=v_scroll.set)
-        
-        v_scroll.pack(side="right", fill="y")
-        h_scroll.pack(side="bottom", fill="x")
-        self.format_output.pack(side="left", fill="both", expand=True)
-        
-        ttk.Button(res_frame, text="复制结果", 
-                   command=lambda: copy_to_clipboard(self.root, self.format_output.get("1.0", tk.END).strip())).pack(pady=5)
+        copy_btn = wx.Button(self, label="复制到剪贴板", size=wx.Size(180, 40))
+        copy_btn.Bind(wx.EVT_BUTTON, self._on_copy)
+        res_content.Add(copy_btn, 0, wx.ALIGN_LEFT | wx.TOP | wx.BOTTOM, 15)
+        main_sizer.Add(res_card, 1, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP, 10)
 
-    def select_file(self):
-        path = filedialog.askopenfilename(parent=self.root)
-        if path:
-            self.format_file_path.delete(0, tk.END)
-            self.format_file_path.insert(0, path)
+        self.SetSizer(main_sizer)
 
-    def _get_input(self):
-        mode = self.format_mode_tabs.index(self.format_mode_tabs.select())
+    def _on_browse(self, e):
+        with wx.FileDialog(self, "选择文件", style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST) as fd:
+            if fd.ShowModal() == wx.ID_OK: self.file_path_ctrl.SetValue(fd.GetPath())
+
+    def _on_copy(self, e):
+        val = self.output_ctrl.GetValue().strip()
+        if val:
+            if wx.TheClipboard.Open():
+                wx.TheClipboard.SetData(wx.TextDataObject(val))
+                wx.TheClipboard.Close()
+
+    def _get_input(self) -> str | None:
+        mode = self.nb.GetSelection()
         if mode == 0:
-            return self.format_input.get("1.0", tk.END).strip()
+            return self.input_ctrl.GetValue().strip()
         else:
-            path = self.format_file_path.get().strip().strip("\"'\"")
-            if not path or not os.path.isfile(path):
-                messagebox.showerror("错误", "文件路径无效", parent=self.root)
-                return None
+            path = self.file_path_ctrl.GetValue().strip()
+            if not path or not os.path.isfile(path): return None
             try:
-                with open(path, "r", encoding="utf-8") as f:
-                    return f.read().strip()
-            except Exception as e:
-                messagebox.showerror("读取失败", str(e), parent=self.root)
+                with open(path, "r", encoding="utf-8") as f: return f.read().strip()
+            except:
                 return None
 
-    def _set_output(self, text):
-        self.format_output.delete("1.0", tk.END)
-        self.format_output.insert("1.0", text)
+    def _json_format(self, e):
+        _data = self._get_input()
+        if _data:
+            self._safe_exec(lambda: json.dumps(json.loads(_data), indent=4, ensure_ascii=False), self.output_ctrl)
 
-    def json_format(self):
-        data = self._get_input()
-        if data:
-            try: self._set_output(json.dumps(json.loads(data), indent=4, ensure_ascii=False))
-            except Exception as e: messagebox.showerror("JSON 错误", str(e))
+    def _json_compress(self, e):
+        _data = self._get_input()
+        if _data:
+            self._safe_exec(lambda: json.dumps(json.loads(_data), separators=(',', ':'), ensure_ascii=False), self.output_ctrl)
 
-    def json_compress(self):
-        data = self._get_input()
-        if data:
-            try: self._set_output(json.dumps(json.loads(data), separators=(',', ':'), ensure_ascii=False))
-            except Exception as e: messagebox.showerror("JSON 错误", str(e))
+    def _html_xml_format(self, e):
+        _data = self._get_input()
+        if _data:
+            def _fmt():
+                is_xml = _data.startswith("<?xml") or ("<" in _data and not _data.lower().startswith("<!doctype html"))
+                soup = BeautifulSoup(_data, "xml" if is_xml else "html.parser")
+                return soup.prettify()
+            self._safe_exec(_fmt, self.output_ctrl)
 
-    def html_xml_format(self):
-        data = self._get_input()
-        if data:
-            try:
-                is_xml = data.startswith("<?xml") or ("<" in data and not data.lower().startswith("<!doctype html"))
-                soup = BeautifulSoup(data, "xml" if is_xml else "html.parser")
-                self._set_output(soup.prettify())
-            except Exception as e: messagebox.showerror("格式化错误", str(e))
-
-    def js_ts_format(self):
+    def _js_ts_format(self, e):
         code = self._get_input()
-        if not code: return
-        # 简单正则格式化实现
-        code = code.replace('{', ' {\n').replace('}', '\n}\n').replace(';', ';\n')
-        code = re.sub(r'\n\s*\n', '\n', code)
-        lines = code.split('\n')
-        indent, formatted = 0, []
-        for line in lines:
-            line = line.strip()
-            if not line: continue
-            if line.startswith('}'): indent -= 1
-            formatted.append("    " * max(0, indent) + line)
-            if line.endswith('{'): indent += 1
-        self._set_output('\n'.join(formatted))
+        if not code:
+            return
 
-    def js_ts_compress(self):
-        code = self._get_input()
-        if not code: return
-        code = re.sub(r'//.*?\n|/\*.*?\*/', '', code, flags=re.S)
-        code = re.sub(r'\s+', ' ', code)
-        code = re.sub(r'\s*([\{\}\(\)\[\];,])\s*', r'\1', code)
-        self._set_output(code.strip())
+        def _fmt():
+            c = code.replace('{', ' {\n').replace('}', '\n}\n').replace(';', ';\n')
+            c = re.sub(r'\n\s*\n', '\n', c)
+            lines = c.split('\n')
+            indent, formatted = 0, []
+            for line in lines:
+                line = line.strip()
+                if not line: continue
+                if line.startswith('}'): indent -= 1
+                formatted.append("    " * max(0, indent) + line)
+                if line.endswith('{'): indent += 1
+            return '\n'.join(formatted)
+        self._safe_exec(_fmt, self.output_ctrl)

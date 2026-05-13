@@ -1,116 +1,97 @@
 # -*- coding: utf-8 -*-
-# Author: sens
-# Date: 2026/05/12 17:10
-
-import tkinter as tk
-from tkinter import ttk, messagebox
+import wx
 import base64
 import urllib.parse
 import html
 import zhconv
-from ui.styles import StyleManager
-from utils.common import copy_to_clipboard
+from ui.tabs.base_tab import BaseTab
+from ui.styles import ThemeManager
 
-class EncodeTab:
-    """编码转换标签页：Base64, URL, Unicode, HTML, 大小写, 繁简转换"""
-    def __init__(self, parent, root):
-        self.parent = parent
-        self.root = root
-        self.encode_input = None
-        self.encode_output = None
-        self._setup_ui()
-
-    def _setup_ui(self):
-        text_style = StyleManager.get_text_area_style()
+class EncodeTab(BaseTab):
+    def __init__(self, parent):
+        super(EncodeTab, self).__init__(parent)
+        # 成员变量提前定义
+        self.input_ctrl = None
+        self.output_ctrl = None
         
-        # 输入区 - 高度从 6 减少到 4
-        in_frame = ttk.LabelFrame(self.parent, text="输入内容")
-        in_frame.pack(fill="x", padx=10, pady=5)
-        self.encode_input = tk.Text(in_frame, height=4, **text_style)
-        self.encode_input.pack(fill="x", padx=5, pady=5)
-        
-        # 按钮容器
-        btn_container = ttk.Frame(self.parent)
-        btn_container.pack(fill="x", padx=10, pady=5)
+        self._init_ui()
+        ThemeManager.apply_theme(self)
 
-        # 1. 编码转换组
-        enc_frame = ttk.LabelFrame(btn_container, text="编码转换")
-        enc_frame.pack(fill="x", pady=5)
+    def _init_ui(self):
+        main_sizer = wx.BoxSizer(wx.VERTICAL)
+
+        # 输入区
+        in_card, in_content = self._create_card_sizer(self, "输入内容")
+        self.input_ctrl = wx.TextCtrl(self, style=wx.TE_MULTILINE, size=wx.Size(-1, 80))
+        self.input_ctrl.SetFont(ThemeManager.get_font(12))
+        self._apply_focus_effect(self.input_ctrl)
+        in_content.Add(self.input_ctrl, 1, wx.EXPAND | wx.RIGHT, 20)
+        main_sizer.Add(in_card, 0, wx.EXPAND | wx.ALL, 15)
+
+        # 编码组
+        enc_card, enc_content = self._create_card_sizer(self, "编码与解码")
+        enc_gs = wx.GridSizer(2, 6, 10, 10)
         enc_btns = [
-            ("Base64 编码", self.b64_encode), ("Base64 解码", self.b64_decode),
-            ("URL 编码", self.url_encode), ("URL 解码", self.url_decode),
-            ("Unicode 编码", self.unicode_encode), ("Unicode 解码", self.unicode_decode),
-            ("HTML 转义", self.html_escape), ("HTML 反转义", self.html_unescape)
+            ("Base64 编码", self._b64_encode), ("Base64 解码", self._b64_decode),
+            ("URL 编码", self._url_encode), ("URL 解码", self._url_decode),
+            ("Unicode 编码", self._unicode_encode), ("Unicode 解码", self._unicode_decode),
+            ("HTML 转义", self._html_escape), ("HTML 反转义", self._html_unescape)
         ]
-        for i, (t, c) in enumerate(enc_btns):
-            btn = ttk.Button(enc_frame, text=t, command=c)
-            btn.grid(row=i//6, column=i%6, padx=5, pady=2, sticky="ew")
-        
-        # 2. 文本转换组 (大小写、繁简转换等)
-        txt_frame = ttk.LabelFrame(btn_container, text="文本转换")
-        txt_frame.pack(fill="x", pady=5)
+        for label, handler in enc_btns:
+            btn = wx.Button(self, label=label)
+            btn.Bind(wx.EVT_BUTTON, handler)
+            enc_gs.Add(btn, 0, wx.EXPAND)
+        enc_content.Add(enc_gs, 1, wx.EXPAND | wx.RIGHT, 20)
+        main_sizer.Add(enc_card, 0, wx.EXPAND | wx.LEFT | wx.RIGHT, 15)
+
+        # 文本组
+        txt_card, txt_content = self._create_card_sizer(self, "文本转换")
+        txt_gs = wx.GridSizer(1, 6, 10, 10)
         txt_btns = [
-            ("转大写", self.to_upper), ("转小写", self.to_lower), ("大小写互转", self.swap_case),
-            ("转繁体", self.to_traditional), ("转简体", self.to_simplified)
+            ("转大写", self._to_upper), ("转小写", self._to_lower), ("大小写互转", self._swap_case),
+            ("转繁体", self._to_traditional), ("转简体", self._to_simplified)
         ]
-        for i, (t, c) in enumerate(txt_btns):
-            btn = ttk.Button(txt_frame, text=t, command=c)
-            btn.grid(row=0, column=i, padx=5, pady=2, sticky="ew")
+        for label, handler in txt_btns:
+            btn = wx.Button(self, label=label, size=wx.Size(-1, 36))
+            btn.Bind(wx.EVT_BUTTON, handler)
+            txt_gs.Add(btn, 0, wx.EXPAND)
+        txt_content.Add(txt_gs, 1, wx.EXPAND | wx.RIGHT, 20)
+        main_sizer.Add(txt_card, 0, wx.EXPAND | wx.ALL, 15)
 
         # 结果区
-        res_frame = ttk.LabelFrame(self.parent, text="转换结果")
-        res_frame.pack(fill="both", expand=True, padx=10, pady=5)
-        res_style = text_style.copy()
-        res_style.update({"font": ("Courier", 11), "height": 8})
-        self.encode_output = tk.Text(res_frame, wrap="char", **res_style)
-        self.encode_output.pack(fill="both", expand=True, padx=5, pady=5)
+        res_card, res_content = self._create_card_sizer(self, "转换结果")
+        self.output_ctrl = wx.TextCtrl(self, style=wx.TE_MULTILINE | wx.TE_READONLY)
+        self.output_ctrl.SetFont(ThemeManager.get_mono_font(12))
+        self._apply_focus_effect(self.output_ctrl)
+        res_content.Add(self.output_ctrl, 1, wx.EXPAND | wx.RIGHT, 20)
         
-        ttk.Button(res_frame, text="复制结果", 
-                   command=lambda: copy_to_clipboard(self.root, self.encode_output.get("1.0", tk.END).strip())).pack(pady=5)
+        copy_btn = wx.Button(self, label="复制结果", size=wx.Size(160, 40))
+        copy_btn.Bind(wx.EVT_BUTTON, self._on_copy)
+        res_content.Add(copy_btn, 0, wx.ALIGN_LEFT | wx.TOP | wx.BOTTOM, 15)
+        main_sizer.Add(res_card, 1, wx.EXPAND | wx.LEFT | wx.RIGHT, 15)
 
-    def _safe_exec(self, func):
-        try:
-            res = func()
-            self.encode_output.delete("1.0", tk.END)
-            self.encode_output.insert("1.0", res)
-        except Exception as e:
-            messagebox.showerror("错误", f"操作失败: {str(e)}", parent=self.root)
+        self.SetSizer(main_sizer)
 
-    def to_upper(self):
-        self._safe_exec(lambda: self.encode_input.get("1.0", tk.END).strip().upper())
+    def _get_val(self): return self.input_ctrl.GetValue().strip()
 
-    def to_lower(self):
-        self._safe_exec(lambda: self.encode_input.get("1.0", tk.END).strip().lower())
+    def _on_copy(self, event):
+        val = self.output_ctrl.GetValue().strip()
+        if val:
+            if wx.TheClipboard.Open():
+                wx.TheClipboard.SetData(wx.TextDataObject(val))
+                wx.TheClipboard.Close()
 
-    def swap_case(self):
-        self._safe_exec(lambda: self.encode_input.get("1.0", tk.END).strip().swapcase())
-
-    def to_traditional(self):
-        self._safe_exec(lambda: zhconv.convert(self.encode_input.get("1.0", tk.END).strip(), 'zh-hant'))
-
-    def to_simplified(self):
-        self._safe_exec(lambda: zhconv.convert(self.encode_input.get("1.0", tk.END).strip(), 'zh-hans'))
-
-    def b64_encode(self):
-        self._safe_exec(lambda: base64.b64encode(self.encode_input.get("1.0", tk.END).strip().encode()).decode())
-
-    def b64_decode(self):
-        self._safe_exec(lambda: base64.b64decode(self.encode_input.get("1.0", tk.END).strip().encode()).decode())
-
-    def url_encode(self):
-        self._safe_exec(lambda: urllib.parse.quote(self.encode_input.get("1.0", tk.END).strip()))
-
-    def url_decode(self):
-        self._safe_exec(lambda: urllib.parse.unquote(self.encode_input.get("1.0", tk.END).strip()))
-
-    def unicode_encode(self):
-        self._safe_exec(lambda: self.encode_input.get("1.0", tk.END).strip().encode('unicode_escape').decode('ascii'))
-
-    def unicode_decode(self):
-        self._safe_exec(lambda: self.encode_input.get("1.0", tk.END).strip().encode().decode('unicode_escape'))
-
-    def html_escape(self):
-        self._safe_exec(lambda: html.escape(self.encode_input.get("1.0", tk.END).strip()))
-
-    def html_unescape(self):
-        self._safe_exec(lambda: html.unescape(self.encode_input.get("1.0", tk.END).strip()))
+    def _to_upper(self, e): self._safe_exec(lambda: self._get_val().upper(), self.output_ctrl)
+    def _to_lower(self, e): self._safe_exec(lambda: self._get_val().lower(), self.output_ctrl)
+    def _swap_case(self, e): self._safe_exec(lambda: self._get_val().swapcase(), self.output_ctrl)
+    def _to_traditional(self, e): self._safe_exec(lambda: zhconv.convert(self._get_val(), 'zh-hant'), self.output_ctrl)
+    def _to_simplified(self, e): self._safe_exec(lambda: zhconv.convert(self._get_val(), 'zh-hans'), self.output_ctrl)
+    
+    def _b64_encode(self, e): self._safe_exec(lambda: base64.b64encode(self._get_val().encode()).decode(), self.output_ctrl)
+    def _b64_decode(self, e): self._safe_exec(lambda: base64.b64decode(self._get_val().encode()).decode(), self.output_ctrl)
+    def _url_encode(self, e): self._safe_exec(lambda: urllib.parse.quote(self._get_val()), self.output_ctrl)
+    def _url_decode(self, e): self._safe_exec(lambda: urllib.parse.unquote(self._get_val()), self.output_ctrl)
+    def _unicode_encode(self, e): self._safe_exec(lambda: self._get_val().encode('unicode_escape').decode('ascii'), self.output_ctrl)
+    def _unicode_decode(self, e): self._safe_exec(lambda: self._get_val().encode().decode('unicode_escape'), self.output_ctrl)
+    def _html_escape(self, e): self._safe_exec(lambda: html.escape(self._get_val()), self.output_ctrl)
+    def _html_unescape(self, e): self._safe_exec(lambda: html.unescape(self._get_val()), self.output_ctrl)
