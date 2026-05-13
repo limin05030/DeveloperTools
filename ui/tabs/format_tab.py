@@ -47,7 +47,7 @@ class FormatTab:
 
         # 按钮区
         btn_frame = ttk.Frame(self.parent)
-        btn_frame.pack(fill="x", padx=10, pady=5)
+        btn_frame.pack(fill="x", padx=10, pady=0)
         btns = [
             ("JSON 格式化", self.json_format), ("JSON 压缩", self.json_compress),
             ("HTML/XML 格式化", self.html_xml_format), ("JS/TS 格式化", self.js_ts_format),
@@ -55,11 +55,11 @@ class FormatTab:
         ]
         for i, (t, c) in enumerate(btns):
             btn = ttk.Button(btn_frame, text=t, command=c)
-            btn.grid(row=i//6, column=i%6, padx=8, pady=2, sticky="ew")
+            btn.grid(row=i//6, column=i%6, padx=5, pady=2, sticky="ew")
 
         # 结果区（带滚动条）
         res_frame = ttk.LabelFrame(self.parent, text="格式化结果")
-        res_frame.pack(fill="both", expand=True, padx=10, pady=5)
+        res_frame.pack(fill="both", expand=True, padx=10, pady=15)
         
         container = ttk.Frame(res_frame)
         container.pack(fill="both", expand=True, padx=5, pady=5)

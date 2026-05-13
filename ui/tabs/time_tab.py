@@ -50,11 +50,12 @@ class TimeTab:
         row2 = ttk.Frame(cur_frame)
         row2.pack(fill="x", padx=10, pady=5)
         ttk.Label(row2, text="当前时间:").pack(side="left")
-        ttk.Entry(row2, textvariable=self.cur_time_var, state="readonly", font=("Courier", 11, "bold"), width=20).pack(side="left", padx=5)
+        # 增加 width 到 25 以适应毫秒显示
+        ttk.Entry(row2, textvariable=self.cur_time_var, state="readonly", font=("Courier", 11, "bold"), width=24).pack(side="left", padx=5)
         ttk.Button(row2, text="复制", width=6, command=lambda: copy_to_clipboard(self.root, self.cur_time_var.get())).pack(side="left")
         
-        ttk.Label(row2, text="  时间戳:").pack(side="left", padx=(15, 0))
-        ttk.Entry(row2, textvariable=self.cur_ts_var, state="readonly", font=("Courier", 11, "bold"), width=15).pack(side="left", padx=5)
+        ttk.Label(row2, text="  时间戳（毫秒）:").pack(side="left", padx=(15, 0))
+        ttk.Entry(row2, textvariable=self.cur_ts_var, state="readonly", font=("Courier", 11, "bold"), width=14).pack(side="left", padx=5)
         ttk.Button(row2, text="复制", width=6, command=lambda: copy_to_clipboard(self.root, self.cur_ts_var.get())).pack(side="left")
 
         # 2. 时间戳 -> 时间
@@ -96,7 +97,9 @@ class TimeTab:
         now = time.time()
         self.cur_ts_var.set(str(int(now * 1000)))
         tz = get_timezone_from_var(self.cur_tz_var)
-        self.cur_time_var.set(datetime.fromtimestamp(now, tz=tz).strftime("%Y-%m-%d %H:%M:%S"))
+        # 关键修改：增加 .%f 并截取前 3 位毫秒
+        dt_str = datetime.fromtimestamp(now, tz=tz).strftime("%Y-%m-%d %H:%M:%S.%f")
+        self.cur_time_var.set(dt_str[:-3])
 
     def ts_to_date(self):
         try:

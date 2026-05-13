@@ -11,7 +11,7 @@ from ui.styles import StyleManager
 from utils.common import copy_to_clipboard
 
 class EncodeTab:
-    """编码转换标签页：Base64, URL, Unicode, HTML"""
+    """编码转换标签页：Base64, URL, Unicode, HTML, 大小写"""
     def __init__(self, parent, root):
         self.parent = parent
         self.root = root
@@ -22,25 +22,39 @@ class EncodeTab:
     def _setup_ui(self):
         text_style = StyleManager.get_text_area_style()
         
-        # 输入区
+        # 输入区 - 高度从 6 减少到 4
         in_frame = ttk.LabelFrame(self.parent, text="输入内容")
         in_frame.pack(fill="x", padx=10, pady=5)
-        self.encode_input = tk.Text(in_frame, height=6, **text_style)
+        self.encode_input = tk.Text(in_frame, height=4, **text_style)
         self.encode_input.pack(fill="x", padx=5, pady=5)
         
-        # 转换按钮
-        btn_frame = ttk.Frame(self.parent)
-        btn_frame.pack(fill="x", padx=10, pady=5)
-        btns = [
+        # 按钮容器
+        btn_container = ttk.Frame(self.parent)
+        btn_container.pack(fill="x", padx=10, pady=5)
+
+        # 1. 编码转换组
+        enc_frame = ttk.LabelFrame(btn_container, text="编码转换")
+        enc_frame.pack(fill="x", pady=5)
+        enc_btns = [
             ("Base64 编码", self.b64_encode), ("Base64 解码", self.b64_decode),
             ("URL 编码", self.url_encode), ("URL 解码", self.url_decode),
             ("Unicode 编码", self.unicode_encode), ("Unicode 解码", self.unicode_decode),
             ("HTML 转义", self.html_escape), ("HTML 反转义", self.html_unescape)
         ]
-        for i, (t, c) in enumerate(btns):
-            btn = ttk.Button(btn_frame, text=t, command=c)
-            btn.grid(row=i//6, column=i%6, padx=8, pady=2, sticky="ew")
+        for i, (t, c) in enumerate(enc_btns):
+            btn = ttk.Button(enc_frame, text=t, command=c)
+            btn.grid(row=i//6, column=i%6, padx=5, pady=2, sticky="ew")
         
+        # 2. 文本转换组 (大小写等)
+        txt_frame = ttk.LabelFrame(btn_container, text="文本转换")
+        txt_frame.pack(fill="x", pady=5)
+        txt_btns = [
+            ("转大写", self.to_upper), ("转小写", self.to_lower), ("大小写互转", self.swap_case)
+        ]
+        for i, (t, c) in enumerate(txt_btns):
+            btn = ttk.Button(txt_frame, text=t, command=c)
+            btn.grid(row=0, column=i, padx=5, pady=2, sticky="ew")
+
         # 结果区
         res_frame = ttk.LabelFrame(self.parent, text="转换结果")
         res_frame.pack(fill="both", expand=True, padx=10, pady=5)
@@ -59,6 +73,15 @@ class EncodeTab:
             self.encode_output.insert("1.0", res)
         except Exception as e:
             messagebox.showerror("错误", f"操作失败: {str(e)}", parent=self.root)
+
+    def to_upper(self):
+        self._safe_exec(lambda: self.encode_input.get("1.0", tk.END).strip().upper())
+
+    def to_lower(self):
+        self._safe_exec(lambda: self.encode_input.get("1.0", tk.END).strip().lower())
+
+    def swap_case(self):
+        self._safe_exec(lambda: self.encode_input.get("1.0", tk.END).strip().swapcase())
 
     def b64_encode(self):
         self._safe_exec(lambda: base64.b64encode(self.encode_input.get("1.0", tk.END).strip().encode()).decode())

@@ -62,7 +62,7 @@ class HashTab:
         ]
         for i, (t, a) in enumerate(sh_btns):
             btn = ttk.Button(sh_frame, text=t, width=9, command=lambda algo=a: self.do_calc(algo, False))
-            btn.grid(row=i//6, column=i%6, padx=8, pady=5)
+            btn.grid(row=i//6, column=i%6, padx=5, pady=5)
 
         # HMAC
         hmac_frame = ttk.LabelFrame(algo_frame, text="HMAC 计算 (Keyed Hash)")
@@ -82,7 +82,7 @@ class HashTab:
         ]
         for i, (t, a) in enumerate(hmac_btns):
             btn = ttk.Button(hmac_btns_frame, text=t, width=14, command=lambda algo=a: self.do_calc(algo, True))
-            btn.grid(row=i//4, column=i%4, padx=8, pady=5)
+            btn.grid(row=i//4, column=i%4, padx=5, pady=5)
 
         # 结果展示区
         res_frame = ttk.LabelFrame(self.parent, text="计算结果")
