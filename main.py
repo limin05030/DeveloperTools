@@ -73,6 +73,11 @@ class DeveloperToolsApp:
             self.notebook.add(frame, text=tab_label)
             tab_class(frame, self.root)
 
+# pip freeze > requirements.txt
+# pip install -r requirements.txt
+# pip install pyinstaller
+# git tag v1.0.0
+# git push origin v1.0.0
 if __name__ == "__main__":
     _root = tk.Tk()
     app = DeveloperToolsApp(_root)
