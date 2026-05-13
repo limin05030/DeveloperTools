@@ -7,11 +7,12 @@ from tkinter import ttk, messagebox
 import base64
 import urllib.parse
 import html
+import zhconv
 from ui.styles import StyleManager
 from utils.common import copy_to_clipboard
 
 class EncodeTab:
-    """编码转换标签页：Base64, URL, Unicode, HTML, 大小写"""
+    """编码转换标签页：Base64, URL, Unicode, HTML, 大小写, 繁简转换"""
     def __init__(self, parent, root):
         self.parent = parent
         self.root = root
@@ -45,11 +46,12 @@ class EncodeTab:
             btn = ttk.Button(enc_frame, text=t, command=c)
             btn.grid(row=i//6, column=i%6, padx=5, pady=2, sticky="ew")
         
-        # 2. 文本转换组 (大小写等)
+        # 2. 文本转换组 (大小写、繁简转换等)
         txt_frame = ttk.LabelFrame(btn_container, text="文本转换")
         txt_frame.pack(fill="x", pady=5)
         txt_btns = [
-            ("转大写", self.to_upper), ("转小写", self.to_lower), ("大小写互转", self.swap_case)
+            ("转大写", self.to_upper), ("转小写", self.to_lower), ("大小写互转", self.swap_case),
+            ("转繁体", self.to_traditional), ("转简体", self.to_simplified)
         ]
         for i, (t, c) in enumerate(txt_btns):
             btn = ttk.Button(txt_frame, text=t, command=c)
@@ -82,6 +84,12 @@ class EncodeTab:
 
     def swap_case(self):
         self._safe_exec(lambda: self.encode_input.get("1.0", tk.END).strip().swapcase())
+
+    def to_traditional(self):
+        self._safe_exec(lambda: zhconv.convert(self.encode_input.get("1.0", tk.END).strip(), 'zh-hant'))
+
+    def to_simplified(self):
+        self._safe_exec(lambda: zhconv.convert(self.encode_input.get("1.0", tk.END).strip(), 'zh-hans'))
 
     def b64_encode(self):
         self._safe_exec(lambda: base64.b64encode(self.encode_input.get("1.0", tk.END).strip().encode()).decode())
