@@ -30,7 +30,6 @@ class HashTab(BaseTab):
         txt_sizer = wx.BoxSizer(wx.VERTICAL)
         self.input_ctrl = wx.TextCtrl(self.txt_panel, style=wx.TE_MULTILINE, size=wx.Size(-1, 100))
         self.input_ctrl.SetFont(ThemeManager.get_font(13))
-        self._apply_focus_effect(self.input_ctrl)
         txt_sizer.Add(self.input_ctrl, 1, wx.EXPAND | wx.ALL, 15)
         self.txt_panel.SetSizer(txt_sizer)
         
@@ -39,7 +38,6 @@ class HashTab(BaseTab):
         file_sizer = wx.BoxSizer(wx.HORIZONTAL)
         lbl = self._create_label(self.file_panel, "路径:")
         file_sizer.Add(lbl, 0, wx.CENTER | wx.LEFT, 15)
-        # 移除固定高度，改用自然高度
         self.file_path_ctrl = wx.TextCtrl(self.file_panel)
         file_sizer.Add(self.file_path_ctrl, 1, wx.CENTER | wx.ALL, 15)
         browse_btn = wx.Button(self.file_panel, label="选择文件")
@@ -70,7 +68,6 @@ class HashTab(BaseTab):
         key_sizer = wx.BoxSizer(wx.HORIZONTAL)
         klbl = self._create_label(self, title="密钥 (KEY):")
         key_sizer.Add(klbl, 0, wx.CENTER | wx.RIGHT, 10)
-        # 移除固定高度
         self.key_ctrl = wx.TextCtrl(self)
         key_sizer.Add(self.key_ctrl, 1, wx.CENTER | wx.RIGHT, 20)
         hmac_content.Add(key_sizer, 0, wx.EXPAND | wx.BOTTOM, 15)
@@ -91,7 +88,6 @@ class HashTab(BaseTab):
         res_card, res_content = self._create_card_sizer(self, "计算结果")
         self.output_ctrl = wx.TextCtrl(self, style=wx.TE_MULTILINE | wx.TE_READONLY)
         self.output_ctrl.SetFont(ThemeManager.get_mono_font(14))
-        self._apply_focus_effect(self.output_ctrl)
         res_content.Add(self.output_ctrl, 1, wx.EXPAND | wx.RIGHT, 20)
         
         ops_sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -135,6 +131,7 @@ class HashTab(BaseTab):
             self._safe_exec(lambda: self._calc_hash(data, algo, is_hmac, key), self.output_ctrl)
         else:
             path = self.file_path_ctrl.GetValue().strip()
+            if not path: return # 如果路径为空，不做任何提示
             if not os.path.isfile(path):
                 wx.MessageBox("文件路径无效", "错误")
                 return

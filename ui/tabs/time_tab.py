@@ -44,7 +44,6 @@ class TimeTab(BaseTab):
         
         r2 = wx.BoxSizer(wx.HORIZONTAL)
         r2.Add(self._create_label(self, "本地时间:"), 0, wx.CENTER | wx.RIGHT, 10)
-        # 移除固定高度，由 Sizer 的 wx.CENTER 处理垂直居中
         self.cur_time_ctrl = wx.TextCtrl(self, style=wx.TE_READONLY, size=wx.Size(220, -1))
         self.cur_time_ctrl.SetFont(ThemeManager.get_mono_font(12))
         r2.Add(self.cur_time_ctrl, 0, wx.CENTER)
@@ -102,7 +101,6 @@ class TimeTab(BaseTab):
             content.Add(r_mid, 0, wx.EXPAND | wx.BOTTOM, 10)
             main_sizer.Add(card, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 15)
 
-        self.date_input.SetValue(datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
         self.SetSizer(main_sizer)
 
     def _on_update_clock(self, e):
@@ -121,6 +119,7 @@ class TimeTab(BaseTab):
             wx.TheClipboard.Close()
 
     def _on_ts_to_date(self, e):
+        if not self.ts_input.GetValue().strip(): return # 空输入不提示
         def _conv():
             val = self.ts_input.GetValue().strip()
             ts = float(val)
@@ -137,6 +136,7 @@ class TimeTab(BaseTab):
         self._safe_exec(_conv, self.date_output)
 
     def _on_date_to_ts(self, e):
+        if not self.date_input.GetValue().strip(): return # 空输入不提示
         def _conv():
             dt_str = self.date_input.GetValue().strip()
             fmt = "%Y-%m-%d %H:%M:%S.%f" if "." in dt_str else "%Y-%m-%d %H:%M:%S"

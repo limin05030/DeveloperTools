@@ -6,29 +6,30 @@ class BaseTab(wx.Panel):
     def __init__(self, parent):
         super(BaseTab, self).__init__(parent)
         self.root = wx.GetApp().GetTopWindow()
-        self.SetBackgroundColour(wx.Colour(ThemeManager.BG_WINDOW))
+        self.SetBackgroundColour(ThemeManager.BG_WINDOW)
 
     def _safe_exec(self, func, output_ctrl):
         try:
             res = func()
             output_ctrl.SetValue(str(res))
-            output_ctrl.SetForegroundColour(wx.Colour(ThemeManager.SUCCESS_COLOR))
+            output_ctrl.SetForegroundColour(ThemeManager.SUCCESS_COLOR)
         except Exception as e:
             wx.MessageBox(f"操作失败: {str(e)}", "错误", wx.OK | wx.ICON_ERROR)
 
     def _create_label(self, parent, title):
         label = wx.StaticText(parent, label=title)
         label.SetFont(ThemeManager.get_font(14, bold=True))
+        label.SetForegroundColour(ThemeManager.TEXT_PRIMARY)
         return label
 
     def _create_section_header(self, parent, title):
         container = wx.BoxSizer(wx.HORIZONTAL)
         line = wx.StaticText(parent, label="", size=wx.Size(4, 20))
-        line.SetBackgroundColour(wx.Colour(ThemeManager.ACCENT_COLOR))
+        line.SetBackgroundColour(ThemeManager.ACCENT_COLOR)
         container.Add(line, 0, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 10)
         txt = wx.StaticText(parent, label=title)
         txt.SetFont(ThemeManager.get_font(14, bold=True))
-        txt.SetForegroundColour(wx.Colour(ThemeManager.ACCENT_COLOR))
+        txt.SetForegroundColour(ThemeManager.ACCENT_COLOR)
         container.Add(txt, 0, wx.ALIGN_CENTER_VERTICAL)
         return container
 
@@ -41,14 +42,5 @@ class BaseTab(wx.Panel):
         return sizer, content_sizer
 
     def _apply_focus_effect(self, ctrl):
-        """为 TextCtrl 添加焦点视觉效果"""
-        ctrl.Bind(wx.EVT_SET_FOCUS, lambda e: self._on_focus(e, ctrl, True))
-        ctrl.Bind(wx.EVT_KILL_FOCUS, lambda e: self._on_focus(e, ctrl, False))
-
-    def _on_focus(self, event, ctrl, has_focus):
-        if has_focus:
-            ctrl.SetBackgroundColour(ThemeManager.BG_FOCUS)
-        else:
-            ctrl.SetBackgroundColour(ThemeManager.BG_INPUT)
-        ctrl.Refresh()
-        event.Skip()
+        """已废弃：焦点效果现在由 ThemeManager.apply_theme 自动处理"""
+        pass

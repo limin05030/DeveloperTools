@@ -29,7 +29,6 @@ class FormatTab(BaseTab):
         txt_sizer = wx.BoxSizer(wx.VERTICAL)
         self.input_ctrl = wx.TextCtrl(self.txt_panel, style=wx.TE_MULTILINE, size=wx.Size(-1, 150))
         self.input_ctrl.SetFont(ThemeManager.get_font(12))
-        self._apply_focus_effect(self.input_ctrl)
         txt_sizer.Add(self.input_ctrl, 1, wx.EXPAND | wx.ALL, 15)
         clear_in_btn = wx.Button(self.txt_panel, label="清空输入")
         clear_in_btn.Bind(wx.EVT_BUTTON, lambda e: self.input_ctrl.Clear())
@@ -69,7 +68,6 @@ class FormatTab(BaseTab):
         res_card, res_content = self._create_card_sizer(self, "美化结果")
         self.output_ctrl = wx.TextCtrl(self, style=wx.TE_MULTILINE | wx.TE_DONTWRAP | wx.TE_READONLY)
         self.output_ctrl.SetFont(ThemeManager.get_mono_font(12))
-        self._apply_focus_effect(self.output_ctrl)
         res_content.Add(self.output_ctrl, 1, wx.EXPAND | wx.RIGHT, 20)
         
         copy_btn = wx.Button(self, label="复制到剪贴板", size=wx.Size(180, 40))

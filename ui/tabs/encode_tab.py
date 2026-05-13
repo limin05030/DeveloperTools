@@ -24,7 +24,6 @@ class EncodeTab(BaseTab):
         in_card, in_content = self._create_card_sizer(self, "输入内容")
         self.input_ctrl = wx.TextCtrl(self, style=wx.TE_MULTILINE, size=wx.Size(-1, 80))
         self.input_ctrl.SetFont(ThemeManager.get_font(12))
-        self._apply_focus_effect(self.input_ctrl)
         in_content.Add(self.input_ctrl, 1, wx.EXPAND | wx.RIGHT, 20)
         main_sizer.Add(in_card, 0, wx.EXPAND | wx.ALL, 15)
 
@@ -62,7 +61,6 @@ class EncodeTab(BaseTab):
         res_card, res_content = self._create_card_sizer(self, "转换结果")
         self.output_ctrl = wx.TextCtrl(self, style=wx.TE_MULTILINE | wx.TE_READONLY)
         self.output_ctrl.SetFont(ThemeManager.get_mono_font(12))
-        self._apply_focus_effect(self.output_ctrl)
         res_content.Add(self.output_ctrl, 1, wx.EXPAND | wx.RIGHT, 20)
         
         copy_btn = wx.Button(self, label="复制结果", size=wx.Size(160, 40))

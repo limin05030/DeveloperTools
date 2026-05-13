@@ -39,16 +39,16 @@ class ImageTab(BaseTab):
         self.SetSizer(main_sizer)
 
     def _on_browse(self, ctrl):
-        with wx.FileDialog(self, "打开文件") as fd:
+        with wx.FileDialog(self.GetTopLevelParent(), "打开文件") as fd:
+            fd.CenterOnParent()
             if fd.ShowModal() == wx.ID_OK: ctrl.SetValue(fd.GetPath())
 
     def _build_conv_panel(self):
         panel = wx.Panel(self.nb)
-        panel.SetBackgroundColour(wx.Colour(ThemeManager.BG_WINDOW))
+        panel.SetBackgroundColour(ThemeManager.BG_WINDOW)
         sizer = wx.BoxSizer(wx.VERTICAL)
         card1, cont1 = self._create_card_sizer(panel, "源图片")
         h1 = wx.BoxSizer(wx.HORIZONTAL)
-        # 移除固定高度
         self.conv_src_ctrl = wx.TextCtrl(panel)
         h1.Add(self.conv_src_ctrl, 1, wx.CENTER | wx.RIGHT, 10)
         btn1 = wx.Button(panel, label="浏览", size=wx.Size(80, 36))
@@ -73,7 +73,7 @@ class ImageTab(BaseTab):
 
     def _build_comp_panel(self):
         panel = wx.Panel(self.nb)
-        panel.SetBackgroundColour(wx.Colour(ThemeManager.BG_WINDOW))
+        panel.SetBackgroundColour(ThemeManager.BG_WINDOW)
         sizer = wx.BoxSizer(wx.VERTICAL)
         card1, cont1 = self._create_card_sizer(panel, "源图片 (仅限 JPEG/WEBP)")
         h1 = wx.BoxSizer(wx.HORIZONTAL)
@@ -101,7 +101,7 @@ class ImageTab(BaseTab):
 
     def _build_size_panel(self):
         panel = wx.Panel(self.nb)
-        panel.SetBackgroundColour(wx.Colour(ThemeManager.BG_WINDOW))
+        panel.SetBackgroundColour(ThemeManager.BG_WINDOW)
         sizer = wx.BoxSizer(wx.VERTICAL)
         card1, cont1 = self._create_card_sizer(panel, "源图片")
         h1 = wx.BoxSizer(wx.HORIZONTAL)
@@ -149,11 +149,11 @@ class ImageTab(BaseTab):
 
     def _build_b64_panel(self):
         panel = wx.Panel(self.nb)
-        panel.SetBackgroundColour(wx.Colour(ThemeManager.BG_WINDOW))
+        panel.SetBackgroundColour(ThemeManager.BG_WINDOW)
         sizer = wx.BoxSizer(wx.VERTICAL)
         for label, btn_lbl, handler, ctrl_attr in [
-            ("图片 转 Base64", "转换", self._on_img_to_b64, "b64_img_ctrl"),
-            ("Base64 转 图片", "还原", self._on_b64_to_img, "b64_txt_ctrl")
+            ("图片 转 Base64", "转换并保存", self._on_img_to_b64, "b64_img_ctrl"),
+            ("Base64 转 图片", "还原并保存", self._on_b64_to_img, "b64_txt_ctrl")
         ]:
             card, cont = self._create_card_sizer(panel, label)
             h = wx.BoxSizer(wx.HORIZONTAL)
@@ -163,7 +163,7 @@ class ImageTab(BaseTab):
             btn_br = wx.Button(panel, label="浏览", size=wx.Size(80, 36))
             btn_br.Bind(wx.EVT_BUTTON, lambda e, c=ctrl: self._on_browse(c))
             h.Add(btn_br, 0, wx.CENTER | wx.RIGHT, 10)
-            btn_go = wx.Button(panel, label=btn_lbl, size=wx.Size(80, 36))
+            btn_go = wx.Button(panel, label=btn_lbl, size=wx.Size(100, 36))
             btn_go.Bind(wx.EVT_BUTTON, handler)
             h.Add(btn_go, 0, wx.CENTER)
             cont.Add(h, 0, wx.EXPAND | wx.RIGHT | wx.BOTTOM, 10)
@@ -172,7 +172,8 @@ class ImageTab(BaseTab):
         return panel
 
     def _on_browse_size(self, e):
-        with wx.FileDialog(self, "打开图片") as fd:
+        with wx.FileDialog(self.GetTopLevelParent(), "打开图片") as fd:
+            fd.CenterOnParent()
             if fd.ShowModal() == wx.ID_OK:
                 path = fd.GetPath()
                 self.size_src_ctrl.SetValue(path)
@@ -205,7 +206,8 @@ class ImageTab(BaseTab):
         if not src or not os.path.exists(src): return
         fmt = self.conv_fmt_cb.GetValue()
         ext = fmt.lower()
-        with wx.FileDialog(self, "保存图片", defaultFile="converted."+ext, style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT) as fd:
+        with wx.FileDialog(self.GetTopLevelParent(), "保存图片", defaultFile="converted."+ext, style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT) as fd:
+            fd.CenterOnParent()
             if fd.ShowModal() == wx.ID_OK:
                 save_path = fd.GetPath()
                 with Image.open(src) as img:
@@ -218,7 +220,8 @@ class ImageTab(BaseTab):
         src = self.comp_src_ctrl.GetValue()
         if not src: return
         ext = str(os.path.splitext(src)[1].lower())
-        with wx.FileDialog(self, "保存压缩后的图片", defaultFile="compressed"+ext, style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT) as fd:
+        with wx.FileDialog(self.GetTopLevelParent(), "保存压缩后的图片", defaultFile="compressed"+ext, style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT) as fd:
+            fd.CenterOnParent()
             if fd.ShowModal() == wx.ID_OK:
                 save_path = fd.GetPath()
                 with Image.open(src) as img:
@@ -242,7 +245,8 @@ class ImageTab(BaseTab):
                 mode = rb.name
                 break
         ext = str(os.path.splitext(src)[1])
-        with wx.FileDialog(self, "保存处理后的图片", defaultFile="processed"+ext, style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT) as fd:
+        with wx.FileDialog(self.GetTopLevelParent(), "保存处理后的图片", defaultFile="processed"+ext, style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT) as fd:
+            fd.CenterOnParent()
             if fd.ShowModal() == wx.ID_OK:
                 save_path = fd.GetPath()
                 with Image.open(src) as img:
@@ -269,25 +273,31 @@ class ImageTab(BaseTab):
 
     def _on_img_to_b64(self, e):
         src = self.b64_img_ctrl.GetValue()
-        if not src: return
+        if not src or not os.path.exists(src): return
+        
         with open(src, "rb") as f:
             b64 = base64.b64encode(f.read()).decode()
             data = f"data:image/{os.path.splitext(src)[1][1:]};base64,{b64}"
-            if wx.TheClipboard.Open():
-                wx.TheClipboard.SetData(wx.TextDataObject(data))
-                wx.TheClipboard.Close()
-                wx.MessageBox("已复制到剪贴板", "成功")
+            
+        with wx.FileDialog(self.GetTopLevelParent(), "保存 Base64 文本", defaultFile="image_base64.txt", 
+                         style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT) as fd:
+            fd.CenterOnParent()
+            if fd.ShowModal() == wx.ID_OK:
+                with open(fd.GetPath(), "w") as f:
+                    f.write(data)
+                wx.MessageBox("转换成功并已保存到文件", "成功")
 
     def _on_b64_to_img(self, e):
         path = self.b64_txt_ctrl.GetValue()
-        if not path: return
+        if not path or not os.path.exists(path): return
         try:
             with open(path, "r") as f:
                 content = f.read().strip()
             if "," in content:
                 content = content.split(",")[1]
             img_data = base64.b64decode(content)
-            with wx.FileDialog(self, "Save Restored Image", style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT) as fd:
+            with wx.FileDialog(self.GetTopLevelParent(), "保存还原后的图片", style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT) as fd:
+                fd.CenterOnParent()
                 if fd.ShowModal() == wx.ID_OK:
                     with open(fd.GetPath(), "wb") as f:
                         f.write(img_data)

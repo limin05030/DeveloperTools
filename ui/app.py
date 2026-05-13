@@ -15,6 +15,9 @@ class DeveloperToolsApp(wx.Frame):
         self._set_app_icon()
         self._init_ui()
         self.Centre()
+        
+        # 绑定系统颜色变化事件，实现实时主题切换
+        self.Bind(wx.EVT_SYS_COLOUR_CHANGED, self._on_sys_colour_changed)
 
     def _set_app_icon(self):
         icon_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "images", "app.png")
@@ -42,3 +45,9 @@ class DeveloperToolsApp(wx.Frame):
         vbox.Add(self.notebook, 1, wx.EXPAND | wx.ALL, 5)
         panel.SetSizer(vbox)
         ThemeManager.apply_theme(self)
+
+    def _on_sys_colour_changed(self, event):
+        """系统主题变化时的回调"""
+        ThemeManager.apply_theme(self)
+        self.Refresh()
+        event.Skip()
