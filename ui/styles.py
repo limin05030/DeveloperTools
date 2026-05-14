@@ -25,8 +25,8 @@ class ThemeManager:
     LIGHT_COLORS = {
         'BG_WINDOW': "#F2F2F7",
         'BG_CARD': "#FFFFFF",
-        'BG_INPUT': "#E0E0E0",
-        'BG_FOCUS': "#FFFFFF",
+        'BG_INPUT': "#FFFFFF",   # 改为白色，符合明亮模式常规
+        'BG_FOCUS': "#FFFFFF",   # 焦点态保持白色或可根据需要微调
         'TEXT_PRIMARY': "#000000",
         'TEXT_SECONDARY': "#3C3C43",
         'ACCENT_COLOR': "#007AFF",
@@ -103,6 +103,7 @@ class ThemeManager:
         
         c_bg_win = wx.Colour(colors['BG_WINDOW'])
         c_bg_input = wx.Colour(colors['BG_INPUT'])
+        c_bg_focus = wx.Colour(colors['BG_FOCUS'])
         c_text_pri = wx.Colour(colors['TEXT_PRIMARY'])
         
         def _force_apply(win):
@@ -117,7 +118,12 @@ class ThemeManager:
                     style |= wx.BORDER_SIMPLE
                     win.SetWindowStyleFlag(style)
                 
-                win.SetBackgroundColour(c_bg_input)
+                # 修复：初始化时根据当前焦点状态设置背景色
+                if win.HasFocus():
+                    win.SetBackgroundColour(c_bg_focus)
+                else:
+                    win.SetBackgroundColour(c_bg_input)
+                
                 win.SetForegroundColour(c_text_pri)
                 
                 if not hasattr(win, "_theme_bound"):
