@@ -28,9 +28,9 @@ class HashTab(BaseTab):
         # 文本模式
         self.txt_panel = wx.Panel(self.nb)
         txt_sizer = wx.BoxSizer(wx.VERTICAL)
-        self.input_ctrl = wx.TextCtrl(self.txt_panel, style=wx.TE_MULTILINE, size=wx.Size(-1, 100))
-        self.input_ctrl.SetFont(ThemeManager.get_font(13))
-        txt_sizer.Add(self.input_ctrl, 1, wx.EXPAND | wx.ALL, 15)
+        self.input_ctrl = wx.TextCtrl(self.txt_panel, style=wx.TE_MULTILINE, size=wx.Size(-1, 80))
+        self.input_ctrl.SetFont(ThemeManager.get_font(12))
+        txt_sizer.Add(self.input_ctrl, 1, wx.EXPAND | wx.ALL, 10)
         self.txt_panel.SetSizer(txt_sizer)
         
         # 文件模式
@@ -74,8 +74,8 @@ class HashTab(BaseTab):
         
         hmac_gs = wx.GridSizer(1, 6, 10, 10)
         hmac_btns = [
-            ("HmacMD5", "md5"), ("HmacSHA1", "sha1"), ("HmacSHA256", "sha256"),
-            ("HmacSHA512", "sha512"), ("HmacSHA3-256", "sha3_256"), ("HmacRIPEMD160", "ripemd160")
+            ("HmacMD5", "md5"), ("HmacSHA-1", "sha1"), ("HmacSHA-256", "sha256"),
+            ("HmacSHA-512", "sha512"), ("HmacSHA3-256", "sha3_256"), ("HmacRIPEMD160", "ripemd160")
         ]
         for label, algo in hmac_btns:
             btn = wx.Button(self, label=label)
@@ -92,7 +92,7 @@ class HashTab(BaseTab):
         
         ops_sizer = wx.BoxSizer(wx.HORIZONTAL)
         for label, handler in [("复制结果", self._on_copy), ("转换大小写", self._on_toggle), ("清空全部", self._on_clear)]:
-            btn = wx.Button(self, label=label, size=wx.Size(110, 36))
+            btn = wx.Button(self, label=label, size=wx.Size(120, 36))
             btn.Bind(wx.EVT_BUTTON, handler)
             ops_sizer.Add(btn, 0, wx.RIGHT, 15)
         res_content.Add(ops_sizer, 0, wx.TOP | wx.BOTTOM, 15)

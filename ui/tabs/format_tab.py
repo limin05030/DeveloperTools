@@ -70,7 +70,7 @@ class FormatTab(BaseTab):
         self.output_ctrl.SetFont(ThemeManager.get_mono_font(12))
         res_content.Add(self.output_ctrl, 1, wx.EXPAND | wx.RIGHT, 20)
         
-        copy_btn = wx.Button(self, label="复制到剪贴板", size=wx.Size(180, 40))
+        copy_btn = wx.Button(self, label="复制到剪贴板", size=wx.Size(120, 40))
         copy_btn.Bind(wx.EVT_BUTTON, self._on_copy)
         res_content.Add(copy_btn, 0, wx.ALIGN_LEFT | wx.TOP | wx.BOTTOM, 15)
         main_sizer.Add(res_card, 1, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP, 10)
@@ -79,7 +79,8 @@ class FormatTab(BaseTab):
 
     def _on_browse(self, e):
         with wx.FileDialog(self, "选择文件", style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST) as fd:
-            if fd.ShowModal() == wx.ID_OK: self.file_path_ctrl.SetValue(fd.GetPath())
+            if fd.ShowModal() == wx.ID_OK:
+                self.file_path_ctrl.SetValue(fd.GetPath())
 
     def _on_copy(self, e):
         val = self.output_ctrl.GetValue().strip()
@@ -94,9 +95,11 @@ class FormatTab(BaseTab):
             return self.input_ctrl.GetValue().strip()
         else:
             path = self.file_path_ctrl.GetValue().strip()
-            if not path or not os.path.isfile(path): return None
+            if not path or not os.path.isfile(path):
+                return None
             try:
-                with open(path, "r", encoding="utf-8") as f: return f.read().strip()
+                with open(path, "r", encoding="utf-8") as f:
+                    return f.read().strip()
             except:
                 return None
 
@@ -131,9 +134,12 @@ class FormatTab(BaseTab):
             indent, formatted = 0, []
             for line in lines:
                 line = line.strip()
-                if not line: continue
-                if line.startswith('}'): indent -= 1
+                if not line:
+                    continue
+                if line.startswith('}'):
+                    indent -= 1
                 formatted.append("    " * max(0, indent) + line)
-                if line.endswith('{'): indent += 1
+                if line.endswith('{'):
+                    indent += 1
             return '\n'.join(formatted)
         self._safe_exec(_fmt, self.output_ctrl)

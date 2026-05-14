@@ -34,14 +34,15 @@ class ImageTab(BaseTab):
         self.nb.AddPage(self._build_conv_panel(), "格式转换")
         self.nb.AddPage(self._build_comp_panel(), "图片压缩")
         self.nb.AddPage(self._build_size_panel(), "尺寸调整")
-        self.nb.AddPage(self._build_b64_panel(), "Base64 工具")
+        self.nb.AddPage(self._build_b64_panel(), "图片转Base64")
         main_sizer.Add(self.nb, 1, wx.EXPAND | wx.ALL, 5)
         self.SetSizer(main_sizer)
 
     def _on_browse(self, ctrl):
         with wx.FileDialog(self.GetTopLevelParent(), "打开文件") as fd:
             fd.CenterOnParent()
-            if fd.ShowModal() == wx.ID_OK: ctrl.SetValue(fd.GetPath())
+            if fd.ShowModal() == wx.ID_OK:
+                ctrl.SetValue(fd.GetPath())
 
     def _build_conv_panel(self):
         panel = wx.Panel(self.nb)
@@ -203,7 +204,9 @@ class ImageTab(BaseTab):
 
     def _on_convert(self, e):
         src = self.conv_src_ctrl.GetValue()
-        if not src or not os.path.exists(src): return
+        if not src or not os.path.exists(src):
+            return
+
         fmt = self.conv_fmt_cb.GetValue()
         ext = fmt.lower()
         with wx.FileDialog(self.GetTopLevelParent(), "保存图片", defaultFile="converted."+ext, style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT) as fd:
@@ -218,7 +221,9 @@ class ImageTab(BaseTab):
 
     def _on_compress(self, e):
         src = self.comp_src_ctrl.GetValue()
-        if not src: return
+        if not src:
+            return
+
         ext = str(os.path.splitext(src)[1].lower())
         with wx.FileDialog(self.GetTopLevelParent(), "保存压缩后的图片", defaultFile="compressed"+ext, style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT) as fd:
             fd.CenterOnParent()
@@ -233,17 +238,21 @@ class ImageTab(BaseTab):
 
     def _on_resize_crop(self, e):
         src = self.size_src_ctrl.GetValue()
-        if not src: return
+        if not src:
+            return
+
         try:
             tw, th = int(self.width_ctrl.GetValue()), int(self.height_ctrl.GetValue())
         except:
             wx.MessageBox("尺寸必须是整数", "错误")
             return
+
         mode = "resize"
         for rb in self.size_mode_rb:
             if rb.GetValue():
                 mode = rb.name
                 break
+
         ext = str(os.path.splitext(src)[1])
         with wx.FileDialog(self.GetTopLevelParent(), "保存处理后的图片", defaultFile="processed"+ext, style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT) as fd:
             fd.CenterOnParent()
@@ -273,7 +282,8 @@ class ImageTab(BaseTab):
 
     def _on_img_to_b64(self, e):
         src = self.b64_img_ctrl.GetValue()
-        if not src or not os.path.exists(src): return
+        if not src or not os.path.exists(src):
+            return
         
         with open(src, "rb") as f:
             b64 = base64.b64encode(f.read()).decode()
@@ -289,7 +299,9 @@ class ImageTab(BaseTab):
 
     def _on_b64_to_img(self, e):
         path = self.b64_txt_ctrl.GetValue()
-        if not path or not os.path.exists(path): return
+        if not path or not os.path.exists(path):
+            return
+
         try:
             with open(path, "r") as f:
                 content = f.read().strip()

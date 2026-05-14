@@ -10,7 +10,7 @@ from ui.tabs.image_tab import ImageTab
 
 class DeveloperToolsApp(wx.Frame):
     def __init__(self, parent):
-        super(DeveloperToolsApp, self).__init__(parent, title="开发者工具", size=(900, 750))
+        super(DeveloperToolsApp, self).__init__(parent, title="开发者工具", size=wx.Size(900, 750))
         self.notebook = None
         self._set_app_icon()
         self._init_ui()

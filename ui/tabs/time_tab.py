@@ -119,13 +119,17 @@ class TimeTab(BaseTab):
             wx.TheClipboard.Close()
 
     def _on_ts_to_date(self, e):
-        if not self.ts_input.GetValue().strip(): return # 空输入不提示
+        if not self.ts_input.GetValue().strip():
+            return # 空输入不提示
+
         def _conv():
             val = self.ts_input.GetValue().strip()
             ts = float(val)
-            if self.t2d_ios_chk.IsChecked(): ts += self.APPLE_OFFSET
+            if self.t2d_ios_chk.IsChecked():
+                ts += self.APPLE_OFFSET
             show_ms = ts > 10**11 or "." in val
-            if ts > 10**11: ts /= 1000.0
+            if ts > 10**11:
+                ts /= 1000.0
             tz_str = self.t2d_tz_cb.GetValue()
             offset = int(tz_str.replace("UTC", ""))
             tz = timezone(timedelta(hours=offset))
@@ -136,7 +140,9 @@ class TimeTab(BaseTab):
         self._safe_exec(_conv, self.date_output)
 
     def _on_date_to_ts(self, e):
-        if not self.date_input.GetValue().strip(): return # 空输入不提示
+        if not self.date_input.GetValue().strip():
+            return # 空输入不提示
+
         def _conv():
             dt_str = self.date_input.GetValue().strip()
             fmt = "%Y-%m-%d %H:%M:%S.%f" if "." in dt_str else "%Y-%m-%d %H:%M:%S"

@@ -2,6 +2,8 @@
 import wx
 from ui.styles import ThemeManager
 
+
+# noinspection PyMethodMayBeStatic
 class BaseTab(wx.Panel):
     def __init__(self, parent):
         super(BaseTab, self).__init__(parent)
@@ -24,23 +26,25 @@ class BaseTab(wx.Panel):
 
     def _create_section_header(self, parent, title):
         container = wx.BoxSizer(wx.HORIZONTAL)
+
         line = wx.StaticText(parent, label="", size=wx.Size(4, 20))
         line.SetBackgroundColour(ThemeManager.ACCENT_COLOR)
         container.Add(line, 0, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 10)
+
         txt = wx.StaticText(parent, label=title)
         txt.SetFont(ThemeManager.get_font(14, bold=True))
         txt.SetForegroundColour(ThemeManager.ACCENT_COLOR)
         container.Add(txt, 0, wx.ALIGN_CENTER_VERTICAL)
+
         return container
 
     def _create_card_sizer(self, parent, title):
         sizer = wx.BoxSizer(wx.VERTICAL)
+
         header = self._create_section_header(parent, title)
         sizer.Add(header, 0, wx.LEFT | wx.BOTTOM, 10)
+
         content_sizer = wx.BoxSizer(wx.VERTICAL)
         sizer.Add(content_sizer, 1, wx.EXPAND | wx.LEFT, 14)
-        return sizer, content_sizer
 
-    def _apply_focus_effect(self, ctrl):
-        """已废弃：焦点效果现在由 ThemeManager.apply_theme 自动处理"""
-        pass
+        return sizer, content_sizer

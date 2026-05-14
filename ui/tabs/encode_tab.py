@@ -63,7 +63,7 @@ class EncodeTab(BaseTab):
         self.output_ctrl.SetFont(ThemeManager.get_mono_font(12))
         res_content.Add(self.output_ctrl, 1, wx.EXPAND | wx.RIGHT, 20)
         
-        copy_btn = wx.Button(self, label="复制结果", size=wx.Size(160, 40))
+        copy_btn = wx.Button(self, label="复制结果", size=wx.Size(120, 40))
         copy_btn.Bind(wx.EVT_BUTTON, self._on_copy)
         res_content.Add(copy_btn, 0, wx.ALIGN_LEFT | wx.TOP | wx.BOTTOM, 15)
         main_sizer.Add(res_card, 1, wx.EXPAND | wx.LEFT | wx.RIGHT, 15)
