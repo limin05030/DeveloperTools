@@ -2,6 +2,12 @@
 
 `Developer Tools` 中集合了开发过程中常用的功能，比如 `哈希计算`、`编码转换`、`时间转换`、`图片简单处理` 等。
 
+![](screenshot/2.png)
+![](screenshot/3.png)
+![](screenshot/4.png)
+![](screenshot/5.png)
+![](screenshot/6.png)
+
 # windows 版本安装说明
 
 下载 `DeveloperTools.exe`，免安装直接运行。
