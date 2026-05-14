@@ -1,16 +1,16 @@
-altgraph==0.17.5
+altgraph==0.17.5; sys_platform == 'darwin'
 beautifulsoup4==4.14.3
 certifi==2026.4.22
 charset-normalizer==3.4.7
 classproperty==1.0
 lxml==5.3.0
-macholib==1.16.4
+macholib==1.16.4; sys_platform == 'darwin'
 packaging==26.2
 pillow==10.3.0
 pyinstaller==6.20.0
 pyinstaller-hooks-contrib==2026.4
-pyobjc-core==12.1
-pyobjc-framework-Cocoa==12.1
+pyobjc-core==12.1; sys_platform == 'darwin'
+pyobjc-framework-Cocoa==12.1; sys_platform == 'darwin'
 qrcode==8.2
 setuptools==82.0.1
 soupsieve==2.8.3
