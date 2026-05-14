@@ -7,6 +7,8 @@ from ui.tabs.encode_tab import EncodeTab
 from ui.tabs.format_tab import FormatTab
 from ui.tabs.time_tab import TimeTab
 from ui.tabs.image_tab import ImageTab
+from ui.tabs.generate_tab import GenerateTab
+from ui.tabs.query_tab import QueryTab
 
 class DeveloperToolsApp(wx.Frame):
     def __init__(self, parent):
@@ -35,7 +37,9 @@ class DeveloperToolsApp(wx.Frame):
             (EncodeTab, "编码转换"),
             (FormatTab, "格式化工具"),
             (TimeTab, "日期时间"),
-            (ImageTab, "图片处理")
+            (ImageTab, "图片处理"),
+            (GenerateTab, "生成工具"),
+            (QueryTab, "查询工具")
         ]
 
         for tab_class, label in tabs:

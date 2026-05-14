@@ -33,6 +33,7 @@ class EncodeTab(BaseTab):
         enc_btns = [
             ("Base64 编码", self._b64_encode), ("Base64 解码", self._b64_decode),
             ("URL 编码", self._url_encode), ("URL 解码", self._url_decode),
+            ("UTF-8 编码", self._utf8_encode), ("UTF-8 解码", self._utf8_decode),
             ("Unicode 编码", self._unicode_encode), ("Unicode 解码", self._unicode_decode),
             ("HTML 转义", self._html_escape), ("HTML 反转义", self._html_unescape)
         ]
@@ -89,6 +90,8 @@ class EncodeTab(BaseTab):
     def _b64_decode(self, e): self._safe_exec(lambda: base64.b64decode(self._get_val().encode()).decode(), self.output_ctrl)
     def _url_encode(self, e): self._safe_exec(lambda: urllib.parse.quote(self._get_val()), self.output_ctrl)
     def _url_decode(self, e): self._safe_exec(lambda: urllib.parse.unquote(self._get_val()), self.output_ctrl)
+    def _utf8_encode(self, e): self._safe_exec(lambda: "".join([f"\\x{b:02x}" for b in self._get_val().encode('utf-8')]), self.output_ctrl)
+    def _utf8_decode(self, e): self._safe_exec(lambda: bytes.fromhex(self._get_val().replace("\\x", "")).decode('utf-8'), self.output_ctrl)
     def _unicode_encode(self, e): self._safe_exec(lambda: self._get_val().encode('unicode_escape').decode('ascii'), self.output_ctrl)
     def _unicode_decode(self, e): self._safe_exec(lambda: self._get_val().encode().decode('unicode_escape'), self.output_ctrl)
     def _html_escape(self, e): self._safe_exec(lambda: html.escape(self._get_val()), self.output_ctrl)

@@ -5,6 +5,11 @@
 import wx
 from ui.app import DeveloperToolsApp
 
+# pip freeze > requirements.txt
+# pip install -r requirements.txt
+# pip install pyinstaller
+# git tag v1.0.0
+# git push origin v1.0.0
 if __name__ == "__main__":
     app = wx.App(False)
     frame = DeveloperToolsApp(None)
