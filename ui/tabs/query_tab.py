@@ -21,33 +21,32 @@ class QueryTab(BaseTab):
         
         card, cont = self._create_card_sizer(self, "ASCII 码对照表")
         
-        # 加一个面板来包裹 ListCtrl 以实现边框效果，并调小边距
         border_panel = wx.Panel(self, style=wx.BORDER_SUNKEN)
         border_sizer = wx.BoxSizer(wx.VERTICAL)
         
         self.ascii_list = AsciiListCtrl(border_panel, wx.ID_ANY, style=wx.LC_REPORT | wx.BORDER_NONE | wx.LC_SINGLE_SEL)
-        self.ascii_list.SetFont(ThemeManager.get_mono_font(14))
+        # 调高字体大小，这通常会带动表头高度增加
+        self.ascii_list.SetFont(ThemeManager.get_mono_font(12))
         
-        self.ascii_list.InsertColumn(0, "Bin(二进制)", width=100)
-        self.ascii_list.InsertColumn(1, "Oct(八进制)", width=80)
-        self.ascii_list.InsertColumn(2, "Dec(十进制)", width=80)
-        self.ascii_list.InsertColumn(3, "Hex(十六进制)", width=90)
-        self.ascii_list.InsertColumn(4, "缩写/字符", width=100)
-        self.ascii_list.InsertColumn(5, "描述", width=300)
+        # 插入列，除最后一列外均居中
+        self.ascii_list.InsertColumn(0, "二进制", width=100, format=wx.LIST_FORMAT_CENTRE)
+        self.ascii_list.InsertColumn(1, "八进制", width=80, format=wx.LIST_FORMAT_CENTRE)
+        self.ascii_list.InsertColumn(2, "十进制", width=80, format=wx.LIST_FORMAT_CENTRE)
+        self.ascii_list.InsertColumn(3, "十六进制", width=90, format=wx.LIST_FORMAT_CENTRE)
+        self.ascii_list.InsertColumn(4, "缩写/字符", width=100, format=wx.LIST_FORMAT_CENTRE)
+        self.ascii_list.InsertColumn(5, "描述", width=300) # 默认为左对齐
         
         self._load_ascii_data()
         
         border_sizer.Add(self.ascii_list, 1, wx.EXPAND)
         border_panel.SetSizer(border_sizer)
         
-        # 调小左右边距 (由原来的 20 调小为 5)
         cont.Add(border_panel, 1, wx.EXPAND | wx.RIGHT, 5)
         main_sizer.Add(card, 1, wx.EXPAND | wx.ALL, 15)
         
         self.SetSizer(main_sizer)
 
     def _load_ascii_data(self):
-        # ASCII 控制字符 (0-31, 127)
         control_chars = [
             ("0000 0000", "000", "0", "0x00", "NUL", "Null (空字符)"),
             ("0000 0001", "001", "1", "0x01", "SOH", "Start of Heading (标题开始)"),
@@ -87,7 +86,6 @@ class QueryTab(BaseTab):
         for item in control_chars:
             self.ascii_list.Append(item)
             
-        # 可打印字符 (33-126)
         for i in range(33, 127):
             bin_str = format(i, '08b')
             bin_str = bin_str[:4] + " " + bin_str[4:]
