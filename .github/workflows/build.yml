@@ -37,7 +37,14 @@ jobs:
         run: |
           sudo apt-get update
           # Linux 上在安装 wxPython 之前，需要先安装以下库
-          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.0-dev libtiff-dev libsdl2-dev libnotify-dev python3-dev
+          if grep -qi "Ubuntu 22.04" /etc/os-release; then
+            sudo apt-get install -y libwebkit2gtk-4.0-dev
+          elif grep -qi "Ubuntu 24.04" /etc/os-release; then
+            sudo apt-get install -y libwebkit2gtk-4.1-dev
+          else
+            # 对于更早或未明确的版本，尝试旧包（根据实际情况调整）
+            sudo apt-get install -y libwebkit2gtk-4.0-dev || true
+          fi
 
       - name: Install dependencies
         run: |
