@@ -5,7 +5,6 @@ import webview
 from backend.api import Api
 
 DEBUG_MODE = True
-APP_VERSION = "2.0.4"
 
 def get_entrypoint():
     if hasattr(sys, '_MEIPASS'):
