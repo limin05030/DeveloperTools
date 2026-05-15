@@ -61,7 +61,7 @@ jobs:
             CMD="$CMD --icon=$ICON"
           fi
           
-          CMD="$CMD --add-data \"images${SEP}images\" --add-data \"web{SEP}web\""
+          CMD="$CMD --add-data \"images${SEP}images\" --add-data \"web${SEP}web\""
           
           echo "Running: $CMD"
           eval $CMD
