@@ -25,6 +25,7 @@
             </div>
         </aside>
         <main class="content">
+            <div id="toast-container"><div class="toast" id="toast-text">复制成功</div></div>
             <!-- Hash Tab -->
             <section id="hash" class="tab-content active">
                 <div class="card">
@@ -378,6 +379,15 @@
                 </div>
             </section>
         </main>
+    </div>
+    
+    <!-- Custom Alert Modal -->
+    <div id="modal-overlay" class="modal-overlay">
+        <div class="modal">
+            <div class="modal-title">提示</div>
+            <div id="modal-message" class="modal-message"></div>
+            <button class="modal-btn" onclick="hideAlert()">确定</button>
+        </div>
     </div>
     <script src="js/app.js"></script>
 </body>

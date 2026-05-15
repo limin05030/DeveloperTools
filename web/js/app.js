@@ -18,30 +18,39 @@ document.querySelectorAll('.sub-nav-item').forEach(btn => {
     });
 });
 
+// Custom Alert System
+function showAlert(message) {
+    document.getElementById('modal-message').textContent = message;
+    document.getElementById('modal-overlay').classList.add('show');
+}
+
+function hideAlert() {
+    document.getElementById('modal-overlay').classList.remove('show');
+}
+
 // Helper Functions
 async function selectFile(id) {
-    const result = await pywebview.api.select_file();
-    let path = Array.isArray(result) ? result[0] : result;
-    if (path && typeof path === 'string' && !path.startsWith('Error:')) {
-        document.getElementById(id).value = path;
+    const res = await pywebview.api.select_file();
+    if (res.success && res.data) {
+        document.getElementById(id).value = res.data;
         if (id === 'img-size-src') {
-            const info = await pywebview.api.get_image_info(path);
-            if (info && !info.error) {
-                document.getElementById('img-width').value = info.width;
-                document.getElementById('img-height').value = info.height;
+            const infoRes = await pywebview.api.get_image_info(res.data);
+            if (infoRes.success) {
+                document.getElementById('img-width').value = infoRes.data.width;
+                document.getElementById('img-height').value = infoRes.data.height;
             }
         }
-    } else if (path && path.startsWith('Error:')) {
-        alert(path);
+    } else if (!res.success && res.error !== 'Cancelled') {
+        showAlert(res.error);
     }
 }
 
 async function loadBase64File() {
-    const content = await pywebview.api.read_text_file();
-    if (content && !content.startsWith('Error:')) {
-        document.getElementById('b64-input').value = content;
-    } else if (content && content.startsWith('Error:')) {
-        alert(content);
+    const res = await pywebview.api.read_text_file();
+    if (res.success) {
+        document.getElementById('b64-input').value = res.data;
+    } else if (!res.success && res.error !== 'Cancelled') {
+        showAlert(res.error);
     }
 }
 
@@ -49,6 +58,7 @@ async function copyToClipboard(id) {
     const val = document.getElementById(id).value;
     if (val) {
         navigator.clipboard.writeText(val);
+        showToast('已复制到剪贴板');
     }
 }
 
@@ -56,7 +66,22 @@ async function copyValue(id) {
     const val = document.getElementById(id).value;
     if (val) {
         navigator.clipboard.writeText(val);
+        showToast('已复制到剪贴板');
     }
+}
+
+function showToast(message) {
+    const container = document.getElementById('toast-container');
+    const text = document.getElementById('toast-text');
+    text.textContent = message;
+    
+    if (window.toastTimeout) clearTimeout(window.toastTimeout);
+    
+    container.classList.add('show');
+    
+    window.toastTimeout = setTimeout(() => {
+        container.classList.remove('show');
+    }, 2000);
 }
 
 function toggleCase(id) {
@@ -69,17 +94,21 @@ function toggleCase(id) {
 async function calcHash(algo, isHmac = false) {
     const isFileMode = document.querySelector('[data-sub="hash-file"]').classList.contains('active');
     const key = document.getElementById('hash-key').value;
-    let result;
+    let res;
     if (isFileMode) {
         const path = document.getElementById('hash-file-path').value;
-        if (!path) { alert('请先选择文件'); return; }
-        result = await pywebview.api.calc_file_hash(path, algo, isHmac, key);
+        if (!path) { showAlert('请先选择文件'); return; }
+        res = await pywebview.api.calc_file_hash(path, algo, isHmac, key);
     } else {
         const data = document.getElementById('hash-input').value;
         if (!data) return;
-        result = await pywebview.api.calc_hash(data, algo, isHmac, key);
+        res = await pywebview.api.calc_hash(data, algo, isHmac, key);
     }
-    document.getElementById('hash-output').value = result;
+    if (res.success) {
+        document.getElementById('hash-output').value = res.data;
+    } else {
+        showAlert(res.error);
+    }
 }
 
 function clearHash() {
@@ -93,23 +122,29 @@ function clearHash() {
 async function encodeDecode(action) {
     const data = document.getElementById('encode-input').value;
     if (!data) return;
-    const result = await pywebview.api.encode_decode(data, action);
-    document.getElementById('encode-output').value = result;
+    const res = await pywebview.api.encode_decode(data, action);
+    if (res.success) {
+        document.getElementById('encode-output').value = res.data;
+    } else {
+        showAlert(res.error);
+    }
 }
 
 // Format Tools
 async function formatData(type) {
     const isFileMode = document.querySelector('[data-sub="format-file"]').classList.contains('active');
-    let data;
     if (isFileMode) {
-        alert('文件模式格式化暂未实现，请使用文本模式');
+        showAlert('文件模式格式化暂未实现，请使用文本模式');
         return;
-    } else {
-        data = document.getElementById('format-input').value;
     }
+    const data = document.getElementById('format-input').value;
     if (!data) return;
-    const result = await pywebview.api.format_data(data, type);
-    document.getElementById('format-output').value = result;
+    const res = await pywebview.api.format_data(data, type);
+    if (res.success) {
+        document.getElementById('format-output').value = res.data;
+    } else {
+        showAlert(res.error);
+    }
 }
 
 // Time Tools
@@ -131,42 +166,64 @@ function initTimeZones() {
 
 async function updateClock() {
     const offset = parseInt(document.getElementById('time-tz-select').value);
-    const result = await pywebview.api.get_current_time(offset);
-    document.getElementById('time-now-ts').value = result.ts;
-    document.getElementById('time-now-date').value = result.date;
+    const res = await pywebview.api.get_current_time(offset);
+    if (res.success) {
+        document.getElementById('time-now-ts').value = res.data.ts;
+        document.getElementById('time-now-date').value = res.data.date;
+    }
 }
 
 async function tsToDate() {
     const ts = document.getElementById('ts-input').value;
     const offset = parseInt(document.getElementById('t2d-tz-select').value);
     const isIos = document.getElementById('t2d-ios').checked;
-    const result = await pywebview.api.ts_to_date(ts, offset, isIos);
-    document.getElementById('date-output').value = result;
+    const res = await pywebview.api.ts_to_date(ts, offset, isIos);
+    if (res.success) {
+        document.getElementById('date-output').value = res.data;
+    } else {
+        showAlert(res.error);
+    }
 }
 
 async function dateToTs() {
     const date = document.getElementById('date-input').value;
     const offset = parseInt(document.getElementById('d2t-tz-select').value);
     const isIos = document.getElementById('d2t-ios').checked;
-    const result = await pywebview.api.date_to_ts(date, offset, isIos);
-    document.getElementById('ts-output').value = result;
+    const res = await pywebview.api.date_to_ts(date, offset, isIos);
+    if (res.success) {
+        document.getElementById('ts-output').value = res.data;
+    } else {
+        showAlert(res.error);
+    }
 }
 
 // Image Tools
 async function imgConvert() {
     const src = document.getElementById('img-conv-src').value;
     const fmt = document.getElementById('img-conv-fmt').value;
-    if (!src) { alert('请先选择图片'); return; }
+    if (!src) { showAlert('请先选择图片'); return; }
+    
+    const ext = src.split('.').pop().toLowerCase();
+    const targetFmt = fmt.toLowerCase();
+    const isSame = (ext === targetFmt) || (ext === 'jpg' && targetFmt === 'jpeg') || (ext === 'jpeg' && targetFmt === 'jpg');
+    
+    if (isSame) {
+        showToast('原格式与目标格式相同，无需转换');
+        return;
+    }
+
     const res = await pywebview.api.image_convert(src, fmt);
-    if (res && res.startsWith('Error')) alert(res);
+    if (res.success) showToast('转换成功');
+    else if (res.error !== 'Cancelled or failed') showAlert(res.error);
 }
 
 async function imgCompress() {
     const src = document.getElementById('img-comp-src').value;
     const quality = parseInt(document.getElementById('img-comp-quality').value);
-    if (!src) { alert('请先选择图片'); return; }
+    if (!src) { showAlert('请先选择图片'); return; }
     const res = await pywebview.api.image_compress(src, quality);
-    if (res && res.startsWith('Error')) alert(res);
+    if (res.success) showToast('压缩成功');
+    else if (res.error !== 'Cancelled or failed') showAlert(res.error);
 }
 
 document.getElementById('img-comp-quality')?.addEventListener('input', (e) => {
@@ -178,10 +235,11 @@ async function imgSize() {
     const w = parseInt(document.getElementById('img-width').value);
     const h = parseInt(document.getElementById('img-height').value);
     const mode = document.getElementById('img-size-mode').value;
-    if (!src) { alert('请先选择图片'); return; }
-    if (isNaN(w) || isNaN(h)) { alert('请输入正确的尺寸'); return; }
+    if (!src) { showAlert('请先选择图片'); return; }
+    if (isNaN(w) || isNaN(h)) { showAlert('请输入正确的尺寸'); return; }
     const res = await pywebview.api.image_resize_crop(src, w, h, mode);
-    if (res && res.startsWith('Error')) alert(res);
+    if (res.success) showToast('调整成功');
+    else if (res.error !== 'Cancelled or failed') showAlert(res.error);
 }
 
 function toggleRadiusMode() {
@@ -195,7 +253,7 @@ function toggleRadiusMode() {
 
 async function imgRadius() {
     const src = document.getElementById('img-radius-src').value;
-    if (!src) { alert('请先选择图片'); return; }
+    if (!src) { showAlert('请先选择图片'); return; }
     let radii;
     if (document.getElementById('rad-mode-unified').checked) {
         const val = parseInt(document.getElementById('rad-all').value) || 0;
@@ -204,21 +262,24 @@ async function imgRadius() {
         radii = ['rad-tl', 'rad-tr', 'rad-bl', 'rad-br'].map(id => parseInt(document.getElementById(id).value) || 0);
     }
     const res = await pywebview.api.image_radius(src, radii);
-    if (res && res.startsWith('Error')) alert(res);
+    if (res.success) showToast('圆角处理成功');
+    else if (res.error !== 'Cancelled or failed') showAlert(res.error);
 }
 
 async function imgToBase64() {
     const src = document.getElementById('img2b64-src').value;
-    if (!src) { alert('请先选择图片'); return; }
+    if (!src) { showAlert('请先选择图片'); return; }
     const res = await pywebview.api.image_to_base64_save(src);
-    if (res && res.startsWith('Error')) alert(res);
+    if (res.success) showToast('转换并保存成功');
+    else if (res.error !== 'Cancelled or failed') showAlert(res.error);
 }
 
 async function base64ToImg() {
     const data = document.getElementById('b64-input').value;
-    if (!data) { alert('请输入Base64字符串'); return; }
+    if (!data) { showAlert('请输入Base64字符串'); return; }
     const res = await pywebview.api.base64_to_image(data);
-    if (res && res.startsWith('Error')) alert(res);
+    if (res.success) showToast('还原成功');
+    else if (res.error !== 'Cancelled or failed') showAlert(res.error);
 }
 
 // Generate Tools
@@ -226,16 +287,21 @@ async function generateQR() {
     const data = document.getElementById('qr-input').value;
     if (!data) return;
     const res = await pywebview.api.generate_qr(data);
-    const container = document.getElementById('qr-result');
-    container.innerHTML = '<img id="generated-qr-img" src="' + res + '" alt="QR Code">';
-    document.getElementById('qr-result-container').style.display = 'flex';
+    if (res.success) {
+        const container = document.getElementById('qr-result');
+        container.innerHTML = '<img id="generated-qr-img" src="' + res.data + '" alt="QR Code">';
+        document.getElementById('qr-result-container').style.display = 'flex';
+    } else {
+        showAlert(res.error);
+    }
 }
 
 async function saveQR() {
     const img = document.getElementById('generated-qr-img');
     if (!img) return;
     const res = await pywebview.api.save_image_from_base64(img.src, "qrcode.png");
-    if (res && res.startsWith('Error')) alert(res);
+    if (res.success) showToast('保存成功');
+    else if (res.error !== 'Cancelled or failed') showAlert(res.error);
 }
 
 async function generateUUIDs() {
@@ -244,7 +310,25 @@ async function generateUUIDs() {
     const upper = document.getElementById('uuid-upper').checked;
     const braces = document.getElementById('uuid-braces').checked;
     const res = await pywebview.api.generate_uuids(count, hyphen, upper, braces);
-    document.getElementById('uuid-output').value = res;
+    if (res.success) {
+        document.getElementById('uuid-output').value = res.data;
+    } else {
+        showAlert(res.error);
+    }
+}
+
+function initUUIDListeners() {
+    ['uuid-hyphen', 'uuid-upper', 'uuid-braces'].forEach(id => {
+        document.getElementById(id).addEventListener('change', async () => {
+            const hyphen = document.getElementById('uuid-hyphen').checked;
+            const upper = document.getElementById('uuid-upper').checked;
+            const braces = document.getElementById('uuid-braces').checked;
+            const res = await pywebview.api.format_uuids_api(hyphen, upper, braces);
+            if (res.success && res.data) {
+                document.getElementById('uuid-output').value = res.data;
+            }
+        });
+    });
 }
 
 // Query Tools
@@ -262,7 +346,7 @@ function initAsciiTable() {
         ["0000 0111", "007", "7", "0x07", "BEL", "Bell (响铃)"],
         ["0000 1000", "010", "8", "0x08", "BS", "Backspace (退格)"],
         ["0000 1001", "011", "9", "0x09", "HT", "Horizontal Tab (水平制表符)"],
-        ["0000 1010", "012", "10", "0x0A", "LF", "Line Feed (换行)"],
+        ["0000 1010", "012", "10", "0x0A", "LF", "Line Feed (换换)"],
         ["0000 1011", "013", "11", "0x0B", "VT", "Vertical Tab (垂直制表符)"],
         ["0000 1100", "014", "12", "0x0C", "FF", "Form Feed (换页)"],
         ["0000 1101", "015", "13", "0x0D", "CR", "Carriage Return (回车)"],
@@ -320,4 +404,5 @@ window.addEventListener('pywebviewready', () => {
     initTimeZones();
     updateClock();
     initAsciiTable();
+    initUUIDListeners();
 });
