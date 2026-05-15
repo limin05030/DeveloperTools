@@ -4,7 +4,7 @@ import sys
 import webview
 from backend.api import Api
 
-DEBUG_MODE = True
+DEBUG_MODE = False
 
 def get_entrypoint():
     if hasattr(sys, '_MEIPASS'):
