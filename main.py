@@ -24,4 +24,4 @@ if __name__ == "__main__":
         resizable=False  # 固定尺寸，不可缩放/最大化
     )
     api.set_window(window)
-    webview.start(debug=True)
+    webview.start(debug=False)

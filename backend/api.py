@@ -27,7 +27,8 @@ class Api:
         self._window = window
 
     def _log(self, msg):
-        print(f"[Backend API] {msg}")
+        #print(f"[Backend API] {msg}")
+        pass
 
     def select_file(self):
         try:
