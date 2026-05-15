@@ -32,20 +32,6 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Install Linux system dependencies
-        if: runner.os == 'Linux'
-        run: |
-          sudo apt-get update
-          # Linux 上在安装 wxPython 之前，需要先安装以下库
-          if grep -qi "Ubuntu 22.04" /etc/os-release; then
-            sudo apt-get install -y libwebkit2gtk-4.0-dev
-          elif grep -qi "Ubuntu 24.04" /etc/os-release; then
-            sudo apt-get install -y libwebkit2gtk-4.1-dev
-          else
-            # 对于更早或未明确的版本，尝试旧包（根据实际情况调整）
-            sudo apt-get install -y libwebkit2gtk-4.0-dev || true
-          fi
-
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
@@ -75,7 +61,7 @@ jobs:
             CMD="$CMD --icon=$ICON"
           fi
           
-          CMD="$CMD --add-data \"images${SEP}images\""
+          CMD="$CMD --add-data \"images${SEP}images\" --add-data \"web{SEP}web\""
           
           echo "Running: $CMD"
           eval $CMD

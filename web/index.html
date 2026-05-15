@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>开发者工具</title>
+    <link rel="stylesheet" href="css/style.css"><link rel="icon" href="../images/app.png" type="image/png">
+</head>
+<body>
+    <div class="container">
+        <aside class="sidebar">
+            <div class="logo">开发者工具</div>
+            <nav class="nav">
+                <button class="nav-item active" data-tab="hash">哈希计算</button>
+                <button class="nav-item" data-tab="encode">编码转换</button>
+                <button class="nav-item" data-tab="format">格式化</button>
+                <button class="nav-item" data-tab="time">日期时间</button>
+                <button class="nav-item" data-tab="image">图片处理</button>
+                <button class="nav-item" data-tab="generate">生成工具</button>
+                <button class="nav-item" data-tab="query">查询工具</button>
+            </nav>
+            <div class="sidebar-footer">
+                <div class="version">Version: v1.0.0</div>
+                <div class="author">Author: Sens</div>
+            </div>
+        </aside>
+        <main class="content">
+            <!-- Hash Tab -->
+            <section id="hash" class="tab-content active">
+                <div class="card">
+                    <div class="card-header">输入</div>
+                    <div class="tab-sub-nav">
+                        <button class="sub-nav-item active" data-sub="hash-text">文本模式</button>
+                        <button class="sub-nav-item" data-sub="hash-file">文件模式</button>
+                    </div>
+                    <div id="hash-text" class="sub-tab-content active">
+                        <textarea id="hash-input" placeholder="输入待计算文本..."></textarea>
+                    </div>
+                    <div id="hash-file" class="sub-tab-content">
+                        <div class="input-group">
+                            <input type="text" id="hash-file-path" readonly placeholder="选择文件...">
+                            <button onclick="selectFile('hash-file-path')">浏览</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">算法</div>
+                    <div class="tab-sub-nav">
+                        <button class="sub-nav-item active" data-sub="hash-standard">标准哈希</button>
+                        <button class="sub-nav-item" data-sub="hash-hmac">HMAC 加密哈希</button>
+                    </div>
+                    <div id="hash-standard" class="sub-tab-content active">
+                        <div class="btn-grid six-cols">
+                            <button onclick="calcHash('md5-16')">MD5-16</button>
+                            <button onclick="calcHash('md5-32')">MD5-32</button>
+                            <button onclick="calcHash('sha1')">SHA-1</button>
+                            <button onclick="calcHash('sha224')">SHA-224</button>
+                            <button onclick="calcHash('sha256')">SHA-256</button>
+                            <button onclick="calcHash('sha384')">SHA-384</button>
+                            <button onclick="calcHash('sha512')">SHA-512</button>
+                            <button onclick="calcHash('sha3_256')">SHA3</button>
+                            <button onclick="calcHash('sha3_224')">SHA3-224</button>
+                            <button onclick="calcHash('sha3_256')">SHA3-256</button>
+                            <button onclick="calcHash('sha3_384')">SHA3-384</button>
+                            <button onclick="calcHash('sha3_512')">SHA3-512</button>
+                        </div>
+                    </div>
+                    <div id="hash-hmac" class="sub-tab-content">
+                        <div class="btn-grid five-cols">
+                            <button onclick="calcHash('md5', true)">HmacMD5</button>
+                            <button onclick="calcHash('sha1', true)">HmacSHA-1</button>
+                            <button onclick="calcHash('sha256', true)">HmacSHA-256</button>
+                            <button onclick="calcHash('sha512', true)">HmacSHA-512</button>
+                            <button onclick="calcHash('sha3_256', true)">HmacSHA3</button>
+                            <button onclick="calcHash('sha3_224', true)">HmacSHA3-224</button>
+                            <button onclick="calcHash('sha3_256', true)">HmacSHA3-256</button>
+                            <button onclick="calcHash('sha3_384', true)">HmacSHA3-384</button>
+                            <button onclick="calcHash('sha3_512', true)">HmacSHA3-512</button>
+                            <button onclick="calcHash('ripemd160', true)">HmacRIPEMD160</button>
+                        </div>
+                        <div class="input-group" style="margin-top: 15px;">
+                            <label>密钥 (KEY):</label>
+                            <input type="text" id="hash-key" placeholder="输入密钥...">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">结果</div>
+                    <textarea id="hash-output" readonly class="mono"></textarea>
+                    <div class="btn-group">
+                        <button onclick="copyToClipboard('hash-output')">复制结果</button>
+                        <button onclick="toggleCase('hash-output')">转换大小写</button>
+                        <button onclick="clearHash()">清空全部</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Encode Tab -->
+            <section id="encode" class="tab-content">
+                <div class="card">
+                    <div class="card-header">输入</div>
+                    <textarea id="encode-input"></textarea>
+                </div>
+                <div class="card">
+                    <div class="card-header">操作</div>
+                    <div class="tab-sub-nav">
+                        <button class="sub-nav-item active" data-sub="encode-main">编码与解码</button>
+                        <button class="sub-nav-item" data-sub="encode-text">文本转换</button>
+                    </div>
+                    <div id="encode-main" class="sub-tab-content active">
+                        <div class="btn-grid six-cols">
+                            <button onclick="encodeDecode('b64_encode')">Base64 编码</button>
+                            <button onclick="encodeDecode('b64_decode')">Base64 解码</button>
+                            <button onclick="encodeDecode('url_encode')">URL 编码</button>
+                            <button onclick="encodeDecode('url_decode')">URL 解码</button>
+                            <button onclick="encodeDecode('utf8_encode')">UTF-8 编码</button>
+                            <button onclick="encodeDecode('utf8_decode')">UTF-8 解码</button>
+                            <button onclick="encodeDecode('unicode_encode')">Unicode 编码</button>
+                            <button onclick="encodeDecode('unicode_decode')">Unicode 解码</button>
+                            <button onclick="encodeDecode('html_escape')">HTML 转义</button>
+                            <button onclick="encodeDecode('html_unescape')">HTML 反转义</button>
+                        </div>
+                    </div>
+                    <div id="encode-text" class="sub-tab-content">
+                        <div class="btn-grid five-cols">
+                            <button onclick="encodeDecode('upper')">转大写</button>
+                            <button onclick="encodeDecode('lower')">转小写</button>
+                            <button onclick="encodeDecode('swap')">大小写互转</button>
+                            <button onclick="encodeDecode('traditional')">转繁体</button>
+                            <button onclick="encodeDecode('simplified')">转简体</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-header">结果</div>
+                    <textarea id="encode-output" readonly class="mono"></textarea>
+                    <button onclick="copyToClipboard('encode-output')">复制结果</button>
+                </div>
+            </section>
+
+            <!-- Format Tab -->
+            <section id="format" class="tab-content">
+                <div class="card">
+                    <div class="card-header">输入</div>
+                    <div class="tab-sub-nav">
+                        <button class="sub-nav-item active" data-sub="format-text">文本模式</button>
+                        <button class="sub-nav-item" data-sub="format-file">文件模式</button>
+                    </div>
+                    <div id="format-text" class="sub-tab-content active">
+                        <textarea id="format-input" placeholder="输入待格式化文本..."></textarea>
+                    </div>
+                    <div id="format-file" class="sub-tab-content">
+                        <div class="input-group">
+                            <input type="text" id="format-file-path" readonly placeholder="选择文件...">
+                            <button onclick="selectFile('format-file-path')">浏览</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-header">操作</div>
+                    <div class="btn-grid five-cols">
+                        <button onclick="formatData('json_format')">JSON 格式化</button>
+                        <button onclick="formatData('json_compress')">JSON 压缩</button>
+                        <button onclick="formatData('html_xml')">HTML/XML 美化</button><button onclick="formatData('js_format')">JS/TS 格式化</button><button onclick="formatData('js_compress')">JS 压缩</button>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-header">结果</div>
+                    <textarea id="format-output" readonly class="mono"></textarea>
+                    <button onclick="copyToClipboard('format-output')">复制结果</button>
+                </div>
+            </section>
+
+            <!-- Time Tab -->
+            <section id="time" class="tab-content">
+                <div class="card">
+                    <div class="card-header">当前时间</div>
+                    <div class="input-group compact">
+                        <label>时区:</label>
+                        <select id="time-tz-select"></select>
+                        <button onclick="updateClock()">刷新</button>
+                    </div>
+                    <div class="input-group">
+                        <label>本地时间:</label>
+                        <input type="text" id="time-now-date" readonly class="mono">
+                        <button onclick="copyValue('time-now-date')">复制</button>
+                    </div>
+                    <div class="input-group">
+                        <label>时间戳:</label>
+                        <input type="text" id="time-now-ts" readonly class="mono">
+                        <button onclick="copyValue('time-now-ts')">复制</button>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-header">时间戳 转 日期</div>
+                    <div class="input-group compact">
+                        <label>时区:</label>
+                        <select id="t2d-tz-select"></select>
+                        <label class="checkbox-label"><input type="checkbox" id="t2d-ios"> iOS 格式</label>
+                    </div>
+                    <div class="input-row">
+                        <input type="text" id="ts-input" placeholder="输入时间戳...">
+                        <button onclick="tsToDate()">转换</button>
+                        <input type="text" id="date-output" readonly class="mono">
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-header">日期 转 时间戳</div>
+                    <div class="input-group compact">
+                        <label>时区:</label>
+                        <select id="d2t-tz-select"></select>
+                        <label class="checkbox-label"><input type="checkbox" id="d2t-ios"> iOS 格式</label>
+                    </div>
+                    <div class="input-row">
+                        <input type="text" id="date-input" placeholder="YYYY-MM-DD HH:MM:SS">
+                        <button onclick="dateToTs()">转换</button>
+                        <input type="text" id="ts-output" readonly class="mono">
+                    </div>
+                </div>
+            </section>
+
+            <!-- Image Tab -->
+            <section id="image" class="tab-content">
+                <div class="card">
+                    <div class="card-header">功能</div>
+                    <div class="tab-sub-nav">
+                        <button class="sub-nav-item active" data-sub="img-conv">格式转换</button>
+                        <button class="sub-nav-item" data-sub="img-comp">图片压缩</button>
+                        <button class="sub-nav-item" data-sub="img-size">尺寸调整</button>
+                        <button class="sub-nav-item" data-sub="img-radius">圆角处理</button>
+                        <button class="sub-nav-item" data-sub="img-b64">Base64</button>
+                    </div>
+
+                    <!-- Convert -->
+                    <div id="img-conv" class="sub-tab-content active">
+                        <div class="input-group">
+                            <label>源图片:</label>
+                            <input type="text" id="img-conv-src" readonly>
+                            <button onclick="selectFile('img-conv-src')">浏览</button>
+                        </div>
+                        <div class="input-group">
+                            <label>目标格式:</label>
+                            <select id="img-conv-fmt">
+                                <option>PNG</option><option>JPEG</option><option>WEBP</option>
+                                <option>BMP</option><option>ICO</option><option>TIFF</option>
+                            </select>
+                        </div>
+                        <button class="primary" onclick="imgConvert()">转换</button>
+                    </div>
+
+                    <!-- Compress -->
+                    <div id="img-comp" class="sub-tab-content">
+                        <div class="input-group">
+                            <label>源图片:</label>
+                            <input type="text" id="img-comp-src" readonly>
+                            <button onclick="selectFile('img-comp-src')">浏览</button>
+                        </div>
+                        <div class="input-group">
+                            <label>质量 (1-100):</label>
+                            <input type="range" id="img-comp-quality" min="1" max="100" value="75">
+                            <span id="quality-val">75</span>
+                        </div>
+                        <button class="primary" onclick="imgCompress()">保存</button>
+                    </div>
+
+                    <!-- Size -->
+                    <div id="img-size" class="sub-tab-content">
+                        <div class="input-group">
+                            <label>源图片:</label>
+                            <input type="text" id="img-size-src" readonly>
+                            <button onclick="selectFile('img-size-src')">浏览</button>
+                        </div>
+                        <div class="input-group">
+                            <label>模式:</label>
+                            <select id="img-size-mode">
+                                <option value="resize">缩放</option>
+                                <option value="center">中心裁剪</option>
+                                <option value="tl">左上裁剪</option><option value="tr">右上裁剪</option>
+                                <option value="bl">左下裁剪</option><option value="br">右下裁剪</option>
+                            </select>
+                        </div>
+                        <div class="input-row">
+                            <label>宽:</label><input type="number" id="img-width">
+                            <label>高:</label><input type="number" id="img-height">
+                            <label class="checkbox-label"><input type="checkbox" id="img-ratio" checked> 保持比例</label>
+                        </div>
+                        <button class="primary" onclick="imgSize()">保存</button>
+                    </div>
+
+                    <!-- Radius -->
+                    <div id="img-radius" class="sub-tab-content">
+                        <div class="input-group">
+                            <label>源图片:</label>
+                            <input type="text" id="img-radius-src" readonly>
+                            <button onclick="selectFile('img-radius-src')">浏览</button>
+                        </div>
+                        <div class="radius-settings">
+                            <div class="input-row">
+                                <label class="checkbox-label"><input type="radio" name="rad-mode" id="rad-mode-unified" checked onchange="toggleRadiusMode()"> 统一设置:</label>
+                                <input type="number" id="rad-all" value="0">
+                            </div>
+                            <div class="input-row">
+                                <label class="checkbox-label"><input type="radio" name="rad-mode" id="rad-mode-individual" onchange="toggleRadiusMode()"> 单独设置:</label>
+                                <label>左上:</label><input type="number" id="rad-tl" value="0" disabled>
+                                <label>右上:</label><input type="number" id="rad-tr" value="0" disabled>
+                                <label>左下:</label><input type="number" id="rad-bl" value="0" disabled>
+                                <label>右下:</label><input type="number" id="rad-br" value="0" disabled>
+                            </div>
+                        </div>
+                        <button class="primary" onclick="imgRadius()">保存</button>
+                    </div>
+
+                    <!-- Base64 -->
+                    <div id="img-b64" class="sub-tab-content">
+                        <div class="card-sub-header">图片 转 Base64</div>
+                        <div class="input-group">
+                            <input type="text" id="img2b64-src" readonly>
+                            <button onclick="selectFile('img2b64-src')">浏览</button>
+                            <button onclick="imgToBase64()">转换</button>
+                        </div>
+                        <div class="card-sub-header">Base64 转 图片</div>
+                        <div class="input-group">
+                            <textarea id="b64-input" placeholder="输入 Base64 字符串..."></textarea>
+                        </div>
+                        <div class="btn-group">
+                            <button onclick="loadBase64File()">从文件读取</button>
+                            <button class="primary" onclick="base64ToImg()">还原</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Generate Tab -->
+            <section id="generate" class="tab-content">
+                <div class="card">
+                    <div class="card-header">批量生成 UUID</div>
+                    <div class="input-group">
+                        <label>数量:</label><input type="number" id="uuid-count" value="5" class="small-num">
+                        <label class="checkbox-label"><input type="checkbox" id="uuid-hyphen" checked> 带分割线</label>
+                        <label class="checkbox-label"><input type="checkbox" id="uuid-upper" checked> 字母大写</label>
+                        <label class="checkbox-label"><input type="checkbox" id="uuid-braces"> 带花括号</label>
+                    </div>
+                    <textarea id="uuid-output" readonly class="mono uuid-textarea"></textarea>
+                    <div class="btn-group">
+                        <button onclick="generateUUIDs()">生成</button>
+                        <button onclick="copyToClipboard('uuid-output')">复制结果</button>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-header">二维码生成</div>
+                    <div class="input-row">
+                        <input type="text" id="qr-input" placeholder="输入内容...">
+                        <button onclick="generateQR()">生成</button>
+                    </div>
+                    <div id="qr-result-container" class="qr-container-vertical" style="display: none;">
+                        <div id="qr-result" class="qr-image-wrapper"></div>
+                        <button class="primary" onclick="saveQR()">保存二维码图片</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Query Tab -->
+            <section id="query" class="tab-content">
+                <div class="card">
+                    <div class="card-header">ASCII 码对照表</div>
+                    <div class="table-container">
+                        <table id="ascii-table">
+                            <thead>
+                                <tr>
+                                    <th>二进制</th><th>八进制</th><th>十进制</th><th>十六进制</th><th>字符</th><th>描述</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+    <script src="js/app.js"></script>
+</body>
+</html>
