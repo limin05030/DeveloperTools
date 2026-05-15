@@ -20,7 +20,7 @@
                 <button class="nav-item" data-tab="query">查询工具</button>
             </nav>
             <div class="sidebar-footer">
-                <div class="version">Version: v2.0.5</div>
+                <div class="version">Version: v2.0.6</div>
                 <div class="author">Author: Sens</div>
             </div>
         </aside>
@@ -35,11 +35,11 @@
                         <button class="sub-nav-item" data-sub="hash-file">文件模式</button>
                     </div>
                     <div id="hash-text" class="sub-tab-content active">
-                        <textarea id="hash-input" placeholder="输入待计算文本..."></textarea>
+                        <textarea autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" id="hash-input" placeholder="输入待计算文本..."></textarea>
                     </div>
                     <div id="hash-file" class="sub-tab-content">
                         <div class="input-group">
-                            <input type="text" id="hash-file-path" readonly placeholder="选择文件...">
+                            <input type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" id="hash-file-path" readonly placeholder="选择文件...">
                             <button onclick="selectFile('hash-file-path')">浏览</button>
                         </div>
                     </div>
@@ -82,14 +82,14 @@
                         </div>
                         <div class="input-group" style="margin-top: 15px;">
                             <label>密钥 (KEY):</label>
-                            <input type="text" id="hash-key" placeholder="输入密钥...">
+                            <input type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" id="hash-key" placeholder="输入密钥...">
                         </div>
                     </div>
                 </div>
 
                 <div class="card">
                     <div class="card-header">结果</div>
-                    <textarea id="hash-output" readonly class="mono"></textarea>
+                    <textarea autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" id="hash-output" readonly class="mono"></textarea>
                     <div class="btn-group">
                         <button onclick="copyToClipboard('hash-output')">复制结果</button>
                         <button onclick="toggleCase('hash-output')">转换大小写</button>
@@ -102,7 +102,7 @@
             <section id="encode" class="tab-content">
                 <div class="card">
                     <div class="card-header">输入</div>
-                    <textarea id="encode-input"></textarea>
+                    <textarea autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" id="encode-input"></textarea>
                 </div>
                 <div class="card">
                     <div class="card-header">操作</div>
@@ -136,7 +136,7 @@
                 </div>
                 <div class="card">
                     <div class="card-header">结果</div>
-                    <textarea id="encode-output" readonly class="mono"></textarea>
+                    <textarea autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" id="encode-output" readonly class="mono"></textarea>
                     <button onclick="copyToClipboard('encode-output')">复制结果</button>
                 </div>
             </section>
@@ -150,11 +150,11 @@
                         <button class="sub-nav-item" data-sub="format-file">文件模式</button>
                     </div>
                     <div id="format-text" class="sub-tab-content active">
-                        <textarea id="format-input" placeholder="输入待格式化文本..."></textarea>
+                        <textarea autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" id="format-input" placeholder="输入待格式化文本..."></textarea>
                     </div>
                     <div id="format-file" class="sub-tab-content">
                         <div class="input-group">
-                            <input type="text" id="format-file-path" readonly placeholder="选择文件...">
+                            <input type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" id="format-file-path" readonly placeholder="选择文件...">
                             <button onclick="selectFile('format-file-path')">浏览</button>
                         </div>
                     </div>
@@ -169,7 +169,7 @@
                 </div>
                 <div class="card">
                     <div class="card-header">结果</div>
-                    <textarea id="format-output" readonly class="mono"></textarea>
+                    <textarea autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" id="format-output" readonly class="mono"></textarea>
                     <button onclick="copyToClipboard('format-output')">复制结果</button>
                 </div>
             </section>
@@ -185,12 +185,12 @@
                     </div>
                     <div class="input-group">
                         <label>本地时间:</label>
-                        <input type="text" id="time-now-date" readonly class="mono">
+                        <input type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" id="time-now-date" readonly class="mono">
                         <button onclick="copyValue('time-now-date')">复制</button>
                     </div>
                     <div class="input-group">
                         <label>时间戳:</label>
-                        <input type="text" id="time-now-ts" readonly class="mono">
+                        <input type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" id="time-now-ts" readonly class="mono">
                         <button onclick="copyValue('time-now-ts')">复制</button>
                     </div>
                 </div>
@@ -202,9 +202,9 @@
                         <label class="checkbox-label"><input type="checkbox" id="t2d-ios"> iOS 格式</label>
                     </div>
                     <div class="input-row">
-                        <input type="text" id="ts-input" placeholder="输入时间戳...">
+                        <input type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" id="ts-input" placeholder="输入时间戳...">
                         <button onclick="tsToDate()">转换</button>
-                        <input type="text" id="date-output" readonly class="mono">
+                        <input type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" id="date-output" readonly class="mono">
                     </div>
                 </div>
                 <div class="card">
@@ -215,9 +215,9 @@
                         <label class="checkbox-label"><input type="checkbox" id="d2t-ios"> iOS 格式</label>
                     </div>
                     <div class="input-row">
-                        <input type="text" id="date-input" placeholder="YYYY-MM-DD HH:MM:SS">
+                        <input type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" id="date-input" placeholder="YYYY-MM-DD HH:MM:SS">
                         <button onclick="dateToTs()">转换</button>
-                        <input type="text" id="ts-output" readonly class="mono">
+                        <input type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" id="ts-output" readonly class="mono">
                     </div>
                 </div>
             </section>
@@ -238,7 +238,7 @@
                     <div id="img-conv" class="sub-tab-content active">
                         <div class="input-group">
                             <label>源图片:</label>
-                            <input type="text" id="img-conv-src" readonly>
+                            <input type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" id="img-conv-src" readonly>
                             <button onclick="selectFile('img-conv-src')">浏览</button>
                         </div>
                         <div class="input-group">
@@ -255,7 +255,7 @@
                     <div id="img-comp" class="sub-tab-content">
                         <div class="input-group">
                             <label>源图片:</label>
-                            <input type="text" id="img-comp-src" readonly>
+                            <input type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" id="img-comp-src" readonly>
                             <button onclick="selectFile('img-comp-src')">浏览</button>
                         </div>
                         <div class="input-group">
@@ -270,7 +270,7 @@
                     <div id="img-size" class="sub-tab-content">
                         <div class="input-group">
                             <label>源图片:</label>
-                            <input type="text" id="img-size-src" readonly>
+                            <input type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" id="img-size-src" readonly>
                             <button onclick="selectFile('img-size-src')">浏览</button>
                         </div>
                         <div class="input-group">
@@ -294,7 +294,7 @@
                     <div id="img-radius" class="sub-tab-content">
                         <div class="input-group">
                             <label>源图片:</label>
-                            <input type="text" id="img-radius-src" readonly>
+                            <input type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" id="img-radius-src" readonly>
                             <button onclick="selectFile('img-radius-src')">浏览</button>
                         </div>
                         <div class="radius-settings">
@@ -317,13 +317,13 @@
                     <div id="img-b64" class="sub-tab-content">
                         <div class="card-sub-header">图片 转 Base64</div>
                         <div class="input-group">
-                            <input type="text" id="img2b64-src" readonly>
+                            <input type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" id="img2b64-src" readonly>
                             <button onclick="selectFile('img2b64-src')">浏览</button>
                             <button onclick="imgToBase64()">转换</button>
                         </div>
                         <div class="card-sub-header">Base64 转 图片</div>
                         <div class="input-group">
-                            <textarea id="b64-input" placeholder="输入 Base64 字符串..."></textarea>
+                            <textarea autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" id="b64-input" placeholder="输入 Base64 字符串..."></textarea>
                         </div>
                         <div class="btn-group">
                             <button onclick="loadBase64File()">从文件读取</button>
@@ -343,7 +343,7 @@
                         <label class="checkbox-label"><input type="checkbox" id="uuid-upper" checked> 字母大写</label>
                         <label class="checkbox-label"><input type="checkbox" id="uuid-braces"> 带花括号</label>
                     </div>
-                    <textarea id="uuid-output" readonly class="mono uuid-textarea"></textarea>
+                    <textarea autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" id="uuid-output" readonly class="mono uuid-textarea"></textarea>
                     <div class="btn-group">
                         <button onclick="generateUUIDs()">生成</button>
                         <button onclick="copyToClipboard('uuid-output')">复制结果</button>
@@ -352,7 +352,7 @@
                 <div class="card">
                     <div class="card-header">二维码生成</div>
                     <div class="input-row">
-                        <input type="text" id="qr-input" placeholder="输入内容...">
+                        <input type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" id="qr-input" placeholder="输入内容...">
                         <button onclick="generateQR()">生成</button>
                     </div>
                     <div id="qr-result-container" class="qr-container-vertical" style="display: none;">
