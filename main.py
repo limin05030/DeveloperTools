@@ -4,8 +4,10 @@ import sys
 import webview
 from backend.api import Api
 
+DEBUG_MODE = True
+APP_VERSION = "2.0.4"
+
 def get_entrypoint():
-    # PyInstaller 打包后的临时目录路径存储在 _MEIPASS 中
     if hasattr(sys, '_MEIPASS'):
         base_path = sys._MEIPASS
     else:
@@ -14,14 +16,14 @@ def get_entrypoint():
     return os.path.join(base_path, "web", "index.html")
 
 if __name__ == "__main__":
-    api = Api()
+    api = Api(DEBUG_MODE)
     window = webview.create_window(
         "开发者工具",
         get_entrypoint(),
         js_api=api,
         width=1000,
         height=880,
-        resizable=False  # 固定尺寸，不可缩放/最大化
+        resizable=False
     )
     api.set_window(window)
-    webview.start(debug=False)
+    webview.start(debug=DEBUG_MODE)

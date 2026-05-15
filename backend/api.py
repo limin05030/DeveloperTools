@@ -18,8 +18,9 @@ from bs4 import BeautifulSoup
 import webview
 
 class Api:
-    def __init__(self):
+    def __init__(self, isDebug: bool = False):
         self._window = None
+        self._debug = isDebug
         self._raw_uuids = []
         self.APPLE_OFFSET = 978307200
 
@@ -27,8 +28,8 @@ class Api:
         self._window = window
 
     def _log(self, msg):
-        #print(f"[Backend API] {msg}")
-        pass
+        if self._debug:
+            print(f"[Backend API] {msg}")
 
     def select_file(self):
         try:
@@ -252,6 +253,9 @@ class Api:
 
     def image_convert(self, src, fmt):
         try:
+            if src.lower().endswith(fmt.lower()):
+                return ""
+
             self._log(f"image_convert: src={src}, fmt={fmt}")
             ext = "jpg" if fmt.upper() == "JPEG" else fmt.lower()
             save_path = self.save_file(f"converted.{ext}", [("Image", f"*.{ext}")])
