@@ -38,6 +38,13 @@ jobs:
           pip install -r requirements.txt
           pip install pyinstaller
 
+      - name: Update version in index.html
+        shell: bash
+        run: |
+          VERSION="${{ github.event.inputs.version || github.ref_name }}"
+          echo "Updating version to $VERSION in web/index.html"
+          python -c "import sys, re; p = 'web/index.html'; c = open(p).read(); c = re.sub(r'Version: [^<]*', 'Version: ' + sys.argv[1], c); open(p, 'w').write(c)" "$VERSION"
+
       - name: Build with PyInstaller
         shell: bash
         run: |
