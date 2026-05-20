@@ -26,6 +26,14 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+      - name: Disable DEBUG_MODE in main.py
+        shell: bash
+        run: |
+          echo "Disabling DEBUG_MODE in main.py"
+          sed -i 's/DEBUG_MODE = True/DEBUG_MODE = False/g' main.py
+          # 也处理可能已经是 False 的情况，确保一致性
+          grep "DEBUG_MODE =" main.py
+
 
       - name: Set up Python
         uses: actions/setup-python@v5
