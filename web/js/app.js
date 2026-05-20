@@ -627,6 +627,7 @@ async function generateQR() {
         const container = document.getElementById('qr-result');
         container.innerHTML = '<img id="generated-qr-img" src="' + res.data + '" alt="QR Code">';
         document.getElementById('qr-result-container').style.display = 'flex';
+        document.getElementById('qr-empty-hint').style.display = 'none';
     } else {
         showAlert(res.error);
     }
@@ -758,6 +759,7 @@ window.addEventListener('pywebviewready', () => {
     initContextMenu();
     initPermissionSearch();
     initCustomTooltip();
+    initQRCharCount();
     loadLocalPermissions();
 });
 
@@ -862,4 +864,14 @@ function initCustomTooltip() {
             tooltip.style.display = 'none';
         }
     });
+}
+
+function initQRCharCount() {
+    const input = document.getElementById('qr-input');
+    const display = document.getElementById('qr-char-count');
+    if (input && display) {
+        input.addEventListener('input', () => {
+            display.textContent = input.value.length;
+        });
+    }
 }

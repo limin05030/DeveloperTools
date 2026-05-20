@@ -451,13 +451,24 @@
                     
                     <!-- QR Generation -->
                     <div id="qr-gen" class="sub-tab-content active">
-                        <div class="input-row">
-                            <input type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" id="qr-input" placeholder="输入内容...">
-                            <button onclick="generateQR()">生成</button>
-                        </div>
-                        <div id="qr-result-container" class="qr-container-vertical" style="display: none;">
-                            <div id="qr-result" class="qr-image-wrapper"></div>
-                            <button class="primary" onclick="saveQR()">保存二维码图片</button>
+                        <div class="qr-split-container">
+                            <div class="qr-left-panel">
+                                <div class="textarea-wrapper">
+                                    <textarea id="qr-input" placeholder="输入要生成的文本或链接..." maxlength="2000"></textarea>
+                                    <div class="char-counter"><span id="qr-char-count">0</span> / 2000</div>
+                                </div>
+                                <button class="primary" style="width: 100%; margin-top: 10px;" onclick="generateQR()">生成二维码</button>
+                            </div>
+                            <div class="qr-right-panel">
+                                <div id="qr-result-container" class="qr-container-vertical" style="display: none;">
+                                    <div id="qr-result" class="qr-image-wrapper"></div>
+                                    <button class="primary" style="margin-top: 15px;" onclick="saveQR()">保存二维码图片</button>
+                                </div>
+                                <div id="qr-empty-hint" class="empty-hint">
+                                    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" style="opacity: 0.2;"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><rect x="7" y="7" width="3" height="3"></rect><rect x="14" y="7" width="3" height="3"></rect><rect x="7" y="14" width="3" height="3"></rect><rect x="14" y="14" width="3" height="3"></rect></svg>
+                                    <p>生成后在这里预览</p>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
