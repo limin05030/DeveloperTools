@@ -4,6 +4,12 @@ import sys
 import webview
 from backend.api import Api
 
+# pip freeze > requirements.txt （不要使用这个命令更新requirements.txt，有些库是 macOS 平台专有的）
+# pip install -r requirements.txt
+# pip install pyinstaller
+# git tag v1.0.0
+# git push origin v1.0.0
+
 DEBUG_MODE = True
 
 def get_entrypoint():
