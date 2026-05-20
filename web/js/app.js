@@ -407,7 +407,7 @@ async function selectColorPickerFile() {
             cpState.img = new Image();
             cpState.img.onload = function() {
                 document.getElementById('color-picker-main').style.display = 'block';
-                document.getElementById('color-result-container').style.display = 'flex';
+                document.getElementById('color-result-container').style.display = 'block';
                 resetColorPicker();
             };
             cpState.img.src = fileRes.data;
@@ -518,13 +518,13 @@ function initColorPicker() {
         const ctx = canvas.getContext('2d', { willReadFrequently: true });
         const pixel = ctx.getImageData(x, y, 1, 1).data;
         
-        if (pixel[3] === 0) return;
+        
 
-        const r = pixel[0], g = pixel[1], b = pixel[2], a = (pixel[3] / 255).toFixed(2);
-        const hex = "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1).toUpperCase();
+        const r = pixel[0], g = pixel[1], b = pixel[2], aRaw = pixel[3]; const a = (aRaw / 255).toFixed(2);
+        const toHex = (n) => n.toString(16).padStart(2, "0").toUpperCase(); const hexRGBA = "#" + toHex(r) + toHex(g) + toHex(b) + toHex(aRaw); const hexARGB = "#" + toHex(aRaw) + toHex(r) + toHex(g) + toHex(b); const [h, s, l] = rgbToHsl(r, g, b); const hsla = "hsla(" + h + ", " + s + "%, " + l + "%, " + a + ")";
         const rgba = `rgba(${r}, ${g}, ${b}, ${a})`;
         
-        document.getElementById('color-hex').value = hex;
+        document.getElementById('color-hex-rgba').value = hexRGBA; document.getElementById('color-hex-argb').value = hexARGB; document.getElementById('color-hsla').value = hsla;
         document.getElementById('color-rgba').value = rgba;
         document.getElementById('color-preview').style.backgroundColor = rgba;
     });
@@ -772,6 +772,9 @@ function initContextMenu() {
 
     if (!menu) return;
 
+    // 禁用全局右键菜单，防止显示 Reload / Inspect Element
+    document.addEventListener('contextmenu', e => e.preventDefault());
+
     tables.forEach(id => {
         const table = document.getElementById(id);
         if (!table) return;
@@ -782,11 +785,19 @@ function initContextMenu() {
                 selectedRow = row;
                 selectedTableId = id;
                 
-                const copyCodeItem = document.getElementById('menu-copy-code');
-                if (id === 'http-status-table') {
-                    
-                } else {
-                    
+                const copyNameItem = document.getElementById('menu-copy');
+                const copyDescItem = document.getElementById('menu-copy-code');
+                const copyAllItem = document.getElementById('menu-copy-all');
+                
+                if (id === 'http-status-table' || id === 'port-table') {
+                    copyNameItem.textContent = '复制';
+                    copyDescItem.style.display = 'none';
+                    copyAllItem.style.display = 'none';
+                } else if (id === 'android-perm-table') {
+                    copyNameItem.textContent = '复制名字';
+                    copyDescItem.textContent = '复制描述';
+                    copyDescItem.style.display = 'block';
+                    copyAllItem.style.display = 'block';
                 }
                 
                 menu.style.display = 'block';
@@ -808,9 +819,15 @@ function initContextMenu() {
 
     document.getElementById('menu-copy').addEventListener('click', () => {
         if (selectedRow) {
-            const text = selectedRow.cells[0].textContent;
+            let text;
+            if (selectedTableId === 'android-perm-table') {
+                text = selectedRow.cells[0].textContent;
+                showToast('已复制名字');
+            } else {
+                text = Array.from(selectedRow.cells).map(cell => cell.textContent.trim()).join(' ');
+                showToast('已复制整行内容');
+            }
             navigator.clipboard.writeText(text);
-            showToast('已复制名字');
             menu.style.display = 'none';
         }
     });
@@ -820,6 +837,15 @@ function initContextMenu() {
             const text = selectedRow.cells[selectedRow.cells.length - 1].textContent;
             navigator.clipboard.writeText(text);
             showToast('已复制描述');
+            menu.style.display = 'none';
+        }
+    });
+
+    document.getElementById('menu-copy-all').addEventListener('click', () => {
+        if (selectedRow) {
+            const text = Array.from(selectedRow.cells).map(cell => cell.textContent.trim()).join(' ');
+            navigator.clipboard.writeText(text);
+            showToast('已复制整行内容');
             menu.style.display = 'none';
         }
     });
@@ -874,4 +900,22 @@ function initQRCharCount() {
             display.textContent = input.value.length;
         });
     }
+}
+
+function rgbToHsl(r, g, b) {
+    r /= 255; g /= 255; b /= 255;
+    const max = Math.max(r, g, b), min = Math.min(r, g, b);
+    let h, s, l = (max + min) / 2;
+    if (max === min) { h = s = 0; }
+    else {
+        const d = max - min;
+        s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+        switch (max) {
+            case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+            case g: h = (b - r) / d + 2; break;
+            case b: h = (r - g) / d + 4; break;
+        }
+        h /= 6;
+    }
+    return [Math.round(h * 360), Math.round(s * 100), Math.round(l * 100)];
 }

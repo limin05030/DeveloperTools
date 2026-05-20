@@ -378,28 +378,32 @@
                             <button onclick="selectColorPickerFile()">浏览</button>
                         </div>
                         <div id="color-picker-main" style="display: none;">
-                            <div class="card-sub-header">点击图片提取颜色:</div>
-                            <div class="btn-group" style="margin-bottom: 10px;">
-                                <button onclick="zoomColorPicker(1.2)" title="放大">
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
-                                </button>
-                                <button onclick="zoomColorPicker(0.8)" title="缩小">
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
-                                </button>
-                                <button onclick="resetColorPicker()" title="重置">
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"></path><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
-                                </button>
-                                <span style="font-size: 12px; color: var(--text-secondary); align-self: center; margin-left: 10px;">支持鼠标拖动图片</span>
+                            <div class="cp-header">
+                                <div class="card-sub-header" style="margin: 0;">点击图片提取颜色:</div>
+                                <div class="btn-group cp-btn-group">
+                                    <button onclick="zoomColorPicker(1.2)" title="放大" class="small-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg></button>
+                                    <button onclick="zoomColorPicker(0.8)" title="缩小" class="small-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg></button>
+                                    <button onclick="resetColorPicker()" title="重置" class="small-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6"></path><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg></button>
+                                </div>
                             </div>
                             <div id="color-canvas-container" style="width: 100%; height: 450px; overflow: hidden; border: 1px solid var(--border-color); border-radius: 8px; margin-bottom: 15px; background: var(--hover-color); display: flex; justify-content: center; align-items: center; cursor: grab;">
                                 <canvas id="color-canvas" style="cursor: crosshair;"></canvas>
                             </div>
-                            <div id="color-result-container" class="input-row" style="display: none; margin-top: 15px;">
-                                <label>HEX:</label><input type="text" id="color-hex" readonly style="width: 100px;">
-                                <button onclick="copyValue('color-hex')">复制</button>
-                                <label style="margin-left: 15px;">RGBA:</label><input type="text" id="color-rgba" readonly style="width: 180px;">
-                                <button onclick="copyValue('color-rgba')">复制</button>
-                                <div id="color-preview" style="width: 24px; height: 24px; border-radius: 4px; border: 1px solid var(--border-color); margin-left: 10px;"></div>
+                            <div id="color-result-container" style="display: none; margin-top: 15px;">
+                                <div class="input-row">
+                                    <label style="min-width: 85px; text-align: right; padding-right: 5px;">HEX(RGBA):</label><input type="text" id="color-hex-rgba" readonly style="flex: 1;">
+                                    <button onclick="copyValue('color-hex-rgba')">复制</button>
+                                    <label style="min-width: 50px; margin-left: 10px; text-align: right; padding-right: 5px;">RGBA:</label><input type="text" id="color-rgba" readonly style="flex: 2.2;">
+                                    <button onclick="copyValue('color-rgba')">复制</button>
+                                    <div style="width: 24px; margin-left: 10px;"></div>
+                                </div>
+                                <div class="input-row" style="margin-top: 10px;">
+                                    <label style="min-width: 85px; text-align: right; padding-right: 5px;">HEX(ARGB):</label><input type="text" id="color-hex-argb" readonly style="flex: 1;">
+                                    <button onclick="copyValue('color-hex-argb')">复制</button>
+                                    <label style="min-width: 50px; margin-left: 10px; text-align: right; padding-right: 5px;">HSLA:</label><input type="text" id="color-hsla" readonly style="flex: 2.2;">
+                                    <button onclick="copyValue('color-hsla')">复制</button>
+                                    <div id="color-preview" style="width: 24px; height: 24px; border-radius: 4px; border: 1px solid var(--border-color); margin-left: 10px; flex-shrink: 0;"></div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -722,6 +726,7 @@
         <ul>
             <li id="menu-copy">复制名字</li>
             <li id="menu-copy-code">复制描述</li>
+            <li id="menu-copy-all">复制整行</li>
         </ul>
     </div>
     <script src="js/app.js"></script>

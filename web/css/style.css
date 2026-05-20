@@ -666,3 +666,4 @@ textarea {
     border-radius: 8px;
     box-shadow: 0 4px 12px rgba(0,0,0,0.1);
 }
+.cp-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; } .cp-btn-group { gap: 5px; } .small-btn { min-width: 32px; height: 32px; padding: 0; }
