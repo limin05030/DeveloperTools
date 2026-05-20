@@ -130,6 +130,11 @@ async function encodeDecode(action) {
     }
 }
 
+function clearEncode() {
+    document.getElementById('encode-input').value = '';
+    document.getElementById('encode-output').value = '';
+}
+
 // Format Tools
 async function formatData(type) {
     const isFileMode = document.querySelector('[data-sub="format-file"]').classList.contains('active');
@@ -145,6 +150,188 @@ async function formatData(type) {
     } else {
         showAlert(res.error);
     }
+}
+
+function clearFormat() {
+    document.getElementById('format-input').value = '';
+    document.getElementById('format-output').value = '';
+    document.getElementById('format-file-path').value = '';
+}
+
+// Base Conversion Tools
+function getSelectedBase(name) {
+    const radio = document.querySelector(`input[name="${name}"]:checked`);
+    return radio ? radio.value : (name === 'base-from-radio' ? '10' : '16');
+}
+
+async function convertBase() {
+    const data = document.getElementById('base-input').value.trim();
+    const baseOutput = document.getElementById('base-output');
+    
+    if (!data) {
+        baseOutput.value = '';
+        return;
+    }
+    
+    const fromBase = getSelectedBase('base-from-radio');
+    const toBase = getSelectedBase('base-to-radio');
+    
+    const res = await pywebview.api.convert_base(data, fromBase, toBase);
+    if (res.success) {
+        baseOutput.value = res.data;
+    } else {
+        // Real-time conversion usually doesn't show alert for partial/invalid input
+        baseOutput.value = '';
+    }
+}
+
+function clearBase() {
+    document.getElementById('base-input').value = '';
+    document.getElementById('base-output').value = '';
+}
+
+function initBaseConvListeners() {
+    const input = document.getElementById('base-input');
+    if (!input) return;
+    
+    // Auto calculate on input
+    input.addEventListener('input', convertBase);
+    
+    // Auto calculate when changing bases
+    document.querySelectorAll('input[name="base-from-radio"], input[name="base-to-radio"]').forEach(radio => {
+        radio.addEventListener('change', convertBase);
+    });
+}
+
+
+function initPermissionSearch() {
+    const androidInput = document.getElementById('android-perm-search');
+    
+    if (androidInput) androidInput.addEventListener('input', (e) => filterTable('android-perm-table', e.target.value));
+    
+}
+
+function filterTable(tableId, query) {
+    const table = document.getElementById(tableId);
+    if (!table) return;
+    const rows = table.querySelectorAll('tbody tr');
+    query = query.toLowerCase();
+    rows.forEach(row => {
+        row.style.display = row.textContent.toLowerCase().includes(query) ? '' : 'none';
+    });
+}
+
+
+async function openDoc(platform) {
+    const urls = {
+        'android': 'https://developer.android.com/reference/android/Manifest.permission'
+    };
+    await pywebview.api.open_url(urls[platform]);
+}
+
+async function fetchPermissions(platform) {
+    const btn = document.getElementById(platform + '-fetch-btn');
+    const oldText = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = '正在获取...';
+    
+    try {
+        const res = await pywebview.api.fetch_permissions(platform);
+        if (res.success) {
+            renderPermissions(platform, res.data);
+            showToast('更新成功');
+            if (platform === 'android') {
+                document.getElementById('android-table-container').style.display = 'block';
+            }
+        } else {
+            showAlert(res.error);
+        }
+    } finally {
+        btn.disabled = false;
+        btn.textContent = '更新权限';
+    }
+}
+
+async function loadLocalPermissions() {
+    const platforms = ['android'];
+    for (const p of platforms) {
+        const res = await pywebview.api.get_local_permissions(p);
+        if (res.success && res.data) {
+            renderPermissions(p, res.data);
+            document.getElementById(p + '-fetch-btn').textContent = '更新权限';
+            if (p === 'android') document.getElementById('android-table-container').style.display = 'block';
+        } else {
+            document.getElementById(p + '-fetch-btn').textContent = '获取权限';
+            if (p === 'android') document.getElementById('android-table-container').style.display = 'none';
+        }
+    }
+}
+
+function renderPermissions(platform, data) {
+    const tbody = document.getElementById(platform + '-perm-body');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+    
+    data.forEach(item => {
+        const tr = document.createElement('tr');
+        
+        if (platform === 'android') {
+            const tdName = document.createElement('td');
+            tdName.textContent = item.name;
+            tdName.style.fontWeight = 'bold';
+            tdName.classList.add('truncate');
+            tdName.dataset.tooltip = item.name;
+            
+            const tdAdded = document.createElement('td');
+            tdAdded.textContent = item.added || '-';
+            tdAdded.classList.add('text-center');
+            
+            const tdDeprecated = document.createElement('td');
+            tdDeprecated.textContent = item.deprecated || '-';
+            tdDeprecated.classList.add('text-center');
+            
+            const tdLevel = document.createElement('td');
+            let levelText = item.permission_level || '-';
+            tdLevel.textContent = levelText;
+            tdLevel.classList.add('text-center');
+            tdLevel.classList.add('truncate');
+            tdLevel.dataset.tooltip = levelText;
+            
+            const tdDesc = document.createElement('td');
+            tdDesc.textContent = item.desc || '-';
+            
+            tr.appendChild(tdName);
+            tr.appendChild(tdAdded);
+            tr.appendChild(tdDeprecated);
+            tr.appendChild(tdLevel);
+            tr.appendChild(tdDesc);
+        } else {
+            const tdName = document.createElement('td');
+            tdName.textContent = item.name;
+            tdName.style.fontWeight = 'bold';
+            tdName.classList.add('truncate');
+            tdName.dataset.tooltip = item.name;
+            tdName.classList.add('truncate');
+            tdName.dataset.tooltip = item.name;
+            
+            const tdAdded = document.createElement('td');
+            tdAdded.textContent = item.added || '-';
+            tdAdded.classList.add('text-center');
+            
+            const tdDeprecated = document.createElement('td');
+            tdDeprecated.textContent = item.deprecated || '-';
+            tdDeprecated.classList.add('text-center');
+
+            const tdDesc = document.createElement('td');
+            tdDesc.textContent = item.description || item.desc || '-';
+            
+            tr.appendChild(tdName);
+            tr.appendChild(tdAdded);
+            tr.appendChild(tdDeprecated);
+            tr.appendChild(tdDesc);
+        }
+        tbody.appendChild(tr);
+    });
 }
 
 // Time Tools
@@ -197,7 +384,151 @@ async function dateToTs() {
     }
 }
 
-// Image Tools
+let cpState = {
+    img: null,
+    scale: 1,
+    offsetX: 0,
+    offsetY: 0,
+    isDragging: false,
+    lastMouseX: 0,
+    lastMouseY: 0,
+    baseScale: 1
+};
+
+// Color Picker logic
+
+// Color Picker logic
+async function selectColorPickerFile() {
+    const res = await pywebview.api.select_file();
+    if (res.success && res.data) {
+        document.getElementById('img-color-src').value = res.data;
+        const fileRes = await pywebview.api.image_to_base64_data(res.data);
+        if (fileRes.success) {
+            cpState.img = new Image();
+            cpState.img.onload = function() {
+                document.getElementById('color-picker-main').style.display = 'block';
+                document.getElementById('color-result-container').style.display = 'flex';
+                resetColorPicker();
+            };
+            cpState.img.src = fileRes.data;
+        } else {
+            showAlert(fileRes.error);
+        }
+    }
+}
+
+function resetColorPicker() {
+    if (!cpState.img) return;
+    const container = document.getElementById('color-canvas-container');
+    const cw = container.clientWidth;
+    const ch = container.clientHeight;
+    
+    cpState.baseScale = Math.min(cw / cpState.img.width, ch / cpState.img.height);
+    cpState.scale = cpState.baseScale;
+    cpState.offsetX = (cw - cpState.img.width * cpState.scale) / 2;
+    cpState.offsetY = (ch - cpState.img.height * cpState.scale) / 2;
+    
+    drawCPCanvas();
+}
+
+function zoomColorPicker(factor) {
+    if (!cpState.img) return;
+    cpState.scale *= factor;
+    drawCPCanvas();
+}
+
+function drawCPCanvas() {
+    const canvas = document.getElementById('color-canvas');
+    const container = document.getElementById('color-canvas-container');
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    
+    // Only resize if container size changed to avoid clearing and "jumping"
+    if (canvas.width !== container.clientWidth || canvas.height !== container.clientHeight) {
+        canvas.width = container.clientWidth;
+        canvas.height = container.clientHeight;
+    }
+    
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    if (cpState.img) {
+        ctx.drawImage(cpState.img, cpState.offsetX, cpState.offsetY, cpState.img.width * cpState.scale, cpState.img.height * cpState.scale);
+    }
+}
+
+function initColorPicker() {
+    const container = document.getElementById('color-canvas-container');
+    const canvas = document.getElementById('color-canvas');
+    if (!container || !canvas) return;
+
+    container.addEventListener('mousedown', (e) => {
+        if (!cpState.img) return;
+        // Only track if it's the primary mouse button
+        if (e.button !== 0) return;
+        
+        cpState.isDragging = false;
+        cpState.dragStarted = false;
+        cpState.lastMouseX = e.clientX;
+        cpState.lastMouseY = e.clientY;
+        
+        // Prevent default to avoid image ghosting/selection which causes jumps
+        e.preventDefault();
+    });
+
+    window.addEventListener('mousemove', (e) => {
+        if (e.buttons === 1 && cpState.img) {
+            const currentX = e.clientX;
+            const currentY = e.clientY;
+            
+            if (!cpState.isDragging) {
+                const dx = Math.abs(currentX - cpState.lastMouseX);
+                const dy = Math.abs(currentY - cpState.lastMouseY);
+                if (dx > 2 || dy > 2) {
+                    cpState.isDragging = true;
+                    cpState.dragStarted = true;
+                    container.style.cursor = 'grabbing';
+                    // Synchronize last position when starting drag to avoid initial jump
+                    cpState.lastMouseX = currentX;
+                    cpState.lastMouseY = currentY;
+                }
+            } else {
+                const movX = currentX - cpState.lastMouseX;
+                const movY = currentY - cpState.lastMouseY;
+                cpState.offsetX += movX;
+                cpState.offsetY += movY;
+                cpState.lastMouseX = currentX;
+                cpState.lastMouseY = currentY;
+                drawCPCanvas();
+            }
+        }
+    });
+
+    window.addEventListener('mouseup', () => {
+        cpState.isDragging = false;
+        if (container) container.style.cursor = 'grab';
+    });
+
+    canvas.addEventListener('click', (e) => {
+        if (cpState.dragStarted) {
+            cpState.dragStarted = false;
+            return;
+        }
+        const rect = canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        const pixel = ctx.getImageData(x, y, 1, 1).data;
+        
+        if (pixel[3] === 0) return;
+
+        const r = pixel[0], g = pixel[1], b = pixel[2], a = (pixel[3] / 255).toFixed(2);
+        const hex = "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1).toUpperCase();
+        const rgba = `rgba(${r}, ${g}, ${b}, ${a})`;
+        
+        document.getElementById('color-hex').value = hex;
+        document.getElementById('color-rgba').value = rgba;
+        document.getElementById('color-preview').style.backgroundColor = rgba;
+    });
+}// Image Tools
 async function imgConvert() {
     const src = document.getElementById('img-conv-src').value;
     const fmt = document.getElementById('img-conv-fmt').value;
@@ -237,6 +568,7 @@ async function imgSize() {
     const mode = document.getElementById('img-size-mode').value;
     if (!src) { showAlert('请先选择图片'); return; }
     if (isNaN(w) || isNaN(h)) { showAlert('请输入正确的尺寸'); return; }
+    if (w <= 0 || h <= 0) { showAlert('目标尺寸必须大于 0'); return; }
     const res = await pywebview.api.image_resize_crop(src, w, h, mode);
     if (res.success) showToast('调整成功');
     else if (res.error !== 'Cancelled or failed') showAlert(res.error);
@@ -260,6 +592,10 @@ async function imgRadius() {
         radii = [val, val, val, val];
     } else {
         radii = ['rad-tl', 'rad-tr', 'rad-bl', 'rad-br'].map(id => parseInt(document.getElementById(id).value) || 0);
+    }
+    if (radii.some(r => r < 0)) {
+        showAlert('圆角值不能为负数');
+        return;
     }
     const res = await pywebview.api.image_radius(src, radii);
     if (res.success) showToast('圆角处理成功');
@@ -302,6 +638,18 @@ async function saveQR() {
     const res = await pywebview.api.save_image_from_base64(img.src, "qrcode.png");
     if (res.success) showToast('保存成功');
     else if (res.error !== 'Cancelled or failed') showAlert(res.error);
+}
+
+async function decodeQR() {
+    const src = document.getElementById('qr-rec-src').value;
+    if (!src) { showAlert('请先选择图片'); return; }
+    const res = await pywebview.api.decode_qr(src);
+    if (res.success) {
+        document.getElementById('qr-rec-output').value = res.data;
+        showToast('识别成功');
+    } else {
+        showAlert(res.error);
+    }
 }
 
 async function generateUUIDs() {
@@ -405,4 +753,113 @@ window.addEventListener('pywebviewready', () => {
     updateClock();
     initAsciiTable();
     initUUIDListeners();
+    initBaseConvListeners();
+    initColorPicker();
+    initContextMenu();
+    initPermissionSearch();
+    initCustomTooltip();
+    loadLocalPermissions();
 });
+
+// Context Menu Logic
+function initContextMenu() {
+    const menu = document.getElementById('context-menu');
+    const tables = ['http-status-table', 'android-perm-table', 'port-table'];
+    let selectedRow = null;
+    let selectedTableId = null;
+
+    if (!menu) return;
+
+    tables.forEach(id => {
+        const table = document.getElementById(id);
+        if (!table) return;
+        table.addEventListener('contextmenu', (e) => {
+            const row = e.target.closest('tr');
+            if (row && row.parentElement.tagName === 'TBODY') {
+                e.preventDefault();
+                selectedRow = row;
+                selectedTableId = id;
+                
+                const copyCodeItem = document.getElementById('menu-copy-code');
+                if (id === 'http-status-table') {
+                    
+                } else {
+                    
+                }
+                
+                menu.style.display = 'block';
+                menu.style.left = e.clientX + 'px';
+                menu.style.top = e.clientY + 'px';
+            }
+        });
+    });
+
+    document.addEventListener('mousedown', (e) => {
+        if (!menu.contains(e.target)) {
+            menu.style.display = 'none';
+        }
+    });
+
+    window.addEventListener('blur', () => {
+        menu.style.display = 'none';
+    });
+
+    document.getElementById('menu-copy').addEventListener('click', () => {
+        if (selectedRow) {
+            const text = selectedRow.cells[0].textContent;
+            navigator.clipboard.writeText(text);
+            showToast('已复制名字');
+            menu.style.display = 'none';
+        }
+    });
+
+    document.getElementById('menu-copy-code').addEventListener('click', () => {
+        if (selectedRow) {
+            const text = selectedRow.cells[selectedRow.cells.length - 1].textContent;
+            navigator.clipboard.writeText(text);
+            showToast('已复制描述');
+            menu.style.display = 'none';
+        }
+    });
+}
+function initCustomTooltip() {
+    const tooltip = document.getElementById('custom-tooltip');
+    if (!tooltip) return;
+
+    document.addEventListener('mouseover', (e) => {
+        const target = e.target.closest('[data-tooltip]');
+        if (target) {
+            const text = target.dataset.tooltip;
+            if (!text || text === '-') return;
+            
+            tooltip.textContent = text;
+            tooltip.style.display = 'block';
+            
+            const rect = target.getBoundingClientRect();
+            const tooltipHeight = tooltip.offsetHeight;
+            const tooltipWidth = tooltip.offsetWidth;
+            
+            // Position above the element
+            let top = rect.top - tooltipHeight - 8;
+            let left = rect.left;
+            
+            // Boundary checks
+            if (top < 10) {
+                top = rect.bottom + 8; // Show below if no space above
+            }
+            if (left + tooltipWidth > window.innerWidth - 10) {
+                left = window.innerWidth - tooltipWidth - 10;
+            }
+            if (left < 10) left = 10;
+            
+            tooltip.style.top = top + 'px';
+            tooltip.style.left = left + 'px';
+        }
+    });
+
+    document.addEventListener('mouseout', (e) => {
+        if (e.target.closest('[data-tooltip]')) {
+            tooltip.style.display = 'none';
+        }
+    });
+}

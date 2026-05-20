@@ -13,8 +13,9 @@
             <nav class="nav">
                 <button class="nav-item active" data-tab="hash">哈希计算</button>
                 <button class="nav-item" data-tab="encode">编码转换</button>
-                <button class="nav-item" data-tab="format">格式化</button>
+                <button class="nav-item" data-tab="base-conv">进制转换</button>
                 <button class="nav-item" data-tab="time">日期时间</button>
+                <button class="nav-item" data-tab="format">格式化</button>
                 <button class="nav-item" data-tab="image">图片处理</button>
                 <button class="nav-item" data-tab="generate">生成工具</button>
                 <button class="nav-item" data-tab="query">查询工具</button>
@@ -25,6 +26,7 @@
             </div>
         </aside>
         <main class="content">
+            <div id="custom-tooltip" class="custom-tooltip"></div>
             <div id="toast-container"><div class="toast" id="toast-text">复制成功</div></div>
             <!-- Hash Tab -->
             <section id="hash" class="tab-content active">
@@ -137,40 +139,53 @@
                 <div class="card">
                     <div class="card-header">结果</div>
                     <textarea autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" id="encode-output" readonly class="mono"></textarea>
-                    <button onclick="copyToClipboard('encode-output')">复制结果</button>
+                    <div class="btn-group">
+                        <button onclick="copyToClipboard('encode-output')">复制结果</button>
+                        <button onclick="clearEncode()">清理全部</button>
+                    </div>
                 </div>
             </section>
 
-            <!-- Format Tab -->
-            <section id="format" class="tab-content">
+            <!-- Base Conversion Tab -->
+            <section id="base-conv" class="tab-content">
                 <div class="card">
-                    <div class="card-header">输入</div>
-                    <div class="tab-sub-nav">
-                        <button class="sub-nav-item active" data-sub="format-text">文本模式</button>
-                        <button class="sub-nav-item" data-sub="format-file">文件模式</button>
+                    <div class="card-header">进制转换</div>
+                    <div class="input-group">
+                        <label>输入数值:</label>
+                        <input type="text" id="base-input" placeholder="输入待转换数值..." style="flex: 1; margin-bottom: 0;">
                     </div>
-                    <div id="format-text" class="sub-tab-content active">
-                        <textarea autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" id="format-input" placeholder="输入待格式化文本..."></textarea>
+                    <div class="input-row" style="margin-top: 15px; align-items: flex-start;">
+                        <label style="min-width: 80px;">输入进制:</label>
+                        <div style="display: flex; flex-wrap: wrap; gap: 0;">
+                            <label class="checkbox-label" style="width: 85px;"><input type="radio" name="base-from-radio" value="2"> 2进制</label>
+                            <label class="checkbox-label" style="width: 85px;"><input type="radio" name="base-from-radio" value="4"> 4进制</label>
+                            <label class="checkbox-label" style="width: 85px;"><input type="radio" name="base-from-radio" value="8"> 8进制</label>
+                            <label class="checkbox-label" style="width: 85px;"><input type="radio" name="base-from-radio" value="10" checked> 10进制</label>
+                            <label class="checkbox-label" style="width: 85px;"><input type="radio" name="base-from-radio" value="16"> 16进制</label>
+                            <label class="checkbox-label" style="width: 85px;"><input type="radio" name="base-from-radio" value="32"> 32进制</label>
+                        </div>
                     </div>
-                    <div id="format-file" class="sub-tab-content">
-                        <div class="input-group">
-                            <input type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" id="format-file-path" readonly placeholder="选择文件...">
-                            <button onclick="selectFile('format-file-path')">浏览</button>
+                    <div class="input-row" style="margin-top: 5px; align-items: flex-start;">
+                        <label style="min-width: 80px;">目标进制:</label>
+                        <div style="display: flex; flex-wrap: wrap; gap: 0;">
+                            <label class="checkbox-label" style="width: 85px;"><input type="radio" name="base-to-radio" value="2"> 2进制</label>
+                            <label class="checkbox-label" style="width: 85px;"><input type="radio" name="base-to-radio" value="4"> 4进制</label>
+                            <label class="checkbox-label" style="width: 85px;"><input type="radio" name="base-to-radio" value="8"> 8进制</label>
+                            <label class="checkbox-label" style="width: 85px;"><input type="radio" name="base-to-radio" value="10"> 10进制</label>
+                            <label class="checkbox-label" style="width: 85px;"><input type="radio" name="base-to-radio" value="16" checked> 16进制</label>
+                            <label class="checkbox-label" style="width: 85px;"><input type="radio" name="base-to-radio" value="32"> 32进制</label>
                         </div>
                     </div>
                 </div>
                 <div class="card">
-                    <div class="card-header">操作</div>
-                    <div class="btn-grid five-cols">
-                        <button onclick="formatData('json_format')">JSON 格式化</button>
-                        <button onclick="formatData('json_compress')">JSON 压缩</button>
-                        <button onclick="formatData('html_xml')">HTML/XML 美化</button><button onclick="formatData('js_format')">JS/TS 格式化</button><button onclick="formatData('js_compress')">JS 压缩</button>
+                    <div class="card-header">转换结果</div>
+                    <div class="input-row">
+                        <input type="text" id="base-output" readonly class="mono" placeholder="结果..." style="flex: 1;">
+                        <div class="btn-group">
+                            <button onclick="copyToClipboard('base-output')">复制结果</button>
+                            <button onclick="clearBase()">清空全部</button>
+                        </div>
                     </div>
-                </div>
-                <div class="card">
-                    <div class="card-header">结果</div>
-                    <textarea autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" id="format-output" readonly class="mono"></textarea>
-                    <button onclick="copyToClipboard('format-output')">复制结果</button>
                 </div>
             </section>
 
@@ -222,6 +237,47 @@
                 </div>
             </section>
 
+            <!-- Format Tab -->
+            <section id="format" class="tab-content">
+                <div class="card">
+                    <div class="card-header">输入</div>
+                    <div class="tab-sub-nav">
+                        <button class="sub-nav-item active" data-sub="format-text">文本模式</button>
+                        <button class="sub-nav-item" data-sub="format-file">文件模式</button>
+                    </div>
+                    <div id="format-text" class="sub-tab-content active">
+                        <textarea autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" id="format-input" placeholder="输入待格式化文本..."></textarea>
+                    </div>
+                    <div id="format-file" class="sub-tab-content">
+                        <div class="input-group">
+                            <input type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" id="format-file-path" readonly placeholder="选择文件...">
+                            <button onclick="selectFile('format-file-path')">浏览</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-header">操作</div>
+                    <div class="btn-grid six-cols">
+                        <button onclick="formatData('json_format')">JSON 格式化</button>
+                        <button onclick="formatData('json_compress')">JSON 压缩</button>
+                        <button onclick="formatData('html_format')">HTML/XML 美化</button>
+                        <button onclick="formatData('html_compress')">HTML/XML 压缩</button>
+                        <button onclick="formatData('css_format')">CSS 美化</button>
+                        <button onclick="formatData('css_compress')">CSS 压缩</button>
+                        <button onclick="formatData('js_format')">JS/TS 格式化</button>
+                        <button onclick="formatData('js_compress')">JS/TS 压缩</button>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-header">结果</div>
+                    <textarea autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" id="format-output" readonly class="mono"></textarea>
+                    <div class="btn-group">
+                        <button onclick="copyToClipboard('format-output')">复制结果</button>
+                        <button onclick="clearFormat()">清理全部</button>
+                    </div>
+                </div>
+            </section>
+
             <!-- Image Tab -->
             <section id="image" class="tab-content">
                 <div class="card">
@@ -232,13 +288,14 @@
                         <button class="sub-nav-item" data-sub="img-size">尺寸调整</button>
                         <button class="sub-nav-item" data-sub="img-radius">圆角处理</button>
                         <button class="sub-nav-item" data-sub="img-b64">Base64</button>
+                        <button class="sub-nav-item" data-sub="img-color">颜色提取</button>
                     </div>
 
                     <!-- Convert -->
                     <div id="img-conv" class="sub-tab-content active">
                         <div class="input-group">
                             <label>源图片:</label>
-                            <input type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" id="img-conv-src" readonly>
+                            <input type="text" id="img-conv-src" readonly>
                             <button onclick="selectFile('img-conv-src')">浏览</button>
                         </div>
                         <div class="input-group">
@@ -255,7 +312,7 @@
                     <div id="img-comp" class="sub-tab-content">
                         <div class="input-group">
                             <label>源图片:</label>
-                            <input type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" id="img-comp-src" readonly>
+                            <input type="text" id="img-comp-src" readonly>
                             <button onclick="selectFile('img-comp-src')">浏览</button>
                         </div>
                         <div class="input-group">
@@ -270,11 +327,11 @@
                     <div id="img-size" class="sub-tab-content">
                         <div class="input-group">
                             <label>源图片:</label>
-                            <input type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" id="img-size-src" readonly>
+                            <input type="text" id="img-size-src" readonly>
                             <button onclick="selectFile('img-size-src')">浏览</button>
                         </div>
                         <div class="input-group">
-                            <label>模式:</label>
+                            <label>调整方式:</label>
                             <select id="img-size-mode">
                                 <option value="resize">缩放</option>
                                 <option value="center">中心裁剪</option>
@@ -283,8 +340,8 @@
                             </select>
                         </div>
                         <div class="input-row">
-                            <label>宽:</label><input type="number" id="img-width">
-                            <label>高:</label><input type="number" id="img-height">
+                            <label>目标尺寸:</label><label>宽:</label><input type="number" id="img-width" min="1">
+                            <label>高:</label><input type="number" id="img-height" min="1">
                             <label class="checkbox-label"><input type="checkbox" id="img-ratio" checked> 保持比例</label>
                         </div>
                         <button class="primary" onclick="imgSize()">保存</button>
@@ -294,36 +351,70 @@
                     <div id="img-radius" class="sub-tab-content">
                         <div class="input-group">
                             <label>源图片:</label>
-                            <input type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" id="img-radius-src" readonly>
+                            <input type="text" id="img-radius-src" readonly>
                             <button onclick="selectFile('img-radius-src')">浏览</button>
                         </div>
-                        <div class="radius-settings">
+                        <div class="card-sub-header">圆角设置:</div><div class="radius-settings">
                             <div class="input-row">
                                 <label class="checkbox-label"><input type="radio" name="rad-mode" id="rad-mode-unified" checked onchange="toggleRadiusMode()"> 统一设置:</label>
-                                <input type="number" id="rad-all" value="0">
+                                <input type="number" id="rad-all" value="0" min="0">
                             </div>
                             <div class="input-row">
                                 <label class="checkbox-label"><input type="radio" name="rad-mode" id="rad-mode-individual" onchange="toggleRadiusMode()"> 单独设置:</label>
-                                <label>左上:</label><input type="number" id="rad-tl" value="0" disabled>
-                                <label>右上:</label><input type="number" id="rad-tr" value="0" disabled>
-                                <label>左下:</label><input type="number" id="rad-bl" value="0" disabled>
-                                <label>右下:</label><input type="number" id="rad-br" value="0" disabled>
+                                <label>左上:</label><input type="number" id="rad-tl" value="0" min="0" disabled>
+                                <label>右上:</label><input type="number" id="rad-tr" value="0" min="0" disabled>
+                                <label>左下:</label><input type="number" id="rad-bl" value="0" min="0" disabled>
+                                <label>右下:</label><input type="number" id="rad-br" value="0" min="0" disabled>
                             </div>
                         </div>
                         <button class="primary" onclick="imgRadius()">保存</button>
+                    </div>
+
+                    <!-- Color Picker -->
+                                        <div id="img-color" class="sub-tab-content">
+                        <div class="input-group">
+                            <label>源图片:</label>
+                            <input type="text" id="img-color-src" readonly placeholder="选择图片以提取颜色...">
+                            <button onclick="selectColorPickerFile()">浏览</button>
+                        </div>
+                        <div id="color-picker-main" style="display: none;">
+                            <div class="card-sub-header">点击图片提取颜色:</div>
+                            <div class="btn-group" style="margin-bottom: 10px;">
+                                <button onclick="zoomColorPicker(1.2)" title="放大">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
+                                </button>
+                                <button onclick="zoomColorPicker(0.8)" title="缩小">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
+                                </button>
+                                <button onclick="resetColorPicker()" title="重置">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"></path><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
+                                </button>
+                                <span style="font-size: 12px; color: var(--text-secondary); align-self: center; margin-left: 10px;">支持鼠标拖动图片</span>
+                            </div>
+                            <div id="color-canvas-container" style="width: 100%; height: 450px; overflow: hidden; border: 1px solid var(--border-color); border-radius: 8px; margin-bottom: 15px; background: var(--hover-color); display: flex; justify-content: center; align-items: center; cursor: grab;">
+                                <canvas id="color-canvas" style="cursor: crosshair;"></canvas>
+                            </div>
+                            <div id="color-result-container" class="input-row" style="display: none; margin-top: 15px;">
+                                <label>HEX:</label><input type="text" id="color-hex" readonly style="width: 100px;">
+                                <button onclick="copyValue('color-hex')">复制</button>
+                                <label style="margin-left: 15px;">RGBA:</label><input type="text" id="color-rgba" readonly style="width: 180px;">
+                                <button onclick="copyValue('color-rgba')">复制</button>
+                                <div id="color-preview" style="width: 24px; height: 24px; border-radius: 4px; border: 1px solid var(--border-color); margin-left: 10px;"></div>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Base64 -->
                     <div id="img-b64" class="sub-tab-content">
                         <div class="card-sub-header">图片 转 Base64</div>
                         <div class="input-group">
-                            <input type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" id="img2b64-src" readonly>
+                            <input type="text" id="img2b64-src" readonly>
                             <button onclick="selectFile('img2b64-src')">浏览</button>
                             <button onclick="imgToBase64()">转换</button>
                         </div>
                         <div class="card-sub-header">Base64 转 图片</div>
                         <div class="input-group">
-                            <textarea autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" id="b64-input" placeholder="输入 Base64 字符串..."></textarea>
+                            <textarea id="b64-input" placeholder="输入 Base64 字符串..."></textarea>
                         </div>
                         <div class="btn-group">
                             <button onclick="loadBase64File()">从文件读取</button>
@@ -332,6 +423,8 @@
                     </div>
                 </div>
             </section>
+
+            
 
             <!-- Generate Tab -->
             <section id="generate" class="tab-content">
@@ -350,32 +443,257 @@
                     </div>
                 </div>
                 <div class="card">
-                    <div class="card-header">二维码生成</div>
-                    <div class="input-row">
-                        <input type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" id="qr-input" placeholder="输入内容...">
-                        <button onclick="generateQR()">生成</button>
+                    <div class="card-header">二维码工具</div>
+                    <div class="tab-sub-nav">
+                        <button class="sub-nav-item active" data-sub="qr-gen">二维码生成</button>
+                        <button class="sub-nav-item" data-sub="qr-rec">二维码识别</button>
                     </div>
-                    <div id="qr-result-container" class="qr-container-vertical" style="display: none;">
-                        <div id="qr-result" class="qr-image-wrapper"></div>
-                        <button class="primary" onclick="saveQR()">保存二维码图片</button>
+                    
+                    <!-- QR Generation -->
+                    <div id="qr-gen" class="sub-tab-content active">
+                        <div class="input-row">
+                            <input type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" id="qr-input" placeholder="输入内容...">
+                            <button onclick="generateQR()">生成</button>
+                        </div>
+                        <div id="qr-result-container" class="qr-container-vertical" style="display: none;">
+                            <div id="qr-result" class="qr-image-wrapper"></div>
+                            <button class="primary" onclick="saveQR()">保存二维码图片</button>
+                        </div>
+                    </div>
+
+                    <!-- QR Recognition -->
+                    <div id="qr-rec" class="sub-tab-content">
+                        <div class="input-group">
+                            <label>选择图片:</label>
+                            <input type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" id="qr-rec-src" readonly placeholder="选择二维码图片...">
+                            <button onclick="selectFile('qr-rec-src')">浏览</button>
+                            <button onclick="decodeQR()">识别</button>
+                        </div>
+                        <div class="card-sub-header">识别结果:</div>
+                        <textarea autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" id="qr-rec-output" readonly style="min-height: 100px;"></textarea>
+                        <button onclick="copyToClipboard('qr-rec-output')">复制结果</button>
                     </div>
                 </div>
             </section>
 
-            <!-- Query Tab -->
+                        <!-- Query Tab -->
             <section id="query" class="tab-content">
                 <div class="card">
-                    <div class="card-header">ASCII 码对照表</div>
-                    <div class="table-container">
-                        <table id="ascii-table">
-                            <thead>
-                                <tr>
-                                    <th>二进制</th><th>八进制</th><th>十进制</th><th>十六进制</th><th>字符</th><th>描述</th>
-                                </tr>
-                            </thead>
-                            <tbody></tbody>
-                        </table>
+                    <div class="tab-sub-nav">
+                        <button class="sub-nav-item active" data-sub="query-ascii">ASCII 码对照表</button>
+                        <button class="sub-nav-item" data-sub="query-http">HTTP 状态码对照表</button>
+                        <button class="sub-nav-item" data-sub="query-port">计算机端口对照表</button>
+                        <button class="sub-nav-item" data-sub="query-android">Android 权限</button>
+                        
                     </div>
+
+                    <!-- HTTP Status Codes -->
+                    <div id="query-http" class="sub-tab-content">
+                        <div class="table-container" style="max-height: 690px;">
+                            <table id="http-status-table">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 15%;">状态码</th><th style="width: 35%;">英文说明</th><th>中文说明</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr><td>100</td><td>Continue</td><td>继续。客户端应继续其请求</td></tr>
+                                    <tr><td>101</td><td>Switching Protocols</td><td>切换协议。服务器根据客户端的请求切换协议</td></tr>
+                                    <tr><td>102</td><td>Processing</td><td>处理中。WebDAV 请求可能包含许多涉及文件操作的子请求，需要很长时间才能完成请求</td></tr>
+                                    <tr><td>200</td><td>OK</td><td>成功。请求已成功，请求所希望的响应头或数据体将随此响应返回</td></tr>
+                                    <tr><td>201</td><td>Created</td><td>已创建。请求成功并且服务器创建了新的资源</td></tr>
+                                    <tr><td>202</td><td>Accepted</td><td>已接受。服务器已接受请求，但尚未处理完成</td></tr>
+                                    <tr><td>203</td><td>Non-Authoritative Information</td><td>非权威信息。服务器已成功处理了请求，但返回的信息可能来自另一源</td></tr>
+                                    <tr><td>204</td><td>No Content</td><td>无内容。服务器成功处理了请求，但不需要返回任何实体内容</td></tr>
+                                    <tr><td>205</td><td>Reset Content</td><td>重置内容。服务器成功处理了请求，且告知客户端重置文档视图</td></tr>
+                                    <tr><td>206</td><td>Partial Content</td><td>部分内容。服务器已经成功处理了部分 GET 请求</td></tr>
+                                    <tr><td>207</td><td>Multi-Status</td><td>多状态。代表之后的消息体将是一个XML消息，并且可能依照之前子请求数量包含一系列独立的响应代码</td></tr>
+                                    <tr><td>208</td><td>Already Reported</td><td>已报告。在 DAV 绑定的成员已经在（多状态）响应之前的部分被列举，且未被再次列举</td></tr>
+                                    <tr><td>226</td><td>IM Used</td><td>已使用。服务器已经完成了对资源的 GET 请求，并且响应是对当前实例应用的一个或多个实例操作结果的表示</td></tr>
+                                    <tr><td>300</td><td>Multiple Choices</td><td>多种选择。请求的资源包括多个位置，用户或浏览器可选择其一</td></tr>
+                                    <tr><td>301</td><td>Moved Permanently</td><td>永久移动。请求的资源已被永久的移动到新 URI</td></tr>
+                                    <tr><td>302</td><td>Found</td><td>临时移动。客户端应继续使用原有 URI</td></tr>
+                                    <tr><td>303</td><td>See Other</td><td>查看其他。对应当前请求的响应可以在另一个 URI 上被找到</td></tr>
+                                    <tr><td>304</td><td>Not Modified</td><td>未修改。所请求的资源未修改，服务器返回此状态码时，不会返回任何资源</td></tr>
+                                    <tr><td>305</td><td>Use Proxy</td><td>使用代理。所请求的资源必须通过代理访问</td></tr>
+                                    <tr><td>307</td><td>Temporary Redirect</td><td>临时重定向。请求的资源临时从不同的 URI 响应请求</td></tr>
+                                    <tr><td>308</td><td>Permanent Redirect</td><td>永久重定向。请求的资源被永久地移动到另一个 URI</td></tr>
+                                    <tr><td>400</td><td>Bad Request</td><td>错误请求。服务器不理解请求的语法</td></tr>
+                                    <tr><td>401</td><td>Unauthorized</td><td>未授权。请求要求身份验证</td></tr>
+                                    <tr><td>402</td><td>Payment Required</td><td>需要付款。保留以备将来使用</td></tr>
+                                    <tr><td>403</td><td>Forbidden</td><td>禁止访问。服务器拒绝请求</td></tr>
+                                    <tr><td>404</td><td>Not Found</td><td>未找到。服务器找不到请求的网页</td></tr>
+                                    <tr><td>405</td><td>Method Not Allowed</td><td>方法不允许。请求中的方法被禁止</td></tr>
+                                    <tr><td>406</td><td>Not Acceptable</td><td>不可接受。服务器生成的响应无法满足客户端在请求头中设置的接受规则</td></tr>
+                                    <tr><td>407</td><td>Proxy Authentication Required</td><td>需要代理授权。类似于 401，但要求请求者应当使用代理进行授权</td></tr>
+                                    <tr><td>408</td><td>Request Timeout</td><td>请求超时。服务器等待请求时发生超时</td></tr>
+                                    <tr><td>409</td><td>Conflict</td><td>冲突。服务器在完成请求时发生冲突</td></tr>
+                                    <tr><td>410</td><td>Gone</td><td>已消失。如果请求的资源已被永久删除，且无永久地址</td></tr>
+                                    <tr><td>411</td><td>Length Required</td><td>需要长度。服务器拒绝在没有定义 Content-Length 头字段的情况下接受请求</td></tr>
+                                    <tr><td>412</td><td>Precondition Failed</td><td>先决条件失败。服务器在验证在请求的头字段中给出先决条件时，没能满足其中的一个或多个</td></tr>
+                                    <tr><td>413</td><td>Payload Too Large</td><td>实体过大。服务器无法处理请求，因为请求实体过大</td></tr>
+                                    <tr><td>414</td><td>URI Too Long</td><td>URI 过长。请求的 URI（通常为网址）过长，服务器无法处理</td></tr>
+                                    <tr><td>415</td><td>Unsupported Media Type</td><td>不支持的媒体类型。服务器无法处理请求中附带的媒体格式</td></tr>
+                                    <tr><td>416</td><td>Range Not Satisfiable</td><td>范围不满足。客户端请求的范围无效</td></tr>
+                                    <tr><td>417</td><td>Expectation Failed</td><td>期望失败。在请求头 Expect 中指定的预期内容无法被服务器满足</td></tr>
+                                    <tr><td>421</td><td>Misdirected Request</td><td>误导请求。该请求被发往一个无法产生响应的服务器</td></tr>
+                                    <tr><td>422</td><td>Unprocessable Entity</td><td>不可处理的实体。请求格式正确，但是由于含有语义错误，无法响应</td></tr>
+                                    <tr><td>423</td><td>Locked</td><td>已锁定。当前资源被锁定</td></tr>
+                                    <tr><td>424</td><td>Failed Dependency</td><td>依赖失败。由于之前的某个请求失败，导致当前请求失败</td></tr>
+                                    <tr><td>425</td><td>Too Early</td><td>太早了。服务器不愿意冒风险去处理该请求，因为它可能会被重放</td></tr>
+                                    <tr><td>426</td><td>Upgrade Required</td><td>需要升级。客户端应当切换到不同的协议</td></tr>
+                                    <tr><td>428</td><td>Precondition Required</td><td>需要先决条件。原服务器要求该请求是有条件的</td></tr>
+                                    <tr><td>429</td><td>Too Many Requests</td><td>请求过多。用户在给定的时间内发送了太多的请求</td></tr>
+                                    <tr><td>431</td><td>Request Header Fields Too Large</td><td>请求头字段过大。服务器不愿意处理请求，因为它的头字段过大</td></tr>
+                                    <tr><td>451</td><td>Unavailable For Legal Reasons</td><td>因法律原因不可用。该资源由于法律原因不可访问</td></tr>
+                                    <tr><td>500</td><td>Internal Server Error</td><td>服务器内部错误。服务器遇到错误，无法完成请求</td></tr>
+                                    <tr><td>501</td><td>Not Implemented</td><td>尚未实现。服务器不具备完成请求的功能</td></tr>
+                                    <tr><td>502</td><td>Bad Gateway</td><td>错误网关。服务器作为网关或代理，从上游服务器收到无效响应</td></tr>
+                                    <tr><td>503</td><td>Service Unavailable</td><td>服务不可用。服务器目前无法使用（由于超载或停机维护）</td></tr>
+                                    <tr><td>504</td><td>Gateway Timeout</td><td>网关超时。服务器作为网关或代理，但是没有及时从上游服务器收到请求</td></tr>
+                                    <tr><td>505</td><td>HTTP Version Not Supported</td><td>不支持的 HTTP 版本。服务器不支持请求中所使用的 HTTP 协议版本</td></tr>
+                                    <tr><td>506</td><td>Variant Also Negotiates</td><td>变体也协商。服务器有一个内部配置错误：对所请求的透明内容协商导致了循环引用</td></tr>
+                                    <tr><td>507</td><td>Insufficient Storage</td><td>存储不足。服务器无法存储完成请求所必须的内容</td></tr>
+                                    <tr><td>508</td><td>Loop Detected</td><td>检测到循环。服务器在处理请求时检测到一个死循环</td></tr>
+                                    <tr><td>510</td><td>Not Extended</td><td>未扩展。获取资源所需要的策略并没有被满足</td></tr>
+                                    <tr><td>511</td><td>Network Authentication Required</td><td>需要网络授权。客户端需要通过身份验证才能获得网络访问权限</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- ASCII Table -->
+                    <div id="query-ascii" class="sub-tab-content active">
+                        <div class="table-container" style="max-height: 690px;">
+                            <table id="ascii-table">
+                                <thead>
+                                    <tr>
+                                        <th>二进制</th><th>八进制</th><th>十进制</th><th>十六进制</th><th>字符</th><th>描述</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Port Table -->
+                    <div id="query-port" class="sub-tab-content">
+                        <div class="table-container" style="max-height: 690px;">
+                            <table id="port-table">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 15%;">端口号</th><th style="width: 25%;">服务/协议</th><th>描述/用途</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr><td>1</td><td>TCPMUX</td><td>TCP 端口服务多路复用器</td></tr>
+                                    <tr><td>7</td><td>Echo</td><td>回显协议</td></tr>
+                                    <tr><td>9</td><td>Discard</td><td>丢弃协议</td></tr>
+                                    <tr><td>13</td><td>Daytime</td><td>白天协议</td></tr>
+                                    <tr><td>17</td><td>QOTD</td><td>每日语录协议 (Quote of the Day)</td></tr>
+                                    <tr><td>19</td><td>Chargen</td><td>字符发生器协议</td></tr>
+                                    <tr><td>20</td><td>FTP-Data</td><td>FTP 数据端口</td></tr>
+                                    <tr><td>21</td><td>FTP-Control</td><td>FTP 控制端口</td></tr>
+                                    <tr><td>22</td><td>SSH</td><td>安全外壳协议 (Secure Shell)</td></tr>
+                                    <tr><td>23</td><td>Telnet</td><td>远程终端连接服务</td></tr>
+                                    <tr><td>25</td><td>SMTP</td><td>简单邮件传输协议 (发送邮件)</td></tr>
+                                    <tr><td>37</td><td>Time</td><td>时间协议</td></tr>
+                                    <tr><td>43</td><td>WHOIS</td><td>域名查询协议</td></tr>
+                                    <tr><td>53</td><td>DNS</td><td>域名系统 (Domain Name System)</td></tr>
+                                    <tr><td>67</td><td>DHCP</td><td>动态主机配置协议 (服务器端)</td></tr>
+                                    <tr><td>68</td><td>DHCP</td><td>动态主机配置协议 (客户端)</td></tr>
+                                    <tr><td>69</td><td>TFTP</td><td>简单文件传输协议</td></tr>
+                                    <tr><td>70</td><td>Gopher</td><td>Gopher 信息检索协议</td></tr>
+                                    <tr><td>79</td><td>Finger</td><td>用户信息查询协议</td></tr>
+                                    <tr><td>80</td><td>HTTP</td><td>超文本传输协议 (网页访问)</td></tr>
+                                    <tr><td>88</td><td>Kerberos</td><td>网络认证协议</td></tr>
+                                    <tr><td>101</td><td>HOSTNAME</td><td>NIC 主机名服务</td></tr>
+                                    <tr><td>102</td><td>ISO-TSAP</td><td>ISO 传输服务访问点</td></tr>
+                                    <tr><td>107</td><td>RTELNET</td><td>远程 Telnet 服务</td></tr>
+                                    <tr><td>109</td><td>POP2</td><td>邮局协议版本 2</td></tr>
+                                    <tr><td>110</td><td>POP3</td><td>邮局协议版本 3 (接收邮件)</td></tr>
+                                    <tr><td>111</td><td>Sun RPC</td><td>RPCBIND / 端口映射器 (UNIX 特有)</td></tr>
+                                    <tr><td>113</td><td>Ident</td><td>身份认证服务</td></tr>
+                                    <tr><td>115</td><td>SFTP</td><td>简单文件传输协议 (Simple FTP)</td></tr>
+                                    <tr><td>118</td><td>SQL Services</td><td>SQL 服务端口</td></tr>
+                                    <tr><td>119</td><td>NNTP</td><td>网络新闻传输协议</td></tr>
+                                    <tr><td>123</td><td>NTP</td><td>网络时间协议</td></tr>
+                                    <tr><td>135</td><td>RPC</td><td>RPC 终端映射器 (MS Windows)</td></tr>
+                                    <tr><td>137</td><td>NetBIOS-NS</td><td>NetBIOS 名称服务</td></tr>
+                                    <tr><td>138</td><td>NetBIOS-DGM</td><td>NetBIOS 数据报服务</td></tr>
+                                    <tr><td>139</td><td>NetBIOS-SSN</td><td>NetBIOS 会话服务</td></tr>
+                                    <tr><td>143</td><td>IMAP</td><td>交互式邮件访问协议</td></tr>
+                                    <tr><td>161</td><td>SNMP</td><td>简单网络管理协议 (代理端)</td></tr>
+                                    <tr><td>162</td><td>SNMP-Trap</td><td>SNMP 管理端 (接收告警)</td></tr>
+                                    <tr><td>179</td><td>BGP</td><td>边界网关协议</td></tr>
+                                    <tr><td>194</td><td>IRC</td><td>因特网中继聊天协议</td></tr>
+                                    <tr><td>389</td><td>LDAP</td><td>轻量目录访问协议</td></tr>
+                                    <tr><td>443</td><td>HTTPS</td><td>超文本传输安全协议 (加密网页)</td></tr>
+                                    <tr><td>445</td><td>SMB</td><td>Microsoft-DS / 文件共享 (SMB over TCP)</td></tr>
+                                    <tr><td>464</td><td>Kerberos-PW</td><td>Kerberos 密码更改</td></tr>
+                                    <tr><td>465</td><td>SMTPS</td><td>SMTP over SSL (加密发送邮件)</td></tr>
+                                    <tr><td>512</td><td>rexec</td><td>远程进程执行 (UNIX 特有)</td></tr>
+                                    <tr><td>513</td><td>rlogin</td><td>远程登录服务 (UNIX 特有)</td></tr>
+                                    <tr><td>514</td><td>syslog</td><td>系统日志服务 (UNIX 特有)</td></tr>
+                                    <tr><td>515</td><td>LPD</td><td>行式打印机守护进程 (UNIX 特有)</td></tr>
+                                    <tr><td>520</td><td>RIP</td><td>路由信息协议</td></tr>
+                                    <tr><td>540</td><td>UUCP</td><td>Unix-to-Unix 复制协议 (UNIX 特有)</td></tr>
+                                    <tr><td>543</td><td>klogin</td><td>Kerberos 认证登录</td></tr>
+                                    <tr><td>544</td><td>kshell</td><td>Kerberos 认证 Shell</td></tr>
+                                    <tr><td>548</td><td>AFP</td><td>Apple 归档协议 (Mac 文件共享)</td></tr>
+                                    <tr><td>554</td><td>RTSP</td><td>实时流协议</td></tr>
+                                    <tr><td>587</td><td>SMTP-Submission</td><td>邮件提交端口 (带身份验证)</td></tr>
+                                    <tr><td>631</td><td>CUPS</td><td>通用 Unix 打印系统 (UNIX 特有)</td></tr>
+                                    <tr><td>636</td><td>LDAPS</td><td>LDAP over SSL</td></tr>
+                                    <tr><td>873</td><td>rsync</td><td>远程数据同步服务 (UNIX 特有)</td></tr>
+                                    <tr><td>989</td><td>FTPS-Data</td><td>FTP over SSL (数据端口)</td></tr>
+                                    <tr><td>990</td><td>FTPS-Control</td><td>FTP over SSL (控制端口)</td></tr>
+                                    <tr><td>992</td><td>TELNETS</td><td>Telnet over SSL</td></tr>
+                                    <tr><td>993</td><td>IMAPS</td><td>IMAP over SSL</td></tr>
+                                    <tr><td>995</td><td>POP3S</td><td>POP3 over SSL</td></tr>
+                                    <tr><td>1080</td><td>Socks</td><td>Socks 代理协议</td></tr>
+                                    <tr><td>1433</td><td>MSSQL</td><td>Microsoft SQL Server 数据库</td></tr>
+                                    <tr><td>1521</td><td>Oracle</td><td>Oracle 数据库默认监听端口</td></tr>
+                                    <tr><td>2049</td><td>NFS</td><td>网络文件系统 (UNIX 特有)</td></tr>
+                                    <tr><td>3306</td><td>MySQL</td><td>MySQL 数据库默认端口</td></tr>
+                                    <tr><td>3389</td><td>RDP</td><td>Windows 远程桌面默认端口</td></tr>
+                                    <tr><td>5432</td><td>PostgreSQL</td><td>PostgreSQL 数据库默认端口</td></tr>
+                                    <tr><td>5900</td><td>VNC</td><td>虚拟网络计算 (远程桌面)</td></tr>
+                                    <tr><td>6379</td><td>Redis</td><td>Redis 键值数据库默认端口</td></tr>
+                                    <tr><td>8080</td><td>HTTP-Alt</td><td>HTTP 备用端口 (Tomcat/Web 代理)</td></tr>
+                                    <tr><td>9000</td><td>FastCGI</td><td>PHP-FPM / FastCGI 进程管理器</td></tr>
+                                    <tr><td>9200</td><td>Elasticsearch</td><td>Elasticsearch REST 接口</td></tr>
+                                    <tr><td>11211</td><td>Memcached</td><td>Memcached 缓存服务端口</td></tr>
+                                    <tr><td>27017</td><td>MongoDB</td><td>MongoDB 数据库默认端口</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    
+                    <div id="query-android" class="sub-tab-content">
+                        <div class="input-row" style="margin-bottom: 10px;">
+                            <label style="margin-right: 5px;">搜索：</label>
+                            <input type="text" id="android-perm-search" placeholder="输入关键字搜索权限或描述..." style="flex: 1; margin-right: 10px;">
+                            <button id="android-fetch-btn" onclick="fetchPermissions('android')" style="margin-right: 10px;">获取权限</button>
+                            <button onclick="openDoc('android')">官方文档</button>
+                        </div>
+                        <div id="android-table-container" class="table-container" style="max-height: 650px; display: none;">
+                            <table id="android-perm-table">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 25%;">权限</th><th style="width: 12%;" class="text-center">添加版本</th><th style="width: 12%;" class="text-center">废弃版本</th><th style="width: 15%;" class="text-center">权限级别</th><th>权限说明</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="android-perm-body"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    
+                    
+                    </div>
+
                 </div>
             </section>
         </main>
@@ -388,6 +706,12 @@
             <div id="modal-message" class="modal-message"></div>
             <button class="modal-btn" onclick="hideAlert()">确定</button>
         </div>
+    </div>
+    <div id="context-menu" class="context-menu">
+        <ul>
+            <li id="menu-copy">复制名字</li>
+            <li id="menu-copy-code">复制描述</li>
+        </ul>
     </div>
     <script src="js/app.js"></script>
 </body>

@@ -117,21 +117,21 @@ body {
     font-weight: 600;
     margin-bottom: 15px;
     color: var(--text-secondary);
-    font-size: 0.9rem;
+    font-size: 14px;
     text-transform: uppercase;
 }
 
 .card-sub-header {
     font-weight: 500;
     margin: 15px 0 10px;
-    font-size: 0.9rem;
+    font-size: 14px;
 }
 
 /* Form Elements */
 textarea, input[type="text"], input[type="number"], select {
     width: 100%;
     height: 30px;
-    padding: 1px;
+    padding: 0 8px;
     border: 1px solid var(--border-color);
     border-radius: 6px;
     background-color: var(--bg-input);
@@ -312,7 +312,8 @@ button.primary:hover {
 
 /* ASCII Table */
 .table-container {
-    overflow: auto;
+    overflow-y: auto;
+    overflow-x: hidden;
     max-height: 650px;
     border: 1px solid var(--border-color);
     border-radius: 8px;
@@ -512,4 +513,90 @@ tr:hover {
 
 .modal-btn:hover {
     opacity: 0.9;
+}
+
+#encode-output, #format-output {
+    min-height: 200px;
+}
+
+#b64-input {
+    min-height: 200px;
+}
+
+#img-comp-quality {
+    width: 300px;
+}
+
+.input-row label {
+    font-size: 14px;
+}
+
+textarea {
+    padding: 8px;
+}
+
+#hash-input {
+    min-height: 75px;
+}
+
+/* Context Menu */
+.context-menu {
+    position: fixed;
+    z-index: 3000;
+    width: 150px;
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    display: none;
+    padding: 5px 0;
+}
+
+.context-menu ul {
+    list-style: none;
+}
+
+.context-menu li {
+    padding: 8px 15px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.context-menu li:hover {
+    background-color: var(--hover-color);
+}
+
+.truncate {
+    max-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+#android-perm-table, #ios-perm-table {
+    table-layout: fixed;
+}
+
+.text-center {
+    text-align: center;
+}
+
+.custom-tooltip {
+    position: fixed;
+    z-index: 4000;
+    background: rgba(0, 0, 0, 0.85);
+    color: #fff;
+    padding: 8px 14px;
+    border-radius: 6px;
+    font-size: 16px; /* Larger font size */
+    pointer-events: none;
+    display: none;
+    max-width: 450px;
+    word-wrap: break-word;
+    white-space: pre-wrap;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+    line-height: 1.4;
+    backdrop-filter: blur(4px);
+    border: 1px solid rgba(255,255,255,0.1);
 }

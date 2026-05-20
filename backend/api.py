@@ -1,3 +1,5 @@
+import webbrowser
+import urllib.request
 # -*- coding: utf-8 -*-
 import os
 import re
@@ -14,7 +16,7 @@ from datetime import datetime, timezone, timedelta
 from io import BytesIO
 from PIL import Image, ImageDraw
 import zhconv
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, formatter
 import webview
 
 class Api:
@@ -23,9 +25,152 @@ class Api:
         self._debug = isDebug
         self._raw_uuids = []
         self.APPLE_OFFSET = 978307200
+        self.storage_dir = os.path.join(os.path.expanduser("~"), ".developer_tools")
+        if not os.path.exists(self.storage_dir):
+            os.makedirs(self.storage_dir)
 
     def set_window(self, window):
         self._window = window
+    def open_url(self, url):
+        try:
+            webbrowser.open(url)
+            return self._success(True)
+        except Exception as e:
+            return self._error(e)
+
+    def get_local_permissions(self, platform):
+        try:
+            path = os.path.join(self.storage_dir, f"{platform}_perms.json")
+            if os.path.exists(path):
+                with open(path, 'r', encoding='utf-8') as f:
+                    return self._success(json.load(f))
+            return self._success(None)
+        except Exception as e:
+            return self._error(e)
+
+    def fetch_permissions(self, platform):
+        try:
+            if platform == 'android':
+                return self._fetch_android()
+
+            return self._error("Unsupported platform")
+        except Exception as e:
+            return self._error(e)
+
+    def _fetch_android(self):
+        url = "https://developer.android.com/reference/android/Manifest.permission"
+        try:
+            req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+            with urllib.request.urlopen(req) as response:
+                html_content = response.read().decode('utf-8')
+            
+            soup = BeautifulSoup(html_content, 'html.parser')
+            permissions = {}
+
+            # 第一步，获取权限和权限的描述
+            trs = soup.find_all("tr", attrs={"data-version-added": True})
+            for tr in trs:
+                tds = tr.find_all("td")
+                for td in tds:
+                    code = td.find("code")
+                    p = td.find("p")
+                    if not code or not p:
+                        continue
+
+                    permission_name = code.get_text()
+                    if not permission_name.isupper(): # 全部是大写的才是正确的权限名字
+                        continue
+
+                    desc = p.get_text().replace("\n", "").strip()
+                    desc = re.sub(r' +', ' ', desc)  # 将连续的多个空格换成一个空格
+
+                    # 去掉描述信息里关于 API 过时的相关描述
+                    if 'This constant was deprecated in API level ' in desc:
+                        desc = desc.split('.', maxsplit=1)[1]
+                    if 'The API that used this permission is no longer functional.' in desc:
+                        desc = desc.split("The API that used this permission is no longer functional.", maxsplit=1)[
+                            1].strip()
+
+                    permissions[permission_name] = {"name": permission_name, "desc": desc}
+                    break
+
+            # 第二步，获取权限的添加和废弃 API 级别、权限级别等信息
+            perm_divs = soup.find_all("div", attrs={"data-version-added": True})
+            for div in perm_divs:
+                # 过滤掉有 id 的属性的 div
+                if div.get("id"):
+                    continue
+
+                api_level_div = div.find("div", class_="api-level")
+                if not api_level_div:
+                    continue
+
+                api_level_str = api_level_div.get_text().strip().replace("\n", "")
+                deprecated_in_str = None
+                deprecated_level = None
+                if "Deprecated in" in api_level_str:
+                    api_level_str, deprecated_in_str = api_level_str.split("Deprecated in", maxsplit=1)
+                if "Added in API level" in api_level_str:
+                    api_level = api_level_str.replace("Added in API level", "").strip()
+                elif "Added in version" in api_level_str:
+                    api_level = api_level_str.replace("Added in version", "").strip()
+                else:
+                    continue
+                if deprecated_in_str:
+                    deprecated_level = deprecated_in_str.strip().replace("API level", "").strip()
+
+                h3 = div.find('h3', class_="api-name", recursive=False)
+                p = div.find("p", recursive=False)
+                if h3 and p:
+                    name = h3.get_text().strip()
+                    if name in permissions:
+                        permissions[name]["added"] = api_level
+                        permissions[name]["deprecated"] = deprecated_level
+                        permission_level = 'normal'
+                        for l in p.get_text().split("\n"):
+                            if 'Protection level:' in l:
+                                permission_level = l.strip().replace("Protection level:", "").strip()
+                                break
+                        permissions[name]["permission_level"] = permission_level
+                else:
+                    raise Exception(f"No permissions found for {api_level_str}")
+
+
+            if permissions:
+                # 开始翻译流程
+                self._log("Translating descriptions...")
+                cache = self._get_translation_cache()
+                needs_save = False
+                
+                # 遍历翻译
+                for name, info in permissions.items():
+                    orig_desc = info.get('desc', '')
+                    if orig_desc:
+                        translated = self._translate_text(orig_desc, cache)
+                        if translated != orig_desc:
+                            info['desc'] = translated
+                            needs_save = True
+                
+                if needs_save:
+                    self._save_translation_cache(cache)
+                self._log("Translation complete.")
+
+                perms = list(permissions.values())
+
+                self._save_to_local('android', perms)
+                return self._success(perms)
+            return self._error("No permissions found")
+        except Exception as e:
+            return self._error(f"Fetch failed: {str(e)}")
+
+
+
+    def _save_to_local(self, platform, data):
+        path = os.path.join(self.storage_dir, f"{platform}_perms.json")
+        self._log(f"Saving permissions to {path}")
+        with open(path, 'w', encoding='utf-8') as f:
+            json.dump(data, f, ensure_ascii=False, indent=4)
+
 
     def _log(self, msg):
         if self._debug:
@@ -135,10 +280,16 @@ class Api:
                 res = json.dumps(json.loads(data), indent=4, ensure_ascii=False)
             elif fmt_type == "json_compress":
                 res = json.dumps(json.loads(data), separators=(',', ':'), ensure_ascii=False)
-            elif fmt_type == "html_xml":
+            elif fmt_type in ("html_format", "html_xml"):
                 is_xml = data.startswith("<?xml") or ("<" in data and not data.lower().startswith("<!doctype html"))
                 soup = BeautifulSoup(data, "xml" if is_xml else "html.parser")
-                res = soup.prettify()
+                res = soup.prettify(formatter=formatter.HTMLFormatter(indent=4))
+            elif fmt_type == "html_compress":
+                res = self._html_compress(data)
+            elif fmt_type == "css_format":
+                res = self._css_format(data)
+            elif fmt_type == "css_compress":
+                res = self._css_compress(data)
             elif fmt_type == "js_format":
                 res = self._js_format(data)
             elif fmt_type == "js_compress":
@@ -147,6 +298,45 @@ class Api:
             return self._success(res)
         except Exception as e:
             return self._error(e)
+
+    def _html_compress(self, data):
+        # 1. 移除注释
+        data = re.sub(r'<!--.*?-->', '', data, flags=re.DOTALL)
+        # 2. 移除标签间的空白
+        data = re.sub(r'>\s+<', '><', data)
+        # 3. 移除属性 = 周围的空格
+        data = re.sub(r'\s*=\s*', '=', data)
+        # 4. 压缩连续空白为一个空格
+        data = re.sub(r'\s+', ' ', data)
+        # 5. 移除 < 后的空格
+        data = re.sub(r'<\s+', '<', data)
+        # 6. 特别处理：移除 /> 和 > 前的空格，但保留属性间的一个空格
+        data = re.sub(r'\s+/>', '/>', data)
+        data = re.sub(r'\s+>', '>', data)
+        return data.strip()
+
+    def _css_format(self, data):
+        # 简单实现：每个规则换行，大括号缩进
+        d = data.replace('{', ' {\n').replace('}', '\n}\n').replace(';', ';\n').replace(',', ', ')
+        lines = d.split('\n')
+        indent, formatted = 0, []
+        for line in lines:
+            line = line.strip()
+            if not line: continue
+            if line.startswith('}'): indent -= 1
+            formatted.append("    " * max(0, indent) + line)
+            if line.endswith('{'): indent += 1
+            if line == '}': formatted.append("") # 规则间增加空行
+        return '\n'.join(formatted).strip()
+
+    def _css_compress(self, data):
+        # 移除注释
+        data = re.sub(r'/\*.*?\*/', '', data, flags=re.DOTALL)
+        # 移除换行和多余空格
+        data = re.sub(r'\s+', ' ', data)
+        # 移除符号周围的空格
+        data = re.sub(r'\s*([{:;,])\s*', r'\1', data)
+        return data.strip()
 
     def _js_format(self, code):
         c = code.replace('{', ' {\n').replace('}', '\n}\n').replace(';', ';\n')
@@ -162,10 +352,52 @@ class Api:
         return '\n'.join(formatted)
 
     def _js_compress(self, code):
+        # 移除单行注释
         code = re.sub(r'//.*', '', code)
+        # 移除多行注释
         code = re.sub(r'/\*.*?\*/', '', code, flags=re.DOTALL)
+        # 移除换行和连续空格
         code = re.sub(r'\s+', ' ', code)
+        # 移除操作符周围的空格 (优化)
+        code = re.sub(r'\s*([{}()\[\]=+\-*/%&|^<>!?:;,])\s*', r'\1', code)
         return code.strip()
+
+    # --- Base Conversion Tools ---
+    def convert_base(self, data, from_base, to_base):
+        try:
+            # 去除可能的前缀和空白
+            data = data.strip()
+            fb, tb = int(from_base), int(to_base)
+            
+            # 先统一转换为 10 进制整数
+            # 允许 0x, 0b, 0o 等 Python 自带前缀处理，但由于指定了进制，主要是靠 base 参数
+            val = int(data, fb)
+            
+            if tb == 10:
+                res = str(val)
+            elif tb == 2:
+                res = bin(val)[2:]
+            elif tb == 8:
+                res = oct(val)[2:]
+            elif tb == 16:
+                res = hex(val)[2:].upper()
+            else:
+                # 通用的任意进制转换 (支持 2-36)
+                res = self._int_to_base(val, tb)
+            
+            return self._success(res)
+        except Exception as e:
+            return self._error(f"转换失败: 请检查输入数值是否符合 {from_base} 进制规则")
+
+    def _int_to_base(self, n, base):
+        digits = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+        if n == 0:
+            return "0"
+        res = ""
+        while n > 0:
+            res = digits[n % base] + res
+            n //= base
+        return res
 
     # --- Time Tools ---
     def get_current_time(self, tz_offset):
@@ -224,6 +456,25 @@ class Api:
         except Exception as e:
             return self._error(e)
 
+    def decode_qr(self, file_path):
+        try:
+            import zxingcpp
+        except ImportError:
+            return self._error("缺失 zxing-cpp 库，请运行 'pip install zxing-cpp' 安装。")
+            
+        try:
+            if not os.path.exists(file_path):
+                return self._error("文件不存在")
+            img = Image.open(file_path)
+            results = zxingcpp.read_barcodes(img)
+            if not results:
+                return self._error("未检测到二维码")
+            
+            decoded_texts = [r.text for r in results]
+            return self._success("\n".join(decoded_texts))
+        except Exception as e:
+            return self._error(f"识别失败: {str(e)}")
+
     def format_uuids(self, hyphen, upper, braces):
         if not self._raw_uuids: return ""
         results = []
@@ -255,6 +506,16 @@ class Api:
                 return self._success(f.read()) 
         except Exception as e: 
             return self._error(e) 
+
+    def image_to_base64_data(self, src):
+        try:
+            with open(src, "rb") as f:
+                b64 = base64.b64encode(f.read()).decode()
+                ext = os.path.splitext(src)[1][1:].lower()
+                if ext == 'jpg': ext = 'jpeg'
+                return self._success(f"data:image/{ext};base64,{b64}")
+        except Exception as e:
+            return self._error(e)
 
     def image_convert(self, src, fmt):
         try:
@@ -382,3 +643,37 @@ class Api:
             return self._success("Success")
         except Exception as e:
             return self._error(e)
+    def _get_translation_cache(self):
+        path = os.path.join(self.storage_dir, "android_perms_zh_cache.json")
+        if os.path.exists(path):
+            try:
+                with open(path, 'r', encoding='utf-8') as f:
+                    return json.load(f)
+            except: return {}
+        return {}
+
+    def _save_translation_cache(self, cache):
+        path = os.path.join(self.storage_dir, "android_perms_zh_cache.json")
+        try:
+            with open(path, 'w', encoding='utf-8') as f:
+                json.dump(cache, f, ensure_ascii=False, indent=4)
+        except: pass
+
+    def _translate_text(self, text, cache):
+        if not text or text == '-' or len(text.strip()) == 0: return text
+        if text in cache: return cache[text]
+        
+        try:
+            # 使用 Google Translate GTX 免费接口
+            import urllib.parse
+            import urllib.request
+            url = f"https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=zh-CN&dt=t&q={urllib.parse.quote(text)}"
+            req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+            with urllib.request.urlopen(req, timeout=5) as response:
+                res = json.loads(response.read().decode('utf-8'))
+                translated = "".join([part[0] for part in res[0]])
+                cache[text] = translated
+                return translated
+        except Exception as e:
+            self._log(f"Translation error: {e}")
+            return text # 失败时返回原文
