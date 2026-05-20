@@ -30,7 +30,7 @@ jobs:
         shell: bash
         run: |
           echo "Disabling DEBUG_MODE in main.py"
-          python -c "import re; p = 'main.py'; c = open(p).read(); c = re.sub(r'DEBUG_MODE\s*=\s*\w+', 'DEBUG_MODE = False', c); open(p, 'w').write(c)"
+          python -c "import re; p = 'main.py'; c = open(p, encoding='utf-8').read(); c = re.sub(r'DEBUG_MODE\s*=\s*\w+', 'DEBUG_MODE = False', c); open(p, 'w', encoding='utf-8').write(c)"
           grep "DEBUG_MODE =" main.py
 
 
