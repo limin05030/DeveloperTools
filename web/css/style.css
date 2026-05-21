@@ -757,6 +757,7 @@ textarea {
 }
 
 input[type="checkbox"],
+input[type="range"],
 input[type="radio"] {
     accent-color: var(--accent-color);  /* #007AFF 或 #0A84FF（暗色模式） */
 }
