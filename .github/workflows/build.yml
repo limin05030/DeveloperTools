@@ -52,6 +52,14 @@ jobs:
           echo "Updating version to $VERSION in web/index.html"
           python -c "import sys, re; p = 'web/index.html'; c = open(p, encoding='utf-8').read(); c = re.sub(r'Version: [^<]*', 'Version: ' + sys.argv[1], c); open(p, 'w', encoding='utf-8').write(c)" "$VERSION"
 
+      - name: Get zhcdict.json path
+        id: get_dict_path
+        shell: bash
+        run: |
+          # 繁简转换功能用到用到的zhconv库，在打包时需要同时将 zhcdict.json 打包，这里在打包之前先获取 zhcdict.json 的文件路径
+          DICT_PATH=$(python -c "import zhconv, os; print(os.path.join(os.path.dirname(zhconv.__file__), 'zhcdict.json'))")
+          echo "dict_path=$DICT_PATH" >> $GITHUB_OUTPUT
+
       - name: Build with PyInstaller
         shell: bash
         run: |
@@ -76,6 +84,7 @@ jobs:
           fi
           
           CMD="$CMD --add-data \"images${SEP}images\" --add-data \"web${SEP}web\""
+          CMD="$CMD --add-data \"${DICT_PATH}${SEP}zhconv\""
           
           echo "Running: $CMD"
           eval $CMD
