@@ -755,3 +755,8 @@ textarea {
     overflow-y: auto;
     min-height: 0;
 }
+
+input[type="checkbox"],
+input[type="radio"] {
+    accent-color: var(--accent-color);  /* #007AFF 或 #0A84FF（暗色模式） */
+}
