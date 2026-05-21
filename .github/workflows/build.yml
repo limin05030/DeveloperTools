@@ -52,17 +52,27 @@ jobs:
           echo "Updating version to $VERSION in web/index.html"
           python -c "import sys, re; p = 'web/index.html'; c = open(p, encoding='utf-8').read(); c = re.sub(r'Version: [^<]*', 'Version: ' + sys.argv[1], c); open(p, 'w', encoding='utf-8').write(c)" "$VERSION"
 
-      - name: Get zhcdict.json path
-        id: get_dict_path
-        shell: bash
-        run: |
-          # 繁简转换功能用到用到的zhconv库，在打包时需要同时将 zhcdict.json 打包，这里在打包之前先获取 zhcdict.json 的文件路径
-          DICT_PATH=$(python -c "import zhconv, os; print(os.path.join(os.path.dirname(zhconv.__file__), 'zhcdict.json'))")
-          echo "dict_path=$DICT_PATH" >> $GITHUB_OUTPUT
-
       - name: Build with PyInstaller
         shell: bash
         run: |
+          # 繁简转换功能用到用到的zhconv库，在打包时需要同时将 zhcdict.json 打包，这里在打包之前先获取 zhcdict.json 的文件路径
+          # 获取 zhcdict.json 的绝对路径（优先使用 zhconv.__file__）
+          DICT_PATH=$(python -c "import zhconv, os; print(os.path.join(os.path.dirname(zhconv.__file__), 'zhcdict.json'))" 2>/dev/null || true)
+          
+          # 如果上述方法失败，尝试在 site-packages 中查找
+          if [[ -z "$DICT_PATH" || ! -f "$DICT_PATH" ]]; then
+            echo "Attempting to locate zhcdict.json in site-packages..."
+            DICT_PATH=$(find $(python -c "import site; print(site.getsitepackages()[0])") -name "zhcdict.json" 2>/dev/null | head -1)
+          fi
+          
+          # 最终检查
+          if [[ -z "$DICT_PATH" || ! -f "$DICT_PATH" ]]; then
+            echo "ERROR: Could not find zhcdict.json. Make sure zhconv is installed."
+            exit 1
+          fi
+          
+          echo "Found zhcdict.json at: $DICT_PATH"
+          
           if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
             ICON="images/app.ico"
             SEP=";"
