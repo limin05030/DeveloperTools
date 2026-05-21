@@ -38,7 +38,7 @@
                         <button class="sub-nav-item" data-sub="hash-file">文件模式</button>
                     </div>
                     <div id="hash-text" class="sub-tab-content active">
-                        <textarea autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" id="hash-input" placeholder="输入待计算文本..."></textarea>
+                        <textarea autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" id="hash-input" aria-label="待计算文本" placeholder="输入待计算文本..."></textarea>
                     </div>
                     <div id="hash-file" class="sub-tab-content">
                         <div class="input-group">
@@ -84,7 +84,7 @@
                             <button onclick="calcHash('ripemd160', true)">HmacRIPEMD160</button>
                         </div>
                         <div class="input-group" style="margin-top: 15px;">
-                            <label>密钥 (KEY):</label>
+                            <label for="hash-key">密钥 (KEY):</label>
                             <input type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" id="hash-key" placeholder="输入密钥...">
                         </div>
                     </div>
@@ -92,7 +92,7 @@
 
                 <div class="card">
                     <div class="card-header">结果</div>
-                    <textarea autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" id="hash-output" readonly class="mono"></textarea>
+                    <textarea autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" id="hash-output" aria-label="哈希结果" readonly class="mono"></textarea>
                     <div class="btn-group">
                         <button onclick="copyToClipboard('hash-output')">复制结果</button>
                         <button onclick="toggleCase('hash-output')">转换大小写</button>
@@ -105,7 +105,7 @@
             <section id="encode" class="tab-content">
                 <div class="card">
                     <div class="card-header">输入</div>
-                    <textarea autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" id="encode-input"></textarea>
+                    <textarea autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" id="encode-input" aria-label="待编码文本"></textarea>
                 </div>
                 <div class="card">
                     <div class="card-header">操作</div>
@@ -139,7 +139,7 @@
                 </div>
                 <div class="card">
                     <div class="card-header">结果</div>
-                    <textarea autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" id="encode-output" readonly class="mono"></textarea>
+                    <textarea autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" id="encode-output" aria-label="编码结果" readonly class="mono"></textarea>
                     <div class="btn-group">
                         <button onclick="copyToClipboard('encode-output')">复制结果</button>
                         <button onclick="clearEncode()">清理全部</button>
@@ -152,7 +152,7 @@
                 <div class="card">
                     <div class="card-header">进制转换</div>
                     <div class="input-group">
-                        <label>输入数值:</label>
+                        <label for="base-input">输入数值:</label>
                         <input type="text" id="base-input" placeholder="输入待转换数值..." style="flex: 1; margin-bottom: 0;">
                     </div>
                     <div class="input-row" style="margin-top: 15px; align-items: flex-start;">
@@ -186,6 +186,7 @@
                             <button onclick="copyToClipboard('base-output')">复制结果</button>
                             <button onclick="clearBase()">清空全部</button>
                         </div>
+                    </div>
                 </div>
             </section>
 
@@ -194,17 +195,17 @@
                 <div class="card">
                     <div class="card-header">当前时间</div>
                     <div class="input-group compact">
-                        <label>时区:</label>
+                        <label for="time-tz-select">时区:</label>
                         <select id="time-tz-select"></select>
                         <button onclick="updateClock()">刷新</button>
                     </div>
                     <div class="input-group">
-                        <label>本地时间:</label>
+                        <label for="time-now-date">本地时间:</label>
                         <input type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" id="time-now-date" readonly class="mono">
                         <button onclick="copyValue('time-now-date')">复制</button>
                     </div>
                     <div class="input-group">
-                        <label>时间戳:</label>
+                        <label for="time-now-ts">时间戳:</label>
                         <input type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" id="time-now-ts" readonly class="mono">
                         <button onclick="copyValue('time-now-ts')">复制</button>
                     </div>
@@ -212,7 +213,7 @@
                 <div class="card">
                     <div class="card-header">时间戳 转 日期</div>
                     <div class="input-group compact">
-                        <label>时区:</label>
+                        <label for="t2d-tz-select">时区:</label>
                         <select id="t2d-tz-select"></select>
                         <label class="checkbox-label"><input type="checkbox" id="t2d-ios"> iOS 格式</label>
                     </div>
@@ -225,7 +226,7 @@
                 <div class="card">
                     <div class="card-header">日期 转 时间戳</div>
                     <div class="input-group compact">
-                        <label>时区:</label>
+                        <label for="d2t-tz-select">时区:</label>
                         <select id="d2t-tz-select"></select>
                         <label class="checkbox-label"><input type="checkbox" id="d2t-ios"> iOS 格式</label>
                     </div>
@@ -246,7 +247,7 @@
                         <button class="sub-nav-item" data-sub="format-file">文件模式</button>
                     </div>
                     <div id="format-text" class="sub-tab-content active">
-                        <textarea autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" id="format-input" placeholder="输入待格式化文本..."></textarea>
+                        <textarea autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" id="format-input" aria-label="待格式化文本" placeholder="输入待格式化文本..."></textarea>
                     </div>
                     <div id="format-file" class="sub-tab-content">
                         <div class="input-group">
@@ -270,7 +271,7 @@
                 </div>
                 <div class="card">
                     <div class="card-header">结果</div>
-                    <textarea autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" id="format-output" readonly class="mono"></textarea>
+                    <textarea autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" id="format-output" aria-label="格式化结果" readonly class="mono"></textarea>
                     <div class="btn-group">
                         <button onclick="copyToClipboard('format-output')">复制结果</button>
                         <button onclick="clearFormat()">清理全部</button>
@@ -294,12 +295,12 @@
                     <!-- Convert -->
                     <div id="img-conv" class="sub-tab-content active">
                         <div class="input-group">
-                            <label>源图片:</label>
+                            <label for="img-conv-src">源图片:</label>
                             <input type="text" id="img-conv-src" readonly>
                             <button onclick="selectFile('img-conv-src')">浏览</button>
                         </div>
                         <div class="input-group">
-                            <label>目标格式:</label>
+                            <label for="img-conv-fmt">目标格式:</label>
                             <select id="img-conv-fmt">
                                 <option>PNG</option><option>JPEG</option><option>WEBP</option>
                                 <option>BMP</option><option>ICO</option><option>TIFF</option>
@@ -312,12 +313,12 @@
                     <!-- Compress -->
                     <div id="img-comp" class="sub-tab-content">
                         <div class="input-group">
-                            <label>源图片:</label>
+                            <label for="img-comp-src">源图片:</label>
                             <input type="text" id="img-comp-src" readonly>
                             <button onclick="selectFile('img-comp-src')">浏览</button>
                         </div>
                         <div class="input-group">
-                            <label>质量 (1-100):</label>
+                            <label for="img-comp-quality">质量 (1-100):</label>
                             <input type="range" id="img-comp-quality" min="1" max="100" value="75">
                             <span id="quality-val">75</span>
                         </div>
@@ -327,12 +328,12 @@
                     <!-- Size -->
                     <div id="img-size" class="sub-tab-content">
                         <div class="input-group">
-                            <label>源图片:</label>
+                            <label for="img-size-src">源图片:</label>
                             <input type="text" id="img-size-src" readonly>
                             <button onclick="selectFile('img-size-src')">浏览</button>
                         </div>
                         <div class="input-group">
-                            <label>调整方式:</label>
+                            <label for="img-size-mode">调整方式:</label>
                             <select id="img-size-mode">
                                 <option value="resize">缩放</option>
                                 <option value="center">中心裁剪</option>
@@ -341,8 +342,9 @@
                             </select>
                         </div>
                         <div class="input-row">
-                            <label>目标尺寸:</label><label>宽:</label><input type="number" id="img-width" min="1">
-                            <label>高:</label><input type="number" id="img-height" min="1">
+                            <label for="img-width">目标尺寸:</label><label for="img-width">宽:</label>
+<input type="number" id="img-width" min="1">
+                            <label for="img-height">高:</label><input type="number" id="img-height" min="1">
                             <label class="checkbox-label"><input type="checkbox" id="img-ratio" checked> 保持比例</label>
                         </div>
                         <button class="primary" onclick="imgSize()">保存</button>
@@ -351,21 +353,21 @@
                     <!-- Radius -->
                     <div id="img-radius" class="sub-tab-content">
                         <div class="input-group">
-                            <label>源图片:</label>
+                            <label for="img-radius-src">源图片:</label>
                             <input type="text" id="img-radius-src" readonly>
                             <button onclick="selectFile('img-radius-src')">浏览</button>
                         </div>
                         <div class="card-sub-header">圆角设置:</div><div class="radius-settings">
                             <div class="input-row">
-                                <label class="checkbox-label"><input type="radio" name="rad-mode" id="rad-mode-unified" checked onchange="toggleRadiusMode()"> 统一设置:</label>
+                                <label for="rad-all" class="checkbox-label"><input type="radio" name="rad-mode" id="rad-mode-unified" checked onchange="toggleRadiusMode()"> 统一设置:</label>
                                 <input type="number" id="rad-all" value="0" min="0">
                             </div>
                             <div class="input-row">
                                 <label class="checkbox-label"><input type="radio" name="rad-mode" id="rad-mode-individual" onchange="toggleRadiusMode()"> 单独设置:</label>
-                                <label>左上:</label><input type="number" id="rad-tl" value="0" min="0" disabled>
-                                <label>右上:</label><input type="number" id="rad-tr" value="0" min="0" disabled>
-                                <label>左下:</label><input type="number" id="rad-bl" value="0" min="0" disabled>
-                                <label>右下:</label><input type="number" id="rad-br" value="0" min="0" disabled>
+                                <label for="rad-tl">左上:</label><input type="number" id="rad-tl" value="0" min="0" disabled>
+                                <label for="rad-tr">右上:</label><input type="number" id="rad-tr" value="0" min="0" disabled>
+                                <label for="rad-bl">左下:</label><input type="number" id="rad-bl" value="0" min="0" disabled>
+                                <label for="rad-br">右下:</label><input type="number" id="rad-br" value="0" min="0" disabled>
                             </div>
                         </div>
                         <button class="primary" onclick="imgRadius()">保存</button>
@@ -374,7 +376,7 @@
                     <!-- Color Picker -->
                                         <div id="img-color" class="sub-tab-content">
                         <div class="input-group">
-                            <label>源图片:</label>
+                            <label for="img-color-src">源图片:</label>
                             <input type="text" id="img-color-src" readonly placeholder="选择图片以提取颜色...">
                             <button onclick="selectColorPickerFile()">浏览</button>
                         </div>
@@ -392,16 +394,16 @@
                             </div>
                             <div id="color-result-container" style="display: none; margin-top: 15px;">
                                 <div class="input-row">
-                                    <label style="min-width: 85px; text-align: right; padding-right: 5px;">HEX(RGBA):</label><input type="text" id="color-hex-rgba" readonly style="flex: 1;">
+                                    <label for="color-hex-rgba" style="min-width: 85px; text-align: right; padding-right: 5px;">HEX(RGBA):</label><input type="text" id="color-hex-rgba" readonly style="flex: 1;">
                                     <button onclick="copyValue('color-hex-rgba')">复制</button>
-                                    <label style="min-width: 50px; margin-left: 10px; text-align: right; padding-right: 5px;">RGBA:</label><input type="text" id="color-rgba" readonly style="flex: 2.2;">
+                                    <label for="color-rgba" style="min-width: 50px; margin-left: 10px; text-align: right; padding-right: 5px;">RGBA:</label><input type="text" id="color-rgba" readonly style="flex: 2.2;">
                                     <button onclick="copyValue('color-rgba')">复制</button>
                                     <div style="width: 24px; margin-left: 10px;"></div>
                                 </div>
                                 <div class="input-row" style="margin-top: 10px;">
-                                    <label style="min-width: 85px; text-align: right; padding-right: 5px;">HEX(ARGB):</label><input type="text" id="color-hex-argb" readonly style="flex: 1;">
+                                    <label for="color-hex-argb" style="min-width: 85px; text-align: right; padding-right: 5px;">HEX(ARGB):</label><input type="text" id="color-hex-argb" readonly style="flex: 1;">
                                     <button onclick="copyValue('color-hex-argb')">复制</button>
-                                    <label style="min-width: 50px; margin-left: 10px; text-align: right; padding-right: 5px;">HSLA:</label><input type="text" id="color-hsla" readonly style="flex: 2.2;">
+                                    <label for="color-hsla" style="min-width: 50px; margin-left: 10px; text-align: right; padding-right: 5px;">HSLA:</label><input type="text" id="color-hsla" readonly style="flex: 2.2;">
                                     <button onclick="copyValue('color-hsla')">复制</button>
                                     <div id="color-preview" style="width: 24px; height: 24px; border-radius: 4px; border: 1px solid var(--border-color); margin-left: 10px; flex-shrink: 0;"></div>
                                 </div>
@@ -426,6 +428,7 @@
                             <button class="primary" onclick="base64ToImg()">还原</button>
                         </div>
                 </div>
+                </div>
             </section>
 
             
@@ -435,7 +438,7 @@
                 <div class="card">
                     <div class="card-header">批量生成 UUID</div>
                     <div class="input-group">
-                        <label>数量:</label><input type="number" id="uuid-count" value="5" class="small-num">
+                        <label for="uuid-count">数量:</label><input type="number" id="uuid-count" value="5" class="small-num">
                         <label class="checkbox-label"><input type="checkbox" id="uuid-hyphen" checked> 带分割线</label>
                         <label class="checkbox-label"><input type="checkbox" id="uuid-upper" checked> 字母大写</label>
                         <label class="checkbox-label"><input type="checkbox" id="uuid-braces"> 带花括号</label>
@@ -458,7 +461,7 @@
                         <div class="qr-split-container">
                             <div class="qr-left-panel">
                                 <div class="textarea-wrapper">
-                                    <textarea id="qr-input" placeholder="输入要生成的文本或链接..." maxlength="2000"></textarea>
+                                    <textarea id="qr-input" aria-label="二维码内容" placeholder="输入要生成的文本或链接..." maxlength="2000"></textarea>
                                     <div class="char-counter"><span id="qr-char-count">0</span> / 2000</div>
                                 </div>
                                 <button class="primary" style="width: 100%; margin-top: 10px;" onclick="generateQR()">生成二维码</button>
@@ -479,13 +482,13 @@
                     <!-- QR Recognition -->
                     <div id="qr-rec" class="sub-tab-content">
                         <div class="input-group">
-                            <label>选择图片:</label>
+                            <label for="qr-rec-src">选择图片:</label>
                             <input type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" id="qr-rec-src" readonly placeholder="选择二维码图片...">
                             <button onclick="selectFile('qr-rec-src')">浏览</button>
                             <button onclick="decodeQR()">识别</button>
                         </div>
                         <div class="card-sub-header">识别结果:</div>
-                        <textarea autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" id="qr-rec-output" readonly style="min-height: 100px;"></textarea>
+                        <textarea autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" id="qr-rec-output" aria-label="二维码识别结果" readonly style="min-height: 100px;"></textarea>
                         <button onclick="copyToClipboard('qr-rec-output')">复制结果</button>
                     </div>
                 </div>
@@ -688,7 +691,7 @@
                     
                     <div id="query-android" class="sub-tab-content">
                         <div class="input-row" style="margin-bottom: 10px;">
-                            <label style="margin-right: 5px;">搜索：</label>
+                            <label for="android-perm-search" style="margin-right: 5px;">搜索：</label>
                             <input type="text" id="android-perm-search" placeholder="输入关键字搜索权限或描述..." style="flex: 1; margin-right: 10px;">
                             <button id="android-fetch-btn" onclick="fetchPermissions('android')" style="margin-right: 10px;">获取权限</button>
                             <button onclick="openDoc('android')">官方文档</button>
@@ -723,18 +726,18 @@
                     <div id="api-req-tab" class="api-main-tab-content active" style="flex: 1; flex-direction: column;">
                         <div style="margin: 15px 0;">
                             <div class="input-row">
-                                <label style="min-width: 80px; text-align: right; padding-right: 10px;">请求 URL:</label>
-                                <input type="text" id="api-url" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="https://api.example.com" style="flex: 1;">
+                                <label for="api-url" style="min-width: 80px; text-align: right; padding-right: 10px;">请求 URL:</label>
+                                <input type="text" id="api-url" aria-label="请求URL" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="https://api.example.com" style="flex: 1;">
                             </div>
                             <div class="input-row" style="margin-top: 10px;">
-                                <label style="min-width: 80px; text-align: right; padding-right: 10px;">请求方法:</label>
+                                <label for="api-method" style="min-width: 80px; text-align: right; padding-right: 10px;">请求方法:</label>
                                 <select id="api-method" style="width: 100px;">
                                     <option>GET</option><option>POST</option><option>PUT</option>
                                     <option>DELETE</option><option>PATCH</option><option>HEAD</option>
                                 </select>
                             </div>
                             <div class="input-row" style="margin-top: 10px;">
-                                <label style="min-width: 80px; text-align: right; padding-right: 10px;">Content-Type:</label>
+                                <label for="api-content-type" style="min-width: 80px; text-align: right; padding-right: 10px;">Content-Type:</label>
                                 <select id="api-content-type" style="width: 300px;">
                                     <option value="application/x-www-form-urlencoded">application/x-www-form-urlencoded</option>
                                     <option value="multipart/form-data">multipart/form-data</option>
@@ -760,7 +763,7 @@
                         </div>
 
                         <div id="api-body" class="sub-tab-content" style="flex: 1; padding: 10px 0; min-height: 0;">
-                            <textarea id="api-body-content" class="scroll-area" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="输入请求体内容 (JSON, 文本等)..." style="width: 100%; font-family: monospace; resize: none; box-sizing: border-box;"></textarea>
+                            <textarea id="api-body-content" aria-label="请求体内容" class="scroll-area" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="输入请求体内容 (JSON, 文本等)..." style="width: 100%; font-family: monospace; resize: none; box-sizing: border-box;"></textarea>
                         </div>
 
                         <div style="padding-top: 15px; margin-top: auto;">
@@ -787,13 +790,13 @@
                                     <button onclick="formatApiResponse('json')">JSON 格式化</button>
                                     <button onclick="copyValue('api-res-body')">复制</button>
                                 </div>
-                                <textarea id="api-res-body" readonly class="mono" style="flex: 1; width: 100%; background-color: var(--bg-window); resize: none; box-sizing: border-box;"></textarea>
+                                <textarea id="api-res-body" aria-label="响应体内容" readonly class="mono" style="flex: 1; width: 100%; background-color: var(--bg-window); resize: none; box-sizing: border-box;"></textarea>
                             </div>
                             <div id="api-res-headers-tab" class="sub-tab-content" style="flex: 1; flex-direction: column; padding: 10px 0;">
-                                <textarea id="api-res-headers" readonly class="mono" style="flex: 1; width: 100%; background-color: var(--bg-window); resize: none; box-sizing: border-box;"></textarea>
+                                <textarea id="api-res-headers" aria-label="响应头内容" readonly class="mono" style="flex: 1; width: 100%; background-color: var(--bg-window); resize: none; box-sizing: border-box;"></textarea>
                             </div>
                             <div id="api-res-req-headers-tab" class="sub-tab-content" style="flex: 1; flex-direction: column; padding: 10px 0;">
-                                <textarea id="api-res-req-headers" readonly class="mono" style="flex: 1; width: 100%; background-color: var(--bg-window); resize: none; box-sizing: border-box;"></textarea>
+                                <textarea id="api-res-req-headers" aria-label="请求头内容" readonly class="mono" style="flex: 1; width: 100%; background-color: var(--bg-window); resize: none; box-sizing: border-box;"></textarea>
                             </div>
                         </div>
                         <div id="api-error-container" style="display: none; flex-direction: column; flex: 1; padding: 20px; color: #FF3B30;">
