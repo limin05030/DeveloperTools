@@ -535,7 +535,6 @@ class Api:
             if is_heic:
                 # 1. 尝试使用 pillow-heif (跨平台最佳方案)
                 try:
-                    from PIL import Image
                     try:
                         from pillow_heif import register_heif_opener
                         register_heif_opener()
