@@ -605,7 +605,7 @@ textarea {
 .qr-split-container {
     display: flex;
     gap: 30px;
-    min-height: 350px;
+    min-height: 340px;
 }
 
 .qr-left-panel {
