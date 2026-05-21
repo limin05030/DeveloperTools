@@ -616,14 +616,44 @@ textarea {
 
 .qr-right-panel {
     flex: 1;
+    position: relative;
+    height: 340px;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     border-left: 1px solid var(--border-color);
-    padding-left: 30px;
-    
+    padding-left: 10px;
+
     border-radius: 0 12px 12px 0;
+}
+
+#qr-result-container,
+#qr-empty-hint {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 15px;
+    padding: 20px;
+    box-sizing: border-box;
+    margin: 0;
+}
+
+.qr-image-wrapper img {
+    max-width: 100%;
+    max-height: 260px;
+    width: auto;
+    height: auto;
+}
+
+#qr-result-container button.primary {
+    margin-top: 0;
 }
 
 .textarea-wrapper {
