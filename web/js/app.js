@@ -1,3 +1,5 @@
+let currentAspectRatio = 1;  // 当前图片的宽高比
+
 // Tab Switching Logic
 document.querySelectorAll('.nav-item').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -38,6 +40,7 @@ async function selectFile(id) {
             if (infoRes.success) {
                 document.getElementById('img-width').value = infoRes.data.width;
                 document.getElementById('img-height').value = infoRes.data.height;
+                currentAspectRatio = infoRes.data.width / infoRes.data.height;
             }
         }
     } else if (!res.success && res.error !== 'Cancelled') {
@@ -396,8 +399,6 @@ let cpState = {
 };
 
 // Color Picker logic
-
-// Color Picker logic
 async function selectColorPickerFile() {
     const res = await pywebview.api.select_file();
     if (res.success && res.data) {
@@ -528,7 +529,9 @@ function initColorPicker() {
         document.getElementById('color-rgba').value = rgba;
         document.getElementById('color-preview').style.backgroundColor = rgba;
     });
-}// Image Tools
+}
+
+// Image Tools
 async function imgConvert() {
     const src = document.getElementById('img-conv-src').value;
     const fmt = document.getElementById('img-conv-fmt').value;
@@ -560,6 +563,63 @@ async function imgCompress() {
 document.getElementById('img-comp-quality')?.addEventListener('input', (e) => {
     document.getElementById('quality-val').textContent = e.target.value;
 });
+
+function onWidthChange() {
+    if (window.__resetting) return;
+    const ratioCheck = document.getElementById('img-ratio');
+    if (!ratioCheck.checked || currentAspectRatio === 0) return;
+    const widthInput = document.getElementById('img-width');
+    const heightInput = document.getElementById('img-height');
+    let w = parseFloat(widthInput.value);
+    if (isNaN(w) || w <= 0) return;
+    let newHeight = w / currentAspectRatio;
+    if (!isNaN(newHeight) && isFinite(newHeight)) {
+        // 避免循环触发：临时移除高度监听
+        heightInput.removeEventListener('input', onHeightChange);
+        heightInput.value = Math.round(newHeight);
+        heightInput.addEventListener('input', onHeightChange);
+    }
+}
+
+function onHeightChange() {
+    if (window.__resetting) return;
+    const ratioCheck = document.getElementById('img-ratio');
+    if (!ratioCheck.checked || currentAspectRatio === 0) return;
+    const widthInput = document.getElementById('img-width');
+    const heightInput = document.getElementById('img-height');
+    let h = parseFloat(heightInput.value);
+    if (isNaN(h) || h <= 0) return;
+    let newWidth = h * currentAspectRatio;
+    if (!isNaN(newWidth) && isFinite(newWidth)) {
+        widthInput.removeEventListener('input', onWidthChange);
+        widthInput.value = Math.round(newWidth);
+        widthInput.addEventListener('input', onWidthChange);
+    }
+}
+
+document.getElementById('img-width')?.addEventListener('input', onWidthChange);
+document.getElementById('img-height')?.addEventListener('input', onHeightChange);
+
+const imaRatioCheck = document.getElementById('img-ratio')
+if (imaRatioCheck) {
+    imaRatioCheck.addEventListener('change', async (e) => {
+        if (!imaRatioCheck.checked) return;
+
+        const src = document.getElementById('img-size-src').value;
+        if (!src) {
+            return;
+        }
+
+        const infoRes = await pywebview.api.get_image_info(src);
+        if (infoRes.success) {
+            window.__resetting = true;
+            document.getElementById('img-width').value = infoRes.data.width;
+            document.getElementById('img-height').value = infoRes.data.height;
+            currentAspectRatio = infoRes.data.width / infoRes.data.height;
+            window.__resetting = false;
+        }
+    });
+}
 
 async function imgSize() {
     const src = document.getElementById('img-size-src').value;
@@ -763,30 +823,30 @@ window.addEventListener('pywebviewready', () => {
     addApiHeaderRow("User-Agent", "Mozilla/5.0 (DeveloperTools)");
     loadLocalPermissions();
     
-// Special handler for API Main Tabs (Request/Response)
-document.querySelectorAll('.sub-nav-item[data-sub^="api-"]').forEach(btn => {
-    if (btn.id === 'api-req-nav-btn' || btn.id === 'api-res-nav-btn') {
-        btn.addEventListener('click', (e) => {
-            e.stopImmediatePropagation(); 
-            const parent = btn.closest('.card');
-            
-            // 1. Switch Main Tabs
-            parent.querySelectorAll('.api-main-tab-content').forEach(c => c.classList.remove('active'));
-            parent.querySelectorAll('#api-req-nav-btn, #api-res-nav-btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            const targetPanel = document.getElementById(btn.dataset.sub);
-            targetPanel.classList.add('active');
+    // Special handler for API Main Tabs (Request/Response)
+    document.querySelectorAll('.sub-nav-item[data-sub^="api-"]').forEach(btn => {
+        if (btn.id === 'api-req-nav-btn' || btn.id === 'api-res-nav-btn') {
+            btn.addEventListener('click', (e) => {
+                e.stopImmediatePropagation();
+                const parent = btn.closest('.card');
 
-            // 2. Ensure internal sub-tabs have an active state so content isn't blank
-            const activeSub = targetPanel.querySelector('.sub-tab-content.active');
-            if (!activeSub) {
-                // If nothing is active (like when first switching back), activate the first sub-nav item
-                const firstSubBtn = targetPanel.querySelector('.sub-nav-item');
-                if (firstSubBtn) firstSubBtn.click();
-            }
-        });
-    }
-});
+                // 1. Switch Main Tabs
+                parent.querySelectorAll('.api-main-tab-content').forEach(c => c.classList.remove('active'));
+                parent.querySelectorAll('#api-req-nav-btn, #api-res-nav-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                const targetPanel = document.getElementById(btn.dataset.sub);
+                targetPanel.classList.add('active');
+
+                // 2. Ensure internal sub-tabs have an active state so content isn't blank
+                const activeSub = targetPanel.querySelector('.sub-tab-content.active');
+                if (!activeSub) {
+                    // If nothing is active (like when first switching back), activate the first sub-nav item
+                    const firstSubBtn = targetPanel.querySelector('.sub-nav-item');
+                    if (firstSubBtn) firstSubBtn.click();
+                }
+            });
+        }
+    });
 
 });
 
@@ -877,6 +937,7 @@ function initContextMenu() {
         }
     });
 }
+
 function initCustomTooltip() {
     const tooltip = document.getElementById('custom-tooltip');
     if (!tooltip) return;

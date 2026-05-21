@@ -761,3 +761,20 @@ input[type="range"],
 input[type="radio"] {
     accent-color: var(--accent-color);  /* #007AFF 或 #0A84FF（暗色模式） */
 }
+
+/* 明亮模式：保持默认灰色（通常就是灰色，可不改） */
+/* 如果需要明确指定灰色，可以加： */
+@media (prefers-color-scheme: light) {
+    input[type="number"]::-webkit-inner-spin-button,
+    input[type="number"]::-webkit-outer-spin-button {
+        filter: brightness(0.6);  /* 调整为想要的灰色深度 */
+    }
+}
+
+/* 深色模式：将箭头变为白色 */
+@media (prefers-color-scheme: dark) {
+    input[type="number"]::-webkit-inner-spin-button,
+    input[type="number"]::-webkit-outer-spin-button {
+        filter: brightness(0) invert(1);  /* 先变黑再反转为白色 */
+    }
+}
