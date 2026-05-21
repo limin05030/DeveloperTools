@@ -760,7 +760,34 @@ window.addEventListener('pywebviewready', () => {
     initPermissionSearch();
     initCustomTooltip();
     initQRCharCount();
+    addApiHeaderRow("User-Agent", "Mozilla/5.0 (DeveloperTools)");
     loadLocalPermissions();
+    
+// Special handler for API Main Tabs (Request/Response)
+document.querySelectorAll('.sub-nav-item[data-sub^="api-"]').forEach(btn => {
+    if (btn.id === 'api-req-nav-btn' || btn.id === 'api-res-nav-btn') {
+        btn.addEventListener('click', (e) => {
+            e.stopImmediatePropagation(); 
+            const parent = btn.closest('.card');
+            
+            // 1. Switch Main Tabs
+            parent.querySelectorAll('.api-main-tab-content').forEach(c => c.classList.remove('active'));
+            parent.querySelectorAll('#api-req-nav-btn, #api-res-nav-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            const targetPanel = document.getElementById(btn.dataset.sub);
+            targetPanel.classList.add('active');
+
+            // 2. Ensure internal sub-tabs have an active state so content isn't blank
+            const activeSub = targetPanel.querySelector('.sub-tab-content.active');
+            if (!activeSub) {
+                // If nothing is active (like when first switching back), activate the first sub-nav item
+                const firstSubBtn = targetPanel.querySelector('.sub-nav-item');
+                if (firstSubBtn) firstSubBtn.click();
+            }
+        });
+    }
+});
+
 });
 
 // Context Menu Logic
@@ -918,4 +945,184 @@ function rgbToHsl(r, g, b) {
         h /= 6;
     }
     return [Math.round(h * 360), Math.round(s * 100), Math.round(l * 100)];
+}
+
+// API Test Logic
+function addApiHeaderRow(key = '', value = '') {
+    const list = document.getElementById('api-header-list');
+    const row = document.createElement('div');
+    row.className = 'input-row';
+    row.style.marginBottom = '5px';
+    row.innerHTML = `
+        <input type="text" placeholder="Key" class="api-header-key" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" value="${key}" style="flex: 2;">
+        <input type="text" placeholder="Value" class="api-header-val" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" value="${value}" style="flex: 4;">
+        <button class="small-btn" onclick="this.parentElement.remove()" title="删除"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+    `;
+    list.appendChild(row);
+}
+
+
+
+let lastRawResponse = '';
+
+function showRawResponse() {
+    document.getElementById('api-res-body').value = lastRawResponse;
+}
+
+function generateRandomUserAgent() {
+        const uas = [
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36',
+        'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Mozilla/5.0 (iPhone; CPU iPhone OS 17_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Mobile/15E148 Safari/604.1',
+        'Mozilla/5.0 (iPad; CPU OS 17_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Mobile/15E148 Safari/604.1',
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/119.0',
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:109.0) Gecko/20100101 Firefox/119.0',
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Safari/605.1.15',
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Edg/120.0.0.0',
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Edg/120.0.0.0',
+        'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36',
+        'Mozilla/5.0 (Android 13; Mobile; rv:109.0) Gecko/119.0 Firefox/119.0',
+        'Mozilla/5.0 (iPhone; CPU iPhone OS 17_1 like Mac OS X) AppleWebKit/537.36 (KHTML, like Gecko) CriOS/120.0.6099.101 Mobile/15E148 Safari/537.36',
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/102.0.5005.115 Safari/537.36 OPR/88.0.4412.74',
+        'Mozilla/5.0 (Windows NT 10.0; WOW64; Trident/7.0; rv:11.0) like Gecko'
+    ];
+    const randomUA = uas[Math.floor(Math.random() * uas.length)];
+    
+    let found = false;
+    document.querySelectorAll("#api-header-list .input-row").forEach(row => {
+        const keyEl = row.querySelector(".api-header-key");
+        const valEl = row.querySelector(".api-header-val");
+        if (keyEl && keyEl.value.trim().toLowerCase() === "user-agent") {
+            valEl.value = randomUA;
+            found = true;
+        }
+    });
+    
+    if (!found) {
+        addApiHeaderRow("User-Agent", randomUA);
+    }
+}
+
+async function sendApiRequest() {
+    const url = document.getElementById('api-url').value.trim();
+    const method = document.getElementById('api-method').value;
+    const body = document.getElementById('api-body-content').value;
+    const btn = document.getElementById('api-send-btn');
+    const defaultContentType = document.getElementById('api-content-type').value;
+
+    if (!url) { showAlert('请输入请求 URL'); return; }
+    if (!url.startsWith('http')) { showAlert('URL 必须以 http:// 或 https:// 开头'); return; }
+
+    const headers = {};
+    let hasContentType = false;
+    document.querySelectorAll('#api-header-list .input-row').forEach(row => {
+        const keyEl = row.querySelector('.api-header-key');
+        const valEl = row.querySelector('.api-header-val');
+        if (keyEl && valEl) {
+            const key = keyEl.value.trim();
+            const val = valEl.value.trim();
+            if (key) {
+                headers[key] = val;
+                if (key.toLowerCase() === 'content-type') hasContentType = true;
+            }
+        }
+    });
+
+    if (!hasContentType && (method === 'POST' || method === 'PUT' || method === 'PATCH')) {
+        headers['Content-Type'] = defaultContentType;
+    }
+
+    btn.disabled = true;
+    btn.textContent = '发送中...';
+    
+    try {
+        const res = await pywebview.api.request_api(url, method, JSON.stringify(headers), body);
+        
+        // Show Response Tab
+        document.getElementById('api-res-nav-btn').click();
+        
+        const statusEl = document.getElementById('api-res-status');
+        const bodyEl = document.getElementById('api-res-body');
+        const headEl = document.getElementById('api-res-headers');
+        const resContainer = document.getElementById('api-response-container');
+        const errContainer = document.getElementById('api-error-container');
+        const emptyHint = document.getElementById('api-empty-res-hint');
+        const errMsgEl = document.getElementById('api-error-message');
+
+        emptyHint.style.display = 'none';
+
+        if (res.success) {
+            resContainer.style.display = 'flex';
+            errContainer.style.display = 'none';
+
+            const data = res.data;
+            statusEl.textContent = data.status;
+            
+            if (data.status >= 200 && data.status < 300) {
+                statusEl.style.backgroundColor = '#4CD964';
+                statusEl.style.color = '#fff';
+            } else {
+                statusEl.style.backgroundColor = '#FF3B30';
+                statusEl.style.color = '#fff';
+            }
+
+            lastRawResponse = data.body;
+            bodyEl.value = data.body;
+            
+            let headText = '';
+            for (const [k, v] of Object.entries(data.headers)) {
+                headText += k + ': ' + v + '\n';
+            }
+            headEl.value = headText;
+
+            // Populate Request Headers from backend data
+            const reqHeadEl = document.getElementById('api-res-req-headers');
+            let reqHeadText = '';
+            const actualReqHeaders = data.request_headers || headers;
+            for (const [k, v] of Object.entries(actualReqHeaders)) {
+                reqHeadText += k + ': ' + v + '\n';
+            }
+            reqHeadEl.value = reqHeadText;
+        } else {
+            // Network error (status -1)
+            resContainer.style.display = 'none';
+            errContainer.style.display = 'flex';
+            errMsgEl.textContent = res.error;
+            
+            statusEl.textContent = '-1';
+        }
+    } catch (e) {
+        // App logic error
+        document.getElementById('api-res-nav-btn').click();
+        document.getElementById('api-response-container').style.display = 'none';
+        document.getElementById('api-error-container').style.display = 'flex';
+        document.getElementById('api-error-message').textContent = '异常: ' + e;
+    } finally {
+        btn.disabled = false;
+        btn.textContent = '发送请求';
+    }
+}
+
+async function formatApiResponse(type) {
+    const el = document.getElementById('api-res-body');
+    const val = el.value.trim();
+    if (!val) return;
+    
+    try {
+        if (type === 'json') {
+            const obj = JSON.parse(val);
+            el.value = JSON.stringify(obj, null, 4);
+        } else if (type === 'html') {
+            // Re-use backend formatting for HTML/XML
+            const res = await pywebview.api.format_data(val, 'html_format');
+            if (res.success) {
+                el.value = res.data;
+            } else {
+                showToast('HTML 格式化失败: ' + res.error);
+            }
+        }
+    } catch (e) {
+        showToast('格式化异常: ' + e.message);
+    }
 }

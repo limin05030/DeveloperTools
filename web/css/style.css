@@ -667,3 +667,61 @@ textarea {
     box-shadow: 0 4px 12px rgba(0,0,0,0.1);
 }
 .cp-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; } .cp-btn-group { gap: 5px; } .small-btn { min-width: 32px; height: 32px; padding: 0; }
+
+/* API Test Styles */
+#api-header-list .input-row {
+    margin-bottom: 8px;
+    background-color: var(--bg-window);
+    padding: 8px;
+    border-radius: 6px;
+}
+#api-res-status {
+    min-width: 40px;
+    display: inline-block;
+    text-align: center;
+}
+#api-test .sub-tab-content {
+    padding-top: 15px;
+}
+
+
+
+/* Robust Tab Switching */
+.sub-tab-content {
+    display: none;
+}
+.sub-tab-content.active {
+    display: block;
+}
+/* For API Test sub-tabs that need flex-growth */
+#api-test .sub-tab-content.active {
+    display: flex;
+    flex-direction: column;
+}
+
+/* API Main Tab Display */
+.api-main-tab-content {
+    display: none;
+}
+.api-main-tab-content.active {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+}
+
+/* Fix for nested flex scrolling */
+#api-test .sub-tab-content.active,
+.api-main-tab-content.active {
+    min-height: 0;
+}
+
+#api-header-list {
+    display: flex;
+    flex-direction: column;
+}
+
+.scroll-area {
+    flex: 1;
+    overflow-y: auto;
+    min-height: 0;
+}

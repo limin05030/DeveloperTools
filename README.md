@@ -8,6 +8,7 @@
 ![](screenshot/5.png)
 ![](screenshot/6.png)
 ![](screenshot/7.png)
+![](screenshot/8.png)
 
 # windows 版本安装说明
 

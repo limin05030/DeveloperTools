@@ -19,9 +19,10 @@
                 <button class="nav-item" data-tab="image">图片处理</button>
                 <button class="nav-item" data-tab="generate">生成工具</button>
                 <button class="nav-item" data-tab="query">查询工具</button>
+                <button class="nav-item" data-tab="api-test">API 测试</button>
             </nav>
             <div class="sidebar-footer">
-                <div class="version">Version: v2.0.6</div>
+                <div class="version">Version: v2.1.5</div>
                 <div class="author">Author: Sens</div>
             </div>
         </aside>
@@ -185,7 +186,6 @@
                             <button onclick="copyToClipboard('base-output')">复制结果</button>
                             <button onclick="clearBase()">清空全部</button>
                         </div>
-                    </div>
                 </div>
             </section>
 
@@ -424,7 +424,6 @@
                             <button onclick="loadBase64File()">从文件读取</button>
                             <button class="primary" onclick="base64ToImg()">还原</button>
                         </div>
-                    </div>
                 </div>
             </section>
 
@@ -704,13 +703,111 @@
                             </table>
                         </div>
                     </div>
-
-                    
-                    
-                    </div>
-
                 </div>
             </section>
+        
+            <!-- API Test Tab -->
+            
+            <!-- API Test Tab -->
+            
+            <!-- API Test Tab -->
+            <section id="api-test" class="tab-content">
+                <div class="card" style="height: calc(100vh - 80px); display: flex; flex-direction: column; padding: 15px;">
+                    <div class="tab-sub-nav">
+                        <button class="sub-nav-item active" data-sub="api-req-tab" id="api-req-nav-btn">请求</button>
+                        <button class="sub-nav-item" data-sub="api-res-tab" id="api-res-nav-btn">响应</button>
+                    </div>
+
+                    <!-- Request Panel -->
+                    <div id="api-req-tab" class="api-main-tab-content active" style="flex: 1; flex-direction: column;">
+                        <div style="margin: 15px 0;">
+                            <div class="input-row">
+                                <label style="min-width: 80px; text-align: right; padding-right: 10px;">请求 URL:</label>
+                                <input type="text" id="api-url" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="https://api.example.com" style="flex: 1;">
+                            </div>
+                            <div class="input-row" style="margin-top: 10px;">
+                                <label style="min-width: 80px; text-align: right; padding-right: 10px;">请求方法:</label>
+                                <select id="api-method" style="width: 100px;">
+                                    <option>GET</option><option>POST</option><option>PUT</option>
+                                    <option>DELETE</option><option>PATCH</option><option>HEAD</option>
+                                </select>
+                            </div>
+                            <div class="input-row" style="margin-top: 10px;">
+                                <label style="min-width: 80px; text-align: right; padding-right: 10px;">Content-Type:</label>
+                                <select id="api-content-type" style="width: 300px;">
+                                    <option value="application/x-www-form-urlencoded">application/x-www-form-urlencoded</option>
+                                    <option value="multipart/form-data">multipart/form-data</option>
+                                    <option value="application/json">application/json</option>
+                                    <option value="text/plain">text/plain</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="tab-sub-nav">
+                            <button class="sub-nav-item active" data-sub="api-headers">请求头 (Headers)</button>
+                            <button class="sub-nav-item" data-sub="api-body">请求体 (Body)</button>
+                        </div>
+
+                        <div id="api-headers" class="sub-tab-content active" style="flex: 1; padding: 10px 0;">
+                            <div style="flex: 1; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 6px; padding: 8px; background-color: var(--bg-window);">
+                                <div id="api-header-list"></div>
+                                <div style="display: flex; gap: 10px; margin-top: 10px; margin-left: 8px;">
+                                    <button onclick="addApiHeaderRow()" style="width: auto;">添加 Header</button>
+                                    <button onclick="generateRandomUserAgent()" style="width: auto;">随机 User-Agent</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="api-body" class="sub-tab-content" style="flex: 1; padding: 10px 0; min-height: 0;">
+                            <textarea id="api-body-content" class="scroll-area" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="输入请求体内容 (JSON, 文本等)..." style="width: 100%; font-family: monospace; resize: none; box-sizing: border-box;"></textarea>
+                        </div>
+
+                        <div style="padding-top: 15px; margin-top: auto;">
+                            <button class="primary" onclick="sendApiRequest()" id="api-send-btn" style="width: 100%;">发送请求</button>
+                        </div>
+                    </div>
+
+                    <!-- Response Panel -->
+                    <div id="api-res-tab" class="api-main-tab-content" style="flex: 1; flex-direction: column;">
+                        <div id="api-response-container" style="display: none; flex-direction: column; flex: 1;">
+                            <div class="input-row" style="margin: 15px 0;">
+                                <label style="min-width: 60px; text-align: right; padding-right: 10px;">状态码:</label>
+                                <span id="api-res-status" style="font-weight: bold; padding: 4px 12px; border-radius: 4px; min-width: 50px; text-align: center;">-</span>
+                            </div>
+                            <div class="tab-sub-nav">
+                                <button class="sub-nav-item active" data-sub="api-res-body-tab">响应体</button>
+                                <button class="sub-nav-item" data-sub="api-res-headers-tab">响应头</button>
+                                <button class="sub-nav-item" data-sub="api-res-req-headers-tab">请求头</button>
+                            </div>
+                            <div id="api-res-body-tab" class="sub-tab-content active" style="flex: 1; flex-direction: column; padding: 10px 0;">
+                                <div class="btn-group" style="margin-bottom: 10px;">
+                                    <button onclick="showRawResponse()">原数据</button>
+                                    <button onclick="formatApiResponse('html')">HTML 格式化</button>
+                                    <button onclick="formatApiResponse('json')">JSON 格式化</button>
+                                    <button onclick="copyValue('api-res-body')">复制</button>
+                                </div>
+                                <textarea id="api-res-body" readonly class="mono" style="flex: 1; width: 100%; background-color: var(--bg-window); resize: none; box-sizing: border-box;"></textarea>
+                            </div>
+                            <div id="api-res-headers-tab" class="sub-tab-content" style="flex: 1; flex-direction: column; padding: 10px 0;">
+                                <textarea id="api-res-headers" readonly class="mono" style="flex: 1; width: 100%; background-color: var(--bg-window); resize: none; box-sizing: border-box;"></textarea>
+                            </div>
+                            <div id="api-res-req-headers-tab" class="sub-tab-content" style="flex: 1; flex-direction: column; padding: 10px 0;">
+                                <textarea id="api-res-req-headers" readonly class="mono" style="flex: 1; width: 100%; background-color: var(--bg-window); resize: none; box-sizing: border-box;"></textarea>
+                            </div>
+                        </div>
+                        <div id="api-error-container" style="display: none; flex-direction: column; flex: 1; padding: 20px; color: #FF3B30;">
+                            <div style="font-weight: bold; font-size: 1.2rem; margin-bottom: 10px;">请求失败</div>
+                            <div id="api-error-message" style="white-space: pre-wrap; font-family: monospace;"></div>
+                        </div>
+                        <div id="api-empty-res-hint" class="empty-hint" style="flex: 1; display: flex; align-items: center; justify-content: center;">
+                            <p>尚未发送请求或正在等待响应...</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+
+
         </main>
     </div>
     

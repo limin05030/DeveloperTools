@@ -1,6 +1,8 @@
+# -*- coding: utf-8 -*-
+
+import sys
 import webbrowser
 import urllib.request
-# -*- coding: utf-8 -*-
 import os
 import re
 import json
@@ -677,3 +679,90 @@ class Api:
         except Exception as e:
             self._log(f"Translation error: {e}")
             return text # 失败时返回原文
+
+    def request_api(self, url, method, headers_json, body):
+        try:
+            import urllib.request
+            import urllib.error
+            import json
+            import ssl
+            
+            
+            headers = json.loads(headers_json) if headers_json else {}
+            
+            # 智能处理 Body 编码
+            if body:
+                # 检查是否为表单格式
+                is_form = False
+                for k, v in headers.items():
+                    if k.lower() == 'content-type' and 'application/x-www-form-urlencoded' in v.lower():
+                        is_form = True
+                        break
+                
+                if is_form:
+                    # 对表单内容进行 URL 编码，保留结构字符 = 和 &
+                    import urllib.parse
+                    body = urllib.parse.quote(body, safe='=&')
+                
+                data = body.encode('utf-8')
+            else:
+                data = None
+
+            
+            # 忽略 SSL 证书验证 (方便测试自签名或证书过期的 API)
+            ctx = ssl.create_default_context()
+            ctx.check_hostname = False
+            ctx.verify_mode = ssl.CERT_NONE
+            
+            req = urllib.request.Request(url, data=data, headers=headers, method=method)
+            
+            # 获取实际发送的请求头 (包含 urllib 自动补充的部分)
+            actual_request_headers = {}
+            lower_keys = set()
+            for k, v in req.header_items():
+                actual_request_headers[k] = v
+                lower_keys.add(k.lower())
+            
+            # 模拟 urllib 底层自动补全的逻辑以便在 UI 显示 (忽略大小写进行判断)
+            if 'user-agent' not in lower_keys:
+                actual_request_headers['User-Agent'] = f"Python-urllib/{sys.version_info.major}.{sys.version_info.minor}"
+            
+            if 'host' not in lower_keys:
+                from urllib.parse import urlparse
+                actual_request_headers['Host'] = urlparse(url).netloc
+            
+            if data and 'content-length' not in lower_keys:
+                actual_request_headers['Content-Length'] = str(len(data))
+            
+            if 'connection' not in lower_keys:
+                actual_request_headers['Connection'] = 'close'
+
+            try:
+                # 设置 30 秒超时
+                with urllib.request.urlopen(req, context=ctx, timeout=30) as response:
+                    res_body = response.read().decode('utf-8', errors='replace')
+                    res_headers = dict(response.info())
+                    return self._success({
+                        'status': response.status,
+                        'headers': res_headers,
+                        'body': res_body,
+                        'request_headers': actual_request_headers
+                    })
+            except urllib.error.HTTPError as e:
+                # 服务器返回了错误状态码 (如 400, 500)
+                try:
+                    err_body = e.read().decode('utf-8', errors='replace')
+                except:
+                    err_body = "无法读取错误响应体"
+                return self._success({
+                    'status': e.code,
+                    'headers': dict(e.headers),
+                    'body': err_body,
+                    'request_headers': actual_request_headers
+                })
+            except urllib.error.URLError as e:
+                return self._error(f'请求失败: {str(e.reason)}')
+            except Exception as e:
+                return self._error(f'请求异常: {str(e)}')
+        except Exception as e:
+            return self._error(f'后端逻辑错误: {str(e)}')
