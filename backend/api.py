@@ -521,17 +521,125 @@ class Api:
 
     def image_convert(self, src, fmt):
         try:
-            ext = "jpg" if fmt.upper() == "JPEG" else fmt.lower()
+            target_fmt = fmt.upper()
+            ext = "jpg" if target_fmt == "JPEG" else target_fmt.lower()
             save_path = self.save_file(f"converted.{ext}", [("Image", f"*.{ext}")])
             if not save_path: return self._error("Cancelled or failed")
-            with Image.open(src) as img:
-                actual_fmt = "JPEG" if fmt.upper() == "JPEG" else fmt.upper()
+
+            if target_fmt == "SVG":
+                return self._save_as_svg(src, save_path)
+
+            temp_src = src
+            is_heic = src.lower().endswith((".heic", ".heif"))
+            
+            if is_heic:
+                # 1. 尝试使用 pillow-heif (跨平台最佳方案)
+                try:
+                    from PIL import Image
+                    try:
+                        from pillow_heif import register_heif_opener
+                        register_heif_opener()
+                    except ImportError:
+                        pass
+                    with Image.open(src) as test_img:
+                        test_img.verify()
+                except Exception:
+                    # 2. 如果没有安装库，尝试系统命令行工具
+                    import platform
+                    import subprocess
+                    sys_name = platform.system()
+                    temp_png = os.path.join(self.storage_dir, "temp_heic_conv.png")
+                    
+                    try:
+                        if sys_name == "Darwin": # macOS
+                            subprocess.run(["sips", "-s", "format", "png", src, "--out", temp_png], check=True, capture_output=True)
+                            temp_src = temp_png
+                        elif sys_name == "Linux": # Linux
+                            # 通常由 libheif-examples 提供
+                            subprocess.run(["heif-convert", src, temp_png], check=True, capture_output=True)
+                            temp_src = temp_png
+                        else:
+                            raise Exception("Windows 或其他平台需安装 pillow-heif 库")
+                    except Exception:
+                        return self._error("当前环境无法直接处理 HEIC 格式。\n请运行 'pip install pillow-heif' 以获得跨平台支持。")
+
+            with Image.open(temp_src) as img:
+                actual_fmt = "JPEG" if target_fmt == "JPEG" else target_fmt
                 if actual_fmt == "JPEG" and img.mode in ("RGBA", "P"):
                     img = img.convert("RGB")
                 img.save(save_path, actual_fmt)
+            
+            if temp_src != src and os.path.exists(temp_src):
+                os.remove(temp_src)
+                
             return self._success("Success")
         except Exception as e:
             return self._error(e)
+
+    def _save_as_svg(self, src_path, save_path):
+        """真正的矢量化转换：将像素区域转换为 SVG 路径"""
+        try:
+            with Image.open(src_path) as img:
+                # 如果图片太大，先进行适度缩放以防生成的 SVG 过大（超过 1000px 宽度则缩放）
+                max_size = 800
+                if img.width > max_size or img.height > max_size:
+                    ratio = min(max_size / img.width, max_size / img.height)
+                    img = img.resize((int(img.width * ratio), int(img.height * ratio)), Image.Resampling.LANCZOS)
+                
+                img = img.convert("RGBA")
+                width, height = img.size
+                pixels = img.load()
+
+                # 颜色聚合：为了减少路径数量，对颜色进行微调（容差处理）
+                def get_color_key(rgba):
+                    if rgba[3] < 128: return None # 透明
+                    # 将颜色稍微分组 (每 8 个色阶一组) 以减少生成的 path 数量
+                    return "#%02x%02x%02x" % (rgba[0]//8*8, rgba[1]//8*8, rgba[2]//8*8)
+
+                paths = {} # color -> list of rects (x, y, w)
+
+                for y in range(height):
+                    start_x = -1
+                    last_color = None
+                    for x in range(width):
+                        color = get_color_key(pixels[x, y])
+                        
+                        if color != last_color:
+                            if last_color is not None:
+                                # 结束上一个色块
+                                if last_color not in paths: paths[last_color] = []
+                                paths[last_color].append((start_x, y, x - start_x))
+                            
+                            start_x = x
+                            last_color = color
+                    
+                    # 处理每行最后一个色块
+                    if last_color is not None:
+                        if last_color not in paths: paths[last_color] = []
+                        paths[last_color].append((start_x, y, width - start_x))
+
+                # 生成 SVG 字符串
+                svg_lines = [f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" viewBox="0 0 {width} {height}">']
+                svg_lines.append('  <rect width="100%" height="100%" fill="none" />')
+                
+                for color, rects in paths.items():
+                    path_data = []
+                    for rx, ry, rw in rects:
+                        # 使用 M (move to) 和 h (horizontal line) 构建路径，比绘制无数个 <rect> 效率高得多
+                        path_data.append(f"M{rx} {ry}h{rw}")
+                    
+                    combined_path = "".join(path_data)
+                    svg_lines.append(f'  <path d="{combined_path}" stroke="{color}" stroke-width="1.1" />')
+                
+                svg_lines.append('</svg>')
+                
+                with open(save_path, "w", encoding="utf-8") as f:
+                    f.write("\n".join(svg_lines))
+                    
+                return self._success("Success (True Vector)")
+        except Exception as e:
+            import traceback
+            return self._error(f"矢量化失败: {str(e)}\n{traceback.format_exc()}")
 
     def image_compress(self, src, quality):
         try:
