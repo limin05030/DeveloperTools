@@ -700,10 +700,10 @@ textarea {
 
 /* API Test Styles */
 #api-header-list .input-row {
-    margin-bottom: 8px;
+    margin-bottom: 2px;
     background-color: var(--bg-window);
-    padding: 8px;
-    border-radius: 6px;
+    padding: 2px 4px;
+    border-radius: 4px;
 }
 #api-res-status {
     min-width: 40px;

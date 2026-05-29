@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-
+import ssl
 import sys
 import webbrowser
 import urllib.request
@@ -13,6 +13,8 @@ import urllib.parse
 import html
 import time
 import uuid
+
+import certifi
 import qrcode
 from datetime import datetime, timezone, timedelta
 from io import BytesIO
@@ -62,8 +64,9 @@ class Api:
     def _fetch_android(self):
         url = "https://developer.android.com/reference/android/Manifest.permission"
         try:
+            context = ssl.create_default_context(cafile=certifi.where())
             req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
-            with urllib.request.urlopen(req) as response:
+            with urllib.request.urlopen(req, context=context) as response:
                 html_content = response.read().decode('utf-8')
             
             soup = BeautifulSoup(html_content, 'html.parser')
@@ -184,10 +187,10 @@ class Api:
     def _error(self, message):
         return {"success": False, "error": str(message)}
 
-    def select_file(self):
+    def select_file(self, file_types=None):
         try:
             self._log("Opening select_file dialog...")
-            result = self._window.create_file_dialog(webview.OPEN_DIALOG)
+            result = self._window.create_file_dialog(webview.OPEN_DIALOG, file_types=file_types if file_types else ())
             if result and isinstance(result, (list, tuple)):
                 return self._success(result[0])
             return self._success(result) if result else self._error("Cancelled")
@@ -777,8 +780,9 @@ class Api:
             import urllib.parse
             import urllib.request
             url = f"https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=zh-CN&dt=t&q={urllib.parse.quote(text)}"
+            context = ssl.create_default_context(cafile=certifi.where())
             req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
-            with urllib.request.urlopen(req, timeout=5) as response:
+            with urllib.request.urlopen(req, context=context, timeout=5) as response:
                 res = json.loads(response.read().decode('utf-8'))
                 translated = "".join([part[0] for part in res[0]])
                 cache[text] = translated
@@ -787,12 +791,11 @@ class Api:
             self._log(f"Translation error: {e}")
             return text # 失败时返回原文
 
-    def request_api(self, url, method, headers_json, body):
+    def request_api(self, url, method, headers_json, body, ignore_ssl=False):
         try:
             import urllib.request
             import urllib.error
             import json
-            import ssl
             
             
             headers = json.loads(headers_json) if headers_json else {}
@@ -816,10 +819,13 @@ class Api:
                 data = None
 
             
-            # 忽略 SSL 证书验证 (方便测试自签名或证书过期的 API)
-            ctx = ssl.create_default_context()
-            ctx.check_hostname = False
-            ctx.verify_mode = ssl.CERT_NONE
+            # 根据 ignore_ssl 参数决定是否忽略证书验证
+            if ignore_ssl:
+                ctx = ssl.create_default_context()
+                ctx.check_hostname = False
+                ctx.verify_mode = ssl.CERT_NONE
+            else:
+                ctx = ssl.create_default_context(cafile=certifi.where())
             
             req = urllib.request.Request(url, data=data, headers=headers, method=method)
             

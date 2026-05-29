@@ -297,7 +297,7 @@
                         <div class="input-group">
                             <label for="img-conv-src">源图片:</label>
                             <input type="text" id="img-conv-src" readonly>
-                            <button onclick="selectFile('img-conv-src')">浏览</button>
+                            <button onclick="selectFile('img-conv-src', ['Image files (*.jpg;*.jpeg;*.png;*.webp;*.bmp;*.ico)', 'All files (*.*)'])">浏览</button>
                         </div>
                         <div class="input-group">
                             <label for="img-conv-fmt">目标格式:</label>
@@ -315,7 +315,7 @@
                         <div class="input-group">
                             <label for="img-comp-src">源图片:</label>
                             <input type="text" id="img-comp-src" readonly>
-                            <button onclick="selectFile('img-comp-src')">浏览</button>
+                            <button onclick="selectFile('img-comp-src', ['Image files (*.jpg;*.jpeg;*.png;*.webp;*.bmp;*.ico)', 'All files (*.*)'])">浏览</button>
                         </div>
                         <div class="input-group">
                             <label for="img-comp-quality">质量 (1-100):</label>
@@ -330,7 +330,7 @@
                         <div class="input-group">
                             <label for="img-size-src">源图片:</label>
                             <input type="text" id="img-size-src" readonly>
-                            <button onclick="selectFile('img-size-src')">浏览</button>
+                            <button onclick="selectFile('img-size-src', ['Image files (*.jpg;*.jpeg;*.png;*.webp;*.bmp;*.ico)', 'All files (*.*)'])">浏览</button>
                         </div>
                         <div class="input-group">
                             <label for="img-size-mode">调整方式:</label>
@@ -355,7 +355,7 @@
                         <div class="input-group">
                             <label for="img-radius-src">源图片:</label>
                             <input type="text" id="img-radius-src" readonly>
-                            <button onclick="selectFile('img-radius-src')">浏览</button>
+                            <button onclick="selectFile('img-radius-src', ['Image files (*.jpg;*.jpeg;*.png;*.webp;*.bmp;*.ico)', 'All files (*.*)'])">浏览</button>
                         </div>
                         <div class="card-sub-header">圆角设置:</div><div class="radius-settings">
                             <div class="input-row">
@@ -416,7 +416,7 @@
                         <div class="card-sub-header">图片 转 Base64</div>
                         <div class="input-group">
                             <input type="text" id="img2b64-src" readonly>
-                            <button onclick="selectFile('img2b64-src')">浏览</button>
+                            <button onclick="selectFile('img2b64-src', ['Image files (*.jpg;*.jpeg;*.png;*.webp;*.bmp;*.ico)', 'All files (*.*)'])">浏览</button>
                             <button onclick="imgToBase64()">转换</button>
                         </div>
                         <div class="card-sub-header">Base64 转 图片</div>
@@ -484,7 +484,7 @@
                         <div class="input-group">
                             <label for="qr-rec-src">选择图片:</label>
                             <input type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" id="qr-rec-src" readonly placeholder="选择二维码图片...">
-                            <button onclick="selectFile('qr-rec-src')">浏览</button>
+                            <button onclick="selectFile('qr-rec-src', ['Image files (*.jpg;*.jpeg;*.png;*.webp;*.bmp;*.ico)', 'All files (*.*)'])">浏览</button>
                             <button onclick="decodeQR()">识别</button>
                         </div>
                         <div class="card-sub-header">识别结果:</div>
@@ -747,13 +747,10 @@
                             </div>
                         </div>
                         
-                        <div class="tab-sub-nav">
-                            <button class="sub-nav-item active" data-sub="api-headers">请求头 (Headers)</button>
-                            <button class="sub-nav-item" data-sub="api-body">请求体 (Body)</button>
-                        </div>
 
-                        <div id="api-headers" class="sub-tab-content active" style="flex: 1; padding: 10px 0;">
-                            <div style="flex: 1; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 6px; padding: 8px; background-color: var(--bg-window);">
+
+                        <div style="font-size: 13px; font-weight: bold; margin-bottom: 5px; color: var(--text-secondary);">请求头 (Headers)</div><div id="api-headers" style="height: 270px; padding: 10px 0; display: flex; flex-direction: column;">
+                            <div style="height: 100%; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 6px; padding: 8px; background-color: var(--bg-window); display: flex; flex-direction: column;">
                                 <div id="api-header-list"></div>
                                 <div style="display: flex; gap: 10px; margin-top: 10px; margin-left: 8px;">
                                     <button onclick="addApiHeaderRow()" style="width: auto;">添加 Header</button>
@@ -762,11 +759,17 @@
                             </div>
                         </div>
 
-                        <div id="api-body" class="sub-tab-content" style="flex: 1; padding: 10px 0; min-height: 0;">
-                            <textarea id="api-body-content" aria-label="请求体内容" class="scroll-area" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="输入请求体内容 (JSON, 文本等)..." style="width: 100%; font-family: monospace; resize: none; box-sizing: border-box;"></textarea>
+                        <div style="font-size: 13px; font-weight: bold; margin-bottom: 5px; color: var(--text-secondary);">请求体 (Body)</div>
+                        <div id="api-body" style="height: 130px; padding: 10px 0; display: flex; flex-direction: column;">
+                            <textarea id="api-body-content" aria-label="请求体内容" class="scroll-area" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="输入请求体内容 (JSON, 文本等)..." style="width: 100%; height: 110px; font-family: monospace; resize: none; box-sizing: border-box;"></textarea>
                         </div>
 
-                        <div style="padding-top: 15px; margin-top: auto;">
+                        
+                        <div style="display: flex; align-items: center; margin-bottom: 2px;">
+                            <input type="checkbox" id="api-ignore-ssl" style="width: 16px; height: 16px; margin-right: 8px; cursor: pointer;">
+                            <label for="api-ignore-ssl" style="cursor: pointer; font-size: 13px; color: var(--text-secondary);">忽略 SSL 证书验证 (用于测试自签名或过期证书的 API)</label>
+                        </div>
+                        <div style="padding-top: 5px; margin-top: auto;">
                             <button class="primary" onclick="sendApiRequest()" id="api-send-btn" style="width: 100%;">发送请求</button>
                         </div>
                     </div>

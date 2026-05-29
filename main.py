@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 import os
 import sys
+import certifi
+os.environ['SSL_CERT_FILE'] = certifi.where()
 import webview
 from backend.api import Api
 

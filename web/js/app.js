@@ -31,8 +31,8 @@ function hideAlert() {
 }
 
 // Helper Functions
-async function selectFile(id) {
-    const res = await pywebview.api.select_file();
+async function selectFile(id, fileTypes = null) {
+    const res = await pywebview.api.select_file(['Image files (*.jpg;*.jpeg;*.png;*.webp;*.bmp)', 'All files (*.*)']);
     if (res.success && res.data) {
         document.getElementById(id).value = res.data;
         if (id === 'img-size-src') {
@@ -400,7 +400,7 @@ let cpState = {
 
 // Color Picker logic
 async function selectColorPickerFile() {
-    const res = await pywebview.api.select_file();
+    const res = await pywebview.api.select_file(['Image files (*.jpg;*.jpeg;*.png;*.webp;*.bmp)', 'All files (*.*)']);
     if (res.success && res.data) {
         document.getElementById('img-color-src').value = res.data;
         const fileRes = await pywebview.api.image_to_base64_data(res.data);
@@ -1013,7 +1013,7 @@ function addApiHeaderRow(key = '', value = '') {
     const list = document.getElementById('api-header-list');
     const row = document.createElement('div');
     row.className = 'input-row';
-    row.style.marginBottom = '5px';
+    row.style.marginBottom = '0px';
     row.innerHTML = `
         <input type="text" placeholder="Key" class="api-header-key" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" value="${key}" style="flex: 2;">
         <input type="text" placeholder="Value" class="api-header-val" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" value="${value}" style="flex: 4;">
@@ -1098,7 +1098,8 @@ async function sendApiRequest() {
     btn.textContent = '发送中...';
     
     try {
-        const res = await pywebview.api.request_api(url, method, JSON.stringify(headers), body);
+        const ignoreSSL = document.getElementById('api-ignore-ssl').checked;
+        const res = await pywebview.api.request_api(url, method, JSON.stringify(headers), body, ignoreSSL);
         
         // Show Response Tab
         document.getElementById('api-res-nav-btn').click();
