@@ -188,9 +188,9 @@ async function lua_format(data, options = {}) {
 
     try {
         const formatted = wasmFormat(data, mergedOptions);
-        return {"success": true, "data": formatted};
+        return { success: true, data: formatted };
     } catch (err) {
-        return {"success": false, "error": err.message};
+        return { success: false, error: err.message };
     }
 }
 
