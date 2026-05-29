@@ -33,4 +33,8 @@ if __name__ == "__main__":
         resizable=False
     )
     api.set_window(window)
+    if DEBUG_MODE:
+        webview.settings['OPEN_DEVTOOLS_IN_DEBUG'] = True
+        webview.settings['REMOTE_DEBUGGING_PORT'] = 9222
+        # webview.create_window('调试窗口', 'https://pywebview.flowrl.com/hello')
     webview.start(debug=DEBUG_MODE)

@@ -32,7 +32,7 @@ function hideAlert() {
 
 // Helper Functions
 async function selectFile(id, fileTypes = null) {
-    const res = await pywebview.api.select_file(['Image files (*.jpg;*.jpeg;*.png;*.webp;*.bmp)', 'All files (*.*)']);
+    const res = await pywebview.api.select_file(['Image files (*.jpg;*.jpeg;*.png;*.webp;*.bmp;*.ico;*.heic;*.heif;*.tiff;*.tif;*.gif)', 'All files (*.*)']);
     if (res.success && res.data) {
         document.getElementById(id).value = res.data;
         if (id === 'img-size-src') {
@@ -138,6 +138,62 @@ function clearEncode() {
     document.getElementById('encode-output').value = '';
 }
 
+// 使用动态导入
+let wasmReady = null;      // 存储初始化 Promise
+let wasmFormat = null;     // 存储格式化函数
+
+/**
+ * 加载 WASM 模块（只执行一次）
+ *
+ * lua_fmt 源码是用 npm install @wasm-fmt/lua_fmt 下载后复制过来的
+ *
+ * @returns {Promise<void>}
+ */
+async function loadWasm() {
+    if (wasmReady) return wasmReady;
+
+    // 动态导入：返回 Promise，不会阻塞顶层
+    wasmReady = (async () => {
+        try {
+            // 动态导入 JS 包装器
+            const module = await import('./lua_fmt/lua_fmt_web.js');
+            const initAsync = module.default;
+            wasmFormat = module.format;
+
+            // 直接使用相对路径（相对于当前 HTML 文件）
+            // 假设 lua_fmt_bg.wasm 与 lua_fmt_web.js 在同一目录下
+            const wasmUrl = './js/lua_fmt/lua_fmt_bg.wasm';
+            await initAsync(wasmUrl);
+        } catch (err) {
+            console.error('load WASM model fail:', err);
+            throw new Error(`load WASM model fail: ${err.message}`);
+        }
+    })();
+
+    return wasmReady;
+}
+
+async function lua_format(data, options = {}) {
+    // 等待 WASM 模块加载完成
+    await loadWasm();
+
+    // 默认配置（可根据需要调整）
+    const defaultOptions = {
+        column_width: 120,
+        indent_width: 4,
+        use_tabs: false,
+    };
+
+    const mergedOptions = { ...defaultOptions, ...options };
+
+    try {
+        const formatted = wasmFormat(data, mergedOptions);
+        return {"success": true, "data": formatted};
+    } catch (err) {
+        return {"success": false, "error": err.message};
+    }
+}
+
 // Format Tools
 async function formatData(type) {
     const isFileMode = document.querySelector('[data-sub="format-file"]').classList.contains('active');
@@ -147,7 +203,11 @@ async function formatData(type) {
     }
     const data = document.getElementById('format-input').value;
     if (!data) return;
-    const res = await pywebview.api.format_data(data, type);
+
+    const res = type === "lua_format"
+        ? await lua_format(data)
+        : await pywebview.api.format_data(data, type);
+
     if (res.success) {
         document.getElementById('format-output').value = res.data;
     } else {
@@ -400,7 +460,7 @@ let cpState = {
 
 // Color Picker logic
 async function selectColorPickerFile() {
-    const res = await pywebview.api.select_file(['Image files (*.jpg;*.jpeg;*.png;*.webp;*.bmp)', 'All files (*.*)']);
+    const res = await pywebview.api.select_file(['Image files (*.jpg;*.jpeg;*.png;*.webp;*.bmp;*.ico;*.heic;*.heif;*.tiff;*.tif;*.gif)', 'All files (*.*)']);
     if (res.success && res.data) {
         document.getElementById('img-color-src').value = res.data;
         const fileRes = await pywebview.api.image_to_base64_data(res.data);

@@ -24,14 +24,19 @@ from bs4 import BeautifulSoup, formatter
 import webview
 
 class Api:
-    def __init__(self, isDebug: bool = False):
+    def __init__(self, is_debug: bool=False):
         self._window = None
-        self._debug = isDebug
+        self._debug = is_debug
         self._raw_uuids = []
         self.APPLE_OFFSET = 978307200
         self.storage_dir = os.path.join(os.path.expanduser("~"), ".developer_tools")
         if not os.path.exists(self.storage_dir):
             os.makedirs(self.storage_dir)
+        try:
+            from pillow_heif import register_heif_opener
+            register_heif_opener()
+        except ImportError:
+            pass
 
     def set_window(self, window):
         self._window = window
@@ -299,6 +304,8 @@ class Api:
                 res = self._js_format(data)
             elif fmt_type == "js_compress":
                 res = self._js_compress(data)
+            elif fmt_type == "lua_compress":
+                res = self._lua_compress(data)
             else: return self._error("Unknown format type")
             return self._success(res)
         except Exception as e:
@@ -365,6 +372,17 @@ class Api:
         code = re.sub(r'\s+', ' ', code)
         # 移除操作符周围的空格 (优化)
         code = re.sub(r'\s*([{}()\[\]=+\-*/%&|^<>!?:;,])\s*', r'\1', code)
+        return code.strip()
+
+    def _lua_compress(self, code):
+        # 1. 移除多行注释 --[[ ]]
+        code = re.sub(r'--\[\[.*?\]\]', '', code, flags=re.DOTALL)
+        # 2. 移除单行注释 --
+        code = re.sub(r'--.*', '', code)
+        # 3. 压缩空白
+        code = re.sub(r'\s+', ' ', code)
+        # 4. 移除操作符周围空格
+        code = re.sub(r'\s*([{}()\[\]=+\-*/%#^<>~:;,])\s*', r'\1', code)
         return code.strip()
 
     # --- Base Conversion Tools ---
