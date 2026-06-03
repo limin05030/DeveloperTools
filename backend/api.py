@@ -336,8 +336,35 @@ class Api:
         data = re.sub(r'\s+>', '>', data)
         return data.strip()
 
+    def _protect_strings(self, data, lang='js'):
+        """Replace string literals with placeholders to protect them from transformations."""
+        if lang == 'js':
+            pattern = r'"(?:\\.|[^"\\])*"|\'(?:\\.|[^\'\\])*\'|`(?:\\.|[^`\\])*`'
+        elif lang == 'css':
+            pattern = r'"(?:\\.|[^"\\])*"|\'(?:\\.|[^\'\\])*\''
+        elif lang == 'lua':
+            pattern = r'"(?:\\.|[^"\\])*"|\'(?:\\.|[^\'\\])*\'|\[(=*)\[.*?\]\1\]'
+        else:
+            return data, []
+
+        strings = []
+        def _replace(m):
+            strings.append(m.group(0))
+            return f'\x00PROT{len(strings) - 1}\x00'
+
+        protected = re.sub(pattern, _replace, data, flags=re.DOTALL)
+        return protected, strings
+
+    def _restore_strings(self, data, strings):
+        """Restore string literals from placeholders."""
+        for i, s in enumerate(strings):
+            data = data.replace(f'\x00PROT{i}\x00', s)
+        return data
+
     def _css_format(self, data):
         # 简单实现：每个规则换行，大括号缩进
+        # 先保护字符串，防止其中的 { } ; , 被误替换
+        data, strings = self._protect_strings(data, 'css')
         d = data.replace('{', ' {\n').replace('}', '\n}\n').replace(';', ';\n').replace(',', ', ')
         lines = d.split('\n')
         indent, formatted = 0, []
@@ -348,18 +375,23 @@ class Api:
             formatted.append("    " * max(0, indent) + line)
             if line.endswith('{'): indent += 1
             if line == '}': formatted.append("") # 规则间增加空行
-        return '\n'.join(formatted).strip()
+        result = '\n'.join(formatted).strip()
+        return self._restore_strings(result, strings)
 
     def _css_compress(self, data):
+        # 先保护字符串，防止其中的注释标记被误删
+        data, strings = self._protect_strings(data, 'css')
         # 移除注释
         data = re.sub(r'/\*.*?\*/', '', data, flags=re.DOTALL)
         # 移除换行和多余空格
         data = re.sub(r'\s+', ' ', data)
         # 移除符号周围的空格
         data = re.sub(r'\s*([{:;,])\s*', r'\1', data)
-        return data.strip()
+        return self._restore_strings(data.strip(), strings)
 
     def _js_format(self, code):
+        # 先保护字符串，防止其中的 { } ; 被误替换
+        code, strings = self._protect_strings(code, 'js')
         c = code.replace('{', ' {\n').replace('}', '\n}\n').replace(';', ';\n')
         c = re.sub(r'\n\s*\n', '\n', c)
         lines = c.split('\n')
@@ -370,9 +402,12 @@ class Api:
             if line.startswith('}'): indent -= 1
             formatted.append("    " * max(0, indent) + line)
             if line.endswith('{'): indent += 1
-        return '\n'.join(formatted)
+        result = '\n'.join(formatted)
+        return self._restore_strings(result, strings)
 
     def _js_compress(self, code):
+        # 先保护字符串，防止其中的 // 和 /* */ 被误删
+        code, strings = self._protect_strings(code, 'js')
         # 移除单行注释
         code = re.sub(r'//.*', '', code)
         # 移除多行注释
@@ -381,9 +416,11 @@ class Api:
         code = re.sub(r'\s+', ' ', code)
         # 移除操作符周围的空格 (优化)
         code = re.sub(r'\s*([{}()\[\]=+\-*/%&|^<>!?:;,])\s*', r'\1', code)
-        return code.strip()
+        return self._restore_strings(code.strip(), strings)
 
     def _lua_compress(self, code):
+        # 先保护字符串，防止其中的 -- 被误删
+        code, strings = self._protect_strings(code, 'lua')
         # 1. 移除多行注释 --[[ ]]
         code = re.sub(r'--\[\[.*?\]\]', '', code, flags=re.DOTALL)
         # 2. 移除单行注释 --
@@ -392,7 +429,7 @@ class Api:
         code = re.sub(r'\s+', ' ', code)
         # 4. 移除操作符周围空格
         code = re.sub(r'\s*([{}()\[\]=+\-*/%#^<>~:;,])\s*', r'\1', code)
-        return code.strip()
+        return self._restore_strings(code.strip(), strings)
 
     # --- Base Conversion Tools ---
     def convert_base(self, data, from_base, to_base):
@@ -419,7 +456,7 @@ class Api:
             
             return self._success(res)
         except Exception as e:
-            return self._error(f"转换失败: 请检查输入数值是否符合 {from_base} 进制规则")
+            return self._error(f"转换失败: {str(e)}")
 
     def _int_to_base(self, n, base):
         digits = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
@@ -746,12 +783,13 @@ class Api:
         except Exception as e:
             return self._error(e)
 
-    def image_to_base64_save(self, src): 
-        try: 
-            with open(src, "rb") as f: 
-                b64 = base64.b64encode(f.read()).decode() 
-                ext = os.path.splitext(src)[1][1:] 
-                data = f"data:image/{ext};base64,{b64}" 
+    def image_to_base64_save(self, src):
+        try:
+            with open(src, "rb") as f:
+                b64 = base64.b64encode(f.read()).decode()
+                ext = os.path.splitext(src)[1][1:].lower()
+                if ext == 'jpg': ext = 'jpeg'
+                data = f"data:image/{ext};base64,{b64}"
             save_path = self.save_file("image_base64.txt", [("Text", "*.txt")]) 
             if not save_path: return self._error("Cancelled or failed")
             with open(save_path, "w") as f: 
@@ -863,7 +901,7 @@ class Api:
                 if is_form:
                     # 对表单内容进行 URL 编码，保留结构字符 = 和 &
                     import urllib.parse
-                    body = urllib.parse.quote(body, safe='=&')
+                    body = urllib.parse.quote_plus(body, safe='=&')
                 
                 data = body.encode('utf-8')
             else:

@@ -398,13 +398,11 @@ function renderPermissions(platform, data) {
             tdName.style.fontWeight = 'bold';
             tdName.classList.add('truncate');
             tdName.dataset.tooltip = item.name;
-            tdName.classList.add('truncate');
-            tdName.dataset.tooltip = item.name;
-            
+
             const tdAdded = document.createElement('td');
             tdAdded.textContent = item.added || '-';
             tdAdded.classList.add('text-center');
-            
+
             const tdDeprecated = document.createElement('td');
             tdDeprecated.textContent = item.deprecated || '-';
             tdDeprecated.classList.add('text-center');
