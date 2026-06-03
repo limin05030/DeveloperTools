@@ -203,6 +203,11 @@ class Api:
             self._log(f"Error in select_file: {str(e)}")
             return self._error(e)
 
+    def save_file_api(self, filename, patterns):
+        res = self.save_file(filename, patterns)
+        if res: return self._success(res)
+        return self._error('Cancelled')
+
     def save_file(self, filename, patterns):
         formats_to_try = []
         ft1 = []
@@ -263,7 +268,11 @@ class Api:
     def encode_decode(self, data, action):
         try:
             if action == "b64_encode": res = base64.b64encode(data.encode()).decode()
-            elif action == "b64_decode": res = base64.b64decode(data.encode()).decode()
+            elif action == "b64_decode":
+                try:
+                    res = base64.b64decode(data.encode()).decode()
+                except Exception:
+                    return self._error("无效的 Base64 编码字符串或非文本内容")
             elif action == "url_encode": res = urllib.parse.quote(data, safe='/:?=&')
             elif action == "url_decode": res = urllib.parse.unquote(data)
             elif action == "utf8_encode": res = "".join([f"\\x{b:02x}" for b in data.encode('utf-8')])
@@ -520,6 +529,13 @@ class Api:
         except Exception as e: 
             return self._error(e) 
 
+    def read_file_content_api(self, path):
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                return self._success(f.read())
+        except Exception as e:
+            return self._error(e)
+
     def read_text_file(self): 
         res = self.select_file() 
         if not res["success"]: return res
@@ -540,11 +556,11 @@ class Api:
         except Exception as e:
             return self._error(e)
 
-    def image_convert(self, src, fmt):
+    def image_convert(self, src, fmt, save_path=None):
         try:
             target_fmt = fmt.upper()
             ext = "jpg" if target_fmt == "JPEG" else target_fmt.lower()
-            save_path = self.save_file(f"converted.{ext}", [("Image", f"*.{ext}")])
+            if not save_path: save_path = self.save_file(f"converted.{ext}", [("Image", f"*.{ext}")])
             if not save_path: return self._error("Cancelled or failed")
 
             if target_fmt == "SVG":
@@ -661,11 +677,11 @@ class Api:
             import traceback
             return self._error(f"矢量化失败: {str(e)}\n{traceback.format_exc()}")
 
-    def image_compress(self, src, quality):
+    def image_compress(self, src, quality, save_path=None):
         try:
             ext_orig = os.path.splitext(src)[1].lower()
             ext = "jpg" if ext_orig in [".jpg", ".jpeg"] else ext_orig.replace(".", "")
-            save_path = self.save_file(f"compressed.{ext}", [("Image", f"*.{ext}")])
+            if not save_path: save_path = self.save_file(f"compressed.{ext}", [("Image", f"*.{ext}")])
             if not save_path: return self._error("Cancelled or failed")
             with Image.open(src) as img:
                 if "png" in ext.lower():
@@ -680,10 +696,10 @@ class Api:
         except Exception as e:
             return self._error(e)
 
-    def image_resize_crop(self, src, tw, th, mode):
+    def image_resize_crop(self, src, tw, th, mode, save_path=None):
         try:
             ext = os.path.splitext(src)[1].lower().replace(".", "")
-            save_path = self.save_file(f"processed.{ext}", [("Image", f"*.{ext}")])
+            if not save_path: save_path = self.save_file(f"processed.{ext}", [("Image", f"*.{ext}")])
             if not save_path: return self._error("Cancelled or failed")
             with Image.open(src) as img:
                 w, h = img.size
@@ -703,9 +719,9 @@ class Api:
         except Exception as e:
             return self._error(e)
 
-    def image_radius(self, src, radii):
+    def image_radius(self, src, radii, save_path=None):
         try:
-            save_path = self.save_file("rounded.png", [("PNG", "*.png")])
+            if not save_path: save_path = self.save_file("rounded.png", [("PNG", "*.png")])
             if not save_path: return self._error("Cancelled or failed")
             tl, tr, bl, br = [int(r) for r in radii]
             with Image.open(src) as img:
@@ -759,20 +775,37 @@ class Api:
     def base64_to_image(self, b64_data):
         try:
             if b64_data.startswith("data:image/"):
-                header, data = b64_data.split(",", 1)
-                mime = header.split(";")[0].split("/")[1]
-                img_format = mime.lower().replace("jpeg", "jpg")
+                try:
+                    header, data = b64_data.split(",", 1)
+                    mime = header.split(";")[0].split("/")[1]
+                    img_format = mime.lower().replace("jpeg", "jpg")
+                except:
+                    return self._error("Base64 Data URI 格式错误")
             else:
                 data = b64_data
                 img_format = "png"
-            img_data = base64.b64decode(data)
+            
+            try:
+                img_data = base64.b64decode(data)
+            except:
+                return self._error("无效的 Base64 编码字符串")
+
+            if not img_data:
+                return self._error("解码后的数据为空")
+
+            try:
+                with Image.open(BytesIO(img_data)) as img:
+                    img.verify()
+            except:
+                return self._error("Base64 数据内容不是有效的图片格式")
+
             save_path = self.save_file(f"restored.{img_format}", [("Image", f"*.{img_format}")])
             if not save_path: return self._error("Cancelled or failed")
             with open(save_path, "wb") as f:
                 f.write(img_data)
             return self._success("Success")
         except Exception as e:
-            return self._error(e)
+            return self._error(f"还原失败: {str(e)}")
     def _get_translation_cache(self):
         path = os.path.join(self.storage_dir, "android_perms_zh_cache.json")
         if os.path.exists(path):

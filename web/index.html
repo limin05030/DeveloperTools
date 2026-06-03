@@ -309,7 +309,7 @@
                                 <option>SVG</option>
                             </select>
                         </div>
-                        <button class="primary" onclick="imgConvert()">转换</button>
+                        <button id="btn-img-conv" class="primary" onclick="imgConvert()">转换</button>
                     </div>
 
                     <!-- Compress -->
@@ -324,7 +324,7 @@
                             <input type="range" id="img-comp-quality" min="1" max="100" value="75">
                             <span id="quality-val">75</span>
                         </div>
-                        <button class="primary" onclick="imgCompress()">保存</button>
+                        <button id="btn-img-comp" class="primary" onclick="imgCompress()">保存</button>
                     </div>
 
                     <!-- Size -->
@@ -349,7 +349,7 @@
                             <label for="img-height">高:</label><input type="number" id="img-height" min="1">
                             <label class="checkbox-label"><input type="checkbox" id="img-ratio" checked> 保持比例</label>
                         </div>
-                        <button class="primary" onclick="imgSize()">保存</button>
+                        <button id="btn-img-size" class="primary" onclick="imgSize()">保存</button>
                     </div>
 
                     <!-- Radius -->
@@ -372,7 +372,7 @@
                                 <label for="rad-br">右下:</label><input type="number" id="rad-br" value="0" min="0" disabled>
                             </div>
                         </div>
-                        <button class="primary" onclick="imgRadius()">保存</button>
+                        <button id="btn-img-radius" class="primary" onclick="imgRadius()">保存</button>
                     </div>
 
                     <!-- Color Picker -->
@@ -426,8 +426,8 @@
                             <textarea id="b64-input" placeholder="输入 Base64 字符串..."></textarea>
                         </div>
                         <div class="btn-group">
-                            <button onclick="loadBase64File()">从文件读取</button>
-                            <button class="primary" onclick="base64ToImg()">还原</button>
+                            <button id="btn-load-b64" onclick="loadBase64File()">从文件读取</button>
+                            <button id="btn-b64-to-img" class="primary" onclick="base64ToImg()">还原</button>
                         </div>
                 </div>
                 </div>

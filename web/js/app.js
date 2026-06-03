@@ -49,11 +49,31 @@ async function selectFile(id, fileTypes = null) {
 }
 
 async function loadBase64File() {
-    const res = await pywebview.api.read_text_file();
-    if (res.success) {
-        document.getElementById('b64-input').value = res.data;
-    } else if (!res.success && res.error !== 'Cancelled') {
-        showAlert(res.error);
+    // 1. 先选择文件（不触发禁用状态）
+    const selRes = await pywebview.api.select_file(['Text files (*.txt)', 'All files (*.*)']);
+    if (!selRes.success) {
+        if (selRes.error !== 'Cancelled') showAlert(selRes.error);
+        return;
+    }
+    const filePath = selRes.data;
+
+    // 2. 选择返回后，设置按钮为读取中并禁用
+    const btn = document.getElementById('btn-load-b64');
+    const originalText = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = '读取中...';
+    
+    try {
+        // 3. 执行实际的读取操作
+        const res = await pywebview.api.read_file_content_api(filePath);
+        if (res.success) {
+            document.getElementById('b64-input').value = res.data;
+        } else {
+            showAlert(res.error);
+        }
+    } finally {
+        btn.disabled = false;
+        btn.textContent = originalText;
     }
 }
 
@@ -166,8 +186,8 @@ async function loadWasm() {
             await initAsync(wasmUrl);
         } catch (err) {
             console.error('load WASM model fail:', err);
-            throw new Error(`load WASM model fail: ${err.message}`);
-        }
+            throw new Error(`load WASM model fail: ${err.message || String(err)}`);
+         }
     })();
 
     return wasmReady;
@@ -190,8 +210,12 @@ async function lua_format(data, options = {}) {
         const formatted = wasmFormat(data, mergedOptions);
         return { success: true, data: formatted };
     } catch (err) {
-        return { success: false, error: err.message };
-    }
+        let msg = err.message;
+        if (msg == null || msg === "") {
+            msg = "格式化失败，请检查 Lua 代码是否正确。";
+        }
+        return { success: false, error: msg };
+     }
 }
 
 // Format Tools
@@ -606,19 +630,52 @@ async function imgConvert() {
         return;
     }
 
-    const res = await pywebview.api.image_convert(src, fmt);
-    if (res.success) showToast('转换成功');
-    else if (res.error !== 'Cancelled or failed') showAlert(res.error);
+    const saveExt = targetFmt === 'jpeg' ? 'jpg' : targetFmt;
+    const saveRes = await pywebview.api.save_file_api('converted.' + saveExt, [['Image', '*.' + saveExt]]);
+    if (!saveRes.success) return;
+    const savePath = saveRes.data;
+
+    const btn = document.getElementById('btn-img-conv');
+    const originalText = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = '转换中...';
+
+    try {
+        const res = await pywebview.api.image_convert(src, fmt, savePath);
+        if (res.success) showToast('转换成功');
+        else if (res.error !== 'Cancelled or failed') showAlert(res.error);
+    } finally {
+        btn.disabled = false;
+        btn.textContent = originalText;
+    }
 }
 
 async function imgCompress() {
     const src = document.getElementById('img-comp-src').value;
     const quality = parseInt(document.getElementById('img-comp-quality').value);
     if (!src) { showAlert('请先选择图片'); return; }
-    const res = await pywebview.api.image_compress(src, quality);
-    if (res.success) showToast('压缩成功');
-    else if (res.error !== 'Cancelled or failed') showAlert(res.error);
+
+    const extOrig = src.split('.').pop().toLowerCase();
+    const ext = (extOrig === 'jpg' || extOrig === 'jpeg') ? 'jpg' : extOrig;
+    const saveRes = await pywebview.api.save_file_api('compressed.' + ext, [['Image', '*.' + ext]]);
+    if (!saveRes.success) return;
+    const savePath = saveRes.data;
+
+    const btn = document.getElementById('btn-img-comp');
+    const originalText = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = '保存中...';
+
+    try {
+        const res = await pywebview.api.image_compress(src, quality, savePath);
+        if (res.success) showToast('压缩成功');
+        else if (res.error !== 'Cancelled or failed') showAlert(res.error);
+    } finally {
+        btn.disabled = false;
+        btn.textContent = originalText;
+    }
 }
+
 
 document.getElementById('img-comp-quality')?.addEventListener('input', (e) => {
     document.getElementById('quality-val').textContent = e.target.value;
@@ -627,49 +684,44 @@ document.getElementById('img-comp-quality')?.addEventListener('input', (e) => {
 function onWidthChange() {
     if (window.__resetting) return;
     const ratioCheck = document.getElementById('img-ratio');
-    if (!ratioCheck.checked || currentAspectRatio === 0) return;
+    if (!ratioCheck || !ratioCheck.checked || currentAspectRatio === 0) return;
     const widthInput = document.getElementById('img-width');
     const heightInput = document.getElementById('img-height');
     let w = parseFloat(widthInput.value);
     if (isNaN(w) || w <= 0) return;
     let newHeight = w / currentAspectRatio;
     if (!isNaN(newHeight) && isFinite(newHeight)) {
-        // 避免循环触发：临时移除高度监听
-        heightInput.removeEventListener('input', onHeightChange);
+        window.__resetting = true;
         heightInput.value = Math.round(newHeight);
-        heightInput.addEventListener('input', onHeightChange);
+        window.__resetting = false;
     }
 }
 
 function onHeightChange() {
     if (window.__resetting) return;
     const ratioCheck = document.getElementById('img-ratio');
-    if (!ratioCheck.checked || currentAspectRatio === 0) return;
+    if (!ratioCheck || !ratioCheck.checked || currentAspectRatio === 0) return;
     const widthInput = document.getElementById('img-width');
     const heightInput = document.getElementById('img-height');
     let h = parseFloat(heightInput.value);
     if (isNaN(h) || h <= 0) return;
     let newWidth = h * currentAspectRatio;
     if (!isNaN(newWidth) && isFinite(newWidth)) {
-        widthInput.removeEventListener('input', onWidthChange);
+        window.__resetting = true;
         widthInput.value = Math.round(newWidth);
-        widthInput.addEventListener('input', onWidthChange);
+        window.__resetting = false;
     }
 }
 
 document.getElementById('img-width')?.addEventListener('input', onWidthChange);
 document.getElementById('img-height')?.addEventListener('input', onHeightChange);
 
-const imaRatioCheck = document.getElementById('img-ratio')
+const imaRatioCheck = document.getElementById('img-ratio');
 if (imaRatioCheck) {
     imaRatioCheck.addEventListener('change', async (e) => {
         if (!imaRatioCheck.checked) return;
-
         const src = document.getElementById('img-size-src').value;
-        if (!src) {
-            return;
-        }
-
+        if (!src) return;
         const infoRes = await pywebview.api.get_image_info(src);
         if (infoRes.success) {
             window.__resetting = true;
@@ -688,19 +740,26 @@ async function imgSize() {
     const mode = document.getElementById('img-size-mode').value;
     if (!src) { showAlert('请先选择图片'); return; }
     if (isNaN(w) || isNaN(h)) { showAlert('请输入正确的尺寸'); return; }
-    if (w <= 0 || h <= 0) { showAlert('目标尺寸必须大于 0'); return; }
-    const res = await pywebview.api.image_resize_crop(src, w, h, mode);
-    if (res.success) showToast('调整成功');
-    else if (res.error !== 'Cancelled or failed') showAlert(res.error);
-}
+    if (w <= 0 || h <= 0) { showAlert('目标尺寸 must be > 0'); return; }
 
-function toggleRadiusMode() {
-    const isUnified = document.getElementById('rad-mode-unified').checked;
-    document.getElementById('rad-all').disabled = !isUnified;
-    document.getElementById('rad-tl').disabled = isUnified;
-    document.getElementById('rad-tr').disabled = isUnified;
-    document.getElementById('rad-bl').disabled = isUnified;
-    document.getElementById('rad-br').disabled = isUnified;
+    const ext = src.split('.').pop().toLowerCase();
+    const saveRes = await pywebview.api.save_file_api('processed.' + ext, [['Image', '*.' + ext]]);
+    if (!saveRes.success) return;
+    const savePath = saveRes.data;
+
+    const btn = document.getElementById('btn-img-size');
+    const originalText = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = '保存中...';
+
+    try {
+        const res = await pywebview.api.image_resize_crop(src, w, h, mode, savePath);
+        if (res.success) showToast('调整成功');
+        else if (res.error !== 'Cancelled or failed') showAlert(res.error);
+    } finally {
+        btn.disabled = false;
+        btn.textContent = originalText;
+    }
 }
 
 async function imgRadius() {
@@ -717,9 +776,24 @@ async function imgRadius() {
         showAlert('圆角值不能为负数');
         return;
     }
-    const res = await pywebview.api.image_radius(src, radii);
-    if (res.success) showToast('圆角处理成功');
-    else if (res.error !== 'Cancelled or failed') showAlert(res.error);
+
+    const saveRes = await pywebview.api.save_file_api('rounded.png', [['PNG', '*.png']]);
+    if (!saveRes.success) return;
+    const savePath = saveRes.data;
+
+    const btn = document.getElementById('btn-img-radius');
+    const originalText = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = '保存中...';
+
+    try {
+        const res = await pywebview.api.image_radius(src, radii, savePath);
+        if (res.success) showToast('圆角处理成功');
+        else if (res.error !== 'Cancelled or failed') showAlert(res.error);
+    } finally {
+        btn.disabled = false;
+        btn.textContent = originalText;
+    }
 }
 
 async function imgToBase64() {
@@ -733,9 +807,20 @@ async function imgToBase64() {
 async function base64ToImg() {
     const data = document.getElementById('b64-input').value;
     if (!data) { showAlert('请输入Base64字符串'); return; }
-    const res = await pywebview.api.base64_to_image(data);
-    if (res.success) showToast('还原成功');
-    else if (res.error !== 'Cancelled or failed') showAlert(res.error);
+    
+    const btn = document.getElementById('btn-b64-to-img');
+    const originalText = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = '还原中...';
+
+    try {
+        const res = await pywebview.api.base64_to_image(data);
+        if (res.success) showToast('还原成功');
+        else if (res.error !== 'Cancelled or failed') showAlert(res.error);
+    } finally {
+        btn.disabled = false;
+        btn.textContent = originalText;
+    }
 }
 
 // Generate Tools

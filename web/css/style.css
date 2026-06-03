@@ -196,6 +196,13 @@ button.primary:hover {
     opacity: 0.9;
 }
 
+button.primary:disabled {
+    background-color: var(--border-color);
+    color: var(--text-secondary);
+    cursor: not-allowed;
+    opacity: 0.8;
+}
+
 .btn-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
