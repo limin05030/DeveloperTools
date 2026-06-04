@@ -118,9 +118,9 @@ jobs:
           
             # CFBundleVersion (可能不存在)
             if /usr/libexec/PlistBuddy -c "Print :CFBundleVersion" "$INFO_PLIST" &>/dev/null; then
-              /usr/libexec/PlistBuddy -c "Set :CFBundleVersion 100" "$INFO_PLIST"
+              /usr/libexec/PlistBuddy -c "Set :CFBundleVersion 315" "$INFO_PLIST"
             else
-              /usr/libexec/PlistBuddy -c "Add :CFBundleVersion string 100" "$INFO_PLIST"
+              /usr/libexec/PlistBuddy -c "Add :CFBundleVersion string 315" "$INFO_PLIST"
             fi
           
             # NSHumanReadableCopyright
