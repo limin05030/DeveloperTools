@@ -17,5 +17,6 @@ soupsieve==2.8.3
 typing_extensions==4.15.0
 zhconv==1.4.3
 pywebview==5.1
+pycryptodome==3.23.0
 zxing-cpp==2.3.0
 pillow-heif>=0.16.0

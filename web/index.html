@@ -12,6 +12,7 @@
             <div class="logo">开发者工具</div>
             <nav class="nav">
                 <button class="nav-item active" data-tab="hash">哈希计算</button>
+                <button class="nav-item" data-tab="crypto">加密解密</button>
                 <button class="nav-item" data-tab="encode">编码转换</button>
                 <button class="nav-item" data-tab="base-conv">进制转换</button>
                 <button class="nav-item" data-tab="time">日期时间</button>
@@ -101,6 +102,217 @@
                 </div>
             </section>
 
+            <!-- Crypto Tab -->
+            <section id="crypto" class="tab-content">
+                <div class="card">
+                    <div class="card-header">输入</div>
+                    <div class="tab-sub-nav">
+                        <button class="sub-nav-item active" data-sub="crypto-text">文本模式</button>
+                        <button class="sub-nav-item" data-sub="crypto-file">文件模式</button>
+                    </div>
+                    <div id="crypto-text" class="sub-tab-content active">
+                        <textarea autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" id="crypto-input" aria-label="待加解密文本" placeholder="输入待加密或解密的文本..." style="min-height: 70px; height: 70px;"></textarea>
+                    </div>
+                    <div id="crypto-file" class="sub-tab-content">
+                        <div class="input-group">
+                            <input type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" id="crypto-file-path" readonly placeholder="选择文件...">
+                            <button onclick="selectCryptoFile()">浏览</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">算法与密钥</div>
+                    <div class="tab-sub-nav">
+                        <button class="sub-nav-item active" data-sub="crypto-algo-aes">AES</button>
+                        <button class="sub-nav-item" data-sub="crypto-algo-des">DES / 3DES</button>
+                        <button class="sub-nav-item" data-sub="crypto-algo-rc2">RC2</button>
+                        <button class="sub-nav-item" data-sub="crypto-algo-rc4">RC4</button>
+                        <button class="sub-nav-item" data-sub="crypto-algo-rc5">RC5</button>
+                        <button class="sub-nav-item" data-sub="crypto-algo-rc6">RC6</button>
+                        <button class="sub-nav-item" data-sub="crypto-algo-chacha20">ChaCha20</button>
+                        <button class="sub-nav-item" data-sub="crypto-algo-rabbit">Rabbit</button>
+                        <button class="sub-nav-item" data-sub="crypto-algo-xor">XOR</button>
+                    </div>
+                    <!-- AES -->
+                    <div id="crypto-algo-aes" class="sub-tab-content active">
+                        <div class="input-row">
+                            <label for="crypto-aes-variant" style="min-width: 40px;">变体:</label>
+                            <select id="crypto-aes-variant" onchange="onCryptoCfgChange()" style="width: 100px;">
+                                <option value="AES-128">AES-128</option>
+                                <option value="AES-192">AES-192</option>
+                                <option value="AES-256" selected>AES-256</option>
+                            </select>
+                            <label for="crypto-aes-mode" style="min-width: 40px; margin-left: 10px;">模式:</label>
+                            <select id="crypto-aes-mode" onchange="onCryptoCfgChange()" style="width: 90px;">
+                                <option value="CBC" selected>CBC</option>
+                                <option value="ECB">ECB</option>
+                                <option value="CFB">CFB</option>
+                                <option value="OFB">OFB</option>
+                                <option value="CTR">CTR</option>
+                                <option value="GCM">GCM</option>
+                            </select>
+                            <label for="crypto-aes-padding" style="min-width: 40px; margin-left: 10px;">填充:</label>
+                            <select id="crypto-aes-padding" onchange="onCryptoCfgChange()" style="width: 110px;">
+                                <option value="pkcs7" selected>PKCS7</option>
+                                <option value="iso7816">ISO 7816-4</option>
+                                <option value="iso10126">ISO 10126</option>
+                                <option value="x923">ANSI X.923</option>
+                                <option value="zero">Zero</option>
+                                <option value="none">None</option>
+                            </select>
+                        </div>
+                    </div>
+                    <!-- DES -->
+                    <div id="crypto-algo-des" class="sub-tab-content">
+                        <div class="input-row">
+                            <label for="crypto-des-variant" style="min-width: 40px;">变体:</label>
+                            <select id="crypto-des-variant" onchange="onCryptoCfgChange()" style="width: 100px;">
+                                <option value="DES" selected>DES</option>
+                                <option value="3DES">3DES</option>
+                            </select>
+                            <label for="crypto-des-mode" style="min-width: 40px; margin-left: 10px;">模式:</label>
+                            <select id="crypto-des-mode" onchange="onCryptoCfgChange()" style="width: 90px;">
+                                <option value="CBC" selected>CBC</option>
+                                <option value="ECB">ECB</option>
+                                <option value="CFB">CFB</option>
+                                <option value="OFB">OFB</option>
+                                <option value="CTR">CTR</option>
+                            </select>
+                            <label for="crypto-des-padding" style="min-width: 40px; margin-left: 10px;">填充:</label>
+                            <select id="crypto-des-padding" style="width: 110px;">
+                                <option value="pkcs7" selected>PKCS7</option>
+                                <option value="iso7816">ISO 7816-4</option>
+                                <option value="iso10126">ISO 10126</option>
+                                <option value="x923">ANSI X.923</option>
+                                <option value="zero">Zero</option>
+                                <option value="none">None</option>
+                            </select>
+                        </div>
+                    </div>
+                    <!-- RC2 -->
+                    <div id="crypto-algo-rc2" class="sub-tab-content">
+                        <div class="input-row">
+                            <label for="crypto-rc2-mode" style="min-width: 40px;">模式:</label>
+                            <select id="crypto-rc2-mode" onchange="onCryptoCfgChange()" style="width: 90px;">
+                                <option value="CBC" selected>CBC</option>
+                                <option value="ECB">ECB</option>
+                                <option value="CFB">CFB</option>
+                                <option value="OFB">OFB</option>
+                                <option value="CTR">CTR</option>
+                            </select>
+                            <label for="crypto-rc2-padding" style="min-width: 40px; margin-left: 10px;">填充:</label>
+                            <select id="crypto-rc2-padding" style="width: 110px;">
+                                <option value="pkcs7" selected>PKCS7</option>
+                                <option value="iso7816">ISO 7816-4</option>
+                                <option value="iso10126">ISO 10126</option>
+                                <option value="x923">ANSI X.923</option>
+                                <option value="zero">Zero</option>
+                                <option value="none">None</option>
+                            </select>
+                        </div>
+                    </div>
+                    <!-- RC4 (流密码，无模式/填充配置) -->
+                    <div id="crypto-algo-rc4" class="sub-tab-content">
+                        <p style="color: var(--text-secondary); font-size: 13px; margin: 0;">RC4 为流密码，仅需密钥，密钥长度任意（建议不少于 5 字节）</p>
+                    </div>
+                    <!-- RC5 -->
+                    <div id="crypto-algo-rc5" class="sub-tab-content">
+                        <div class="input-row">
+                            <label for="crypto-rc5-mode" style="min-width: 40px;">模式:</label>
+                            <select id="crypto-rc5-mode" onchange="onCryptoCfgChange()" style="width: 90px;">
+                                <option value="CBC" selected>CBC</option>
+                                <option value="ECB">ECB</option>
+                                <option value="CFB">CFB</option>
+                                <option value="OFB">OFB</option>
+                                <option value="CTR">CTR</option>
+                            </select>
+                            <label for="crypto-rc5-padding" style="min-width: 40px; margin-left: 10px;">填充:</label>
+                            <select id="crypto-rc5-padding" style="width: 110px;">
+                                <option value="pkcs7" selected>PKCS7</option>
+                                <option value="iso7816">ISO 7816-4</option>
+                                <option value="iso10126">ISO 10126</option>
+                                <option value="x923">ANSI X.923</option>
+                                <option value="zero">Zero</option>
+                                <option value="none">None</option>
+                            </select>
+                        </div>
+                    </div>
+                    <!-- RC6 -->
+                    <div id="crypto-algo-rc6" class="sub-tab-content">
+                        <div class="input-row">
+                            <label for="crypto-rc6-mode" style="min-width: 40px;">模式:</label>
+                            <select id="crypto-rc6-mode" onchange="onCryptoCfgChange()" style="width: 90px;">
+                                <option value="CBC" selected>CBC</option>
+                                <option value="ECB">ECB</option>
+                                <option value="CFB">CFB</option>
+                                <option value="OFB">OFB</option>
+                                <option value="CTR">CTR</option>
+                            </select>
+                            <label for="crypto-rc6-padding" style="min-width: 40px; margin-left: 10px;">填充:</label>
+                            <select id="crypto-rc6-padding" style="width: 110px;">
+                                <option value="pkcs7" selected>PKCS7</option>
+                                <option value="iso7816">ISO 7816-4</option>
+                                <option value="iso10126">ISO 10126</option>
+                                <option value="x923">ANSI X.923</option>
+                                <option value="zero">Zero</option>
+                                <option value="none">None</option>
+                            </select>
+                        </div>
+                    </div>
+                    <!-- ChaCha20 / Rabbit / XOR -->
+                    <div id="crypto-algo-chacha20" class="sub-tab-content">
+                        <p style="color: var(--text-secondary); font-size: 13px; margin: 0;">ChaCha20 为流密码，需要 32 字节密钥和 8 字节 Nonce</p>
+                    </div>
+                    <div id="crypto-algo-rabbit" class="sub-tab-content">
+                        <p style="color: var(--text-secondary); font-size: 13px; margin: 0;">Rabbit 为流密码，需要 16 字节密钥和 8 字节 IV（可选）</p>
+                    </div>
+                    <div id="crypto-algo-xor" class="sub-tab-content">
+                        <p style="color: var(--text-secondary); font-size: 13px; margin: 0;">XOR 为逐字节异或，密钥长度任意，加解密结果相同</p>
+                    </div>
+                    <!-- 密钥 / IV / 格式（所有算法共享） -->
+                    <div class="input-group" style="margin-top: 10px;">
+                        <label for="crypto-key" style="min-width: 40px;">密钥:</label>
+                        <input type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" id="crypto-key" placeholder="十六进制密钥..." style="flex: 1; margin-bottom: 0;">
+                        <button onclick="cryptoGenerateKey()" title="生成随机密钥">🎲</button>
+                    </div>
+                    <div class="input-group" id="crypto-iv-group">
+                        <label for="crypto-iv" style="min-width: 40px;">IV:</label>
+                        <input type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" id="crypto-iv" placeholder="十六进制 IV / Nonce..." style="flex: 1; margin-bottom: 0;">
+                        <button onclick="cryptoGenerateIV()" title="生成随机 IV">🎲</button>
+                    </div>
+                    <div class="input-group" id="crypto-fmt-row">
+                        <label for="crypto-in-fmt" style="min-width: 80px;">输入格式（解密）:</label>
+                        <select id="crypto-in-fmt">
+                            <option value="hex">Hex</option>
+                            <option value="base64">Base64</option>
+                        </select>
+                        <label for="crypto-out-fmt" style="min-width: 80px; margin-left: 15px;">输出格式（加密）:</label>
+                        <select id="crypto-out-fmt">
+                            <option value="hex">Hex</option>
+                            <option value="base64">Base64</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">操作</div>
+                    <div class="btn-group">
+                        <button class="primary" onclick="cryptoOperation('encrypt')" style="flex: 1;">🔒 加密</button>
+                        <button class="primary" onclick="cryptoOperation('decrypt')" style="flex: 1;">🔓 解密</button>
+                    </div>
+                </div>
+
+                <div class="card" id="crypto-result-card">
+                    <div class="card-header">结果</div>
+                    <textarea autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" id="crypto-output" aria-label="加解密结果" readonly class="mono" style="min-height: 90px; height: 90px;"></textarea>
+                    <div class="btn-group">
+                        <button onclick="copyToClipboard('crypto-output')">复制结果</button>
+                        <button onclick="clearCrypto()">清空全部</button>
+                    </div>
+                </div>
+            </section>
+
             <!-- Encode Tab -->
             <section id="encode" class="tab-content">
                 <div class="card">
@@ -129,6 +341,10 @@
                     </div>
                     <div id="encode-text" class="sub-tab-content">
                         <div class="btn-grid five-cols">
+                            <button onclick="encodeDecode('utf8_to_utf16')">UTF-8 转 UTF-16</button>
+                            <button onclick="encodeDecode('utf16_to_utf8')">UTF-16 转 UTF-8</button>
+                            <button onclick="encodeDecode('utf8_to_hex')">UTF-8 转 HEX</button>
+                            <button onclick="encodeDecode('hex_to_utf8')">HEX 转 UTF-8</button>
                             <button onclick="encodeDecode('upper')">转大写</button>
                             <button onclick="encodeDecode('lower')">转小写</button>
                             <button onclick="encodeDecode('swap')">大小写互转</button>
@@ -139,7 +355,7 @@
                 </div>
                 <div class="card">
                     <div class="card-header">结果</div>
-                    <textarea autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" id="encode-output" aria-label="编码结果" readonly class="mono"></textarea>
+                    <textarea autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" id="encode-output" aria-label="编码结果" readonly class="mono" style="min-height: 100px;"></textarea>
                     <div class="btn-group">
                         <button onclick="copyToClipboard('encode-output')">复制结果</button>
                         <button onclick="clearEncode()">清理全部</button>
@@ -785,6 +1001,7 @@
                             </div>
                             <div class="tab-sub-nav">
                                 <button class="sub-nav-item active" data-sub="api-res-body-tab">响应体</button>
+                                <button class="sub-nav-item" data-sub="api-res-render-tab">渲染</button>
                                 <button class="sub-nav-item" data-sub="api-res-headers-tab">响应头</button>
                                 <button class="sub-nav-item" data-sub="api-res-req-headers-tab">请求头</button>
                             </div>
@@ -797,6 +1014,13 @@
                                 </div>
                                 <textarea id="api-res-body" aria-label="响应体内容" readonly class="mono" style="flex: 1; width: 100%; background-color: var(--bg-window); resize: none; box-sizing: border-box;"></textarea>
                             </div>
+                            <div id="api-res-render-tab" class="sub-tab-content" style="flex: 1; flex-direction: column; padding: 10px 0;">
+                                <div class="btn-group" style="margin-bottom: 10px;">
+                                    <button onclick="copyValue('api-res-body')">复制源码</button>
+                                    <button onclick="refreshRender()">刷新渲染</button>
+                                </div>
+                                <iframe id="api-res-render-frame" style="flex: 1; width: 100%; border: 1px solid var(--border-color); border-radius: 6px; background: #fff;" sandbox="allow-scripts allow-same-origin"></iframe>
+                            </div>
                             <div id="api-res-headers-tab" class="sub-tab-content" style="flex: 1; flex-direction: column; padding: 10px 0;">
                                 <textarea id="api-res-headers" aria-label="响应头内容" readonly class="mono" style="flex: 1; width: 100%; background-color: var(--bg-window); resize: none; box-sizing: border-box;"></textarea>
                             </div>
@@ -806,7 +1030,7 @@
                         </div>
                         <div id="api-error-container" style="display: none; flex-direction: column; flex: 1; padding: 20px; color: #FF3B30;">
                             <div style="font-weight: bold; font-size: 1.2rem; margin-bottom: 10px;">请求失败</div>
-                            <div id="api-error-message" style="white-space: pre-wrap; font-family: monospace;"></div>
+                            <textarea id="api-error-message" readonly class="mono" style="flex: 1; width: 100%; min-height: 80px; background-color: var(--bg-window); resize: none; color: #FF3B30; border: none; padding: 8px; cursor: text;"></textarea>
                         </div>
                         <div id="api-empty-res-hint" class="empty-hint" style="flex: 1; display: flex; align-items: center; justify-content: center;">
                             <p>尚未发送请求或正在等待响应...</p>

@@ -141,6 +141,235 @@ function clearHash() {
     document.getElementById('hash-output').value = '';
 }
 
+// Crypto Tools
+// ---- 加密解密：获取当前算法标签下的配置 ----
+function getCryptoAlgoTab() {
+    // 返回当前激活的算法子标签名称
+    const tabs = ['crypto-algo-aes', 'crypto-algo-des', 'crypto-algo-rc2',
+                  'crypto-algo-rc4', 'crypto-algo-rc5',
+                  'crypto-algo-rc6', 'crypto-algo-chacha20',
+                  'crypto-algo-rabbit', 'crypto-algo-xor'];
+    for (const id of tabs) {
+        if (document.getElementById(id).classList.contains('active')) return id;
+    }
+    return 'crypto-algo-aes';
+}
+
+function getCryptoConfig() {
+    const tab = getCryptoAlgoTab();
+    if (tab === 'crypto-algo-aes') {
+        return {
+            algorithm: document.getElementById('crypto-aes-variant').value,
+            mode: document.getElementById('crypto-aes-mode').value,
+            padding: document.getElementById('crypto-aes-padding').value,
+        };
+    }
+    if (tab === 'crypto-algo-des') {
+        return {
+            algorithm: document.getElementById('crypto-des-variant').value,
+            mode: document.getElementById('crypto-des-mode').value,
+            padding: document.getElementById('crypto-des-padding').value,
+        };
+    }
+    if (tab === 'crypto-algo-rc2') {
+        return {
+            algorithm: 'RC2',
+            mode: document.getElementById('crypto-rc2-mode').value,
+            padding: document.getElementById('crypto-rc2-padding').value,
+        };
+    }
+    if (tab === 'crypto-algo-rc5') {
+        return {
+            algorithm: 'RC5',
+            mode: document.getElementById('crypto-rc5-mode').value,
+            padding: document.getElementById('crypto-rc5-padding').value,
+        };
+    }
+    if (tab === 'crypto-algo-rc6') {
+        return {
+            algorithm: 'RC6',
+            mode: document.getElementById('crypto-rc6-mode').value,
+            padding: document.getElementById('crypto-rc6-padding').value,
+        };
+    }
+    // 流密码：无需模式和填充
+    const algoMap = {
+        'crypto-algo-rc4': 'RC4',
+        'crypto-algo-chacha20': 'ChaCha20',
+        'crypto-algo-rabbit': 'Rabbit',
+        'crypto-algo-xor': 'XOR',
+    };
+    return { algorithm: algoMap[tab] || 'RC4', mode: '', padding: 'none' };
+}
+
+function getCryptoKeyIvSizes() {
+    const cfg = getCryptoConfig();
+    const algo = cfg.algorithm;
+    if (algo.startsWith('AES-')) return { key: parseInt(algo.split('-')[1]) / 8, iv: 16 };
+    if (algo === 'DES') return { key: 8, iv: 8 };
+    if (algo === '3DES') return { key: 24, iv: 8 };
+    if (algo === 'RC2') return { key: 16, iv: 8 };
+    if (algo === 'RC5') return { key: 16, iv: 8 };
+    if (algo === 'RC6') return { key: 16, iv: 16 };
+    if (algo === 'ChaCha20') return { key: 32, iv: 8 };
+    if (algo === 'Rabbit') return { key: 16, iv: 8 };
+    // RC4, XOR: variable
+    return { key: 16, iv: 0 };
+}
+
+function onCryptoCfgChange() {
+    const cfg = getCryptoConfig();
+    const sizes = getCryptoKeyIvSizes();
+    const mode = cfg.mode;
+    const ivGroup = document.getElementById('crypto-iv-group');
+    const ivInput = document.getElementById('crypto-iv');
+    const keyInput = document.getElementById('crypto-key');
+
+    // 清空密钥和 IV
+    keyInput.value = '';
+    document.getElementById('crypto-iv').value = '';
+
+    // 密钥长度提示
+    keyInput.placeholder = `十六进制密钥 (${sizes.key} 字节 / ${sizes.key * 2} 个十六进制字符)`;
+
+    // IV 显示/隐藏
+    const needsIV = mode !== 'ECB' && sizes.iv > 0;
+    if (needsIV) {
+        ivGroup.style.display = '';
+        ivInput.placeholder = `十六进制 IV (${sizes.iv} 字节 / ${sizes.iv * 2} 个十六进制字符)`;
+    } else {
+        ivGroup.style.display = 'none';
+    }
+
+    // 流密码无模式时，隐藏 IV（RC4 不需要 IV，XOR 不需要 IV）
+    if (!mode) {
+        if (cfg.algorithm === 'RC4' || cfg.algorithm === 'XOR') {
+            ivGroup.style.display = 'none';
+        } else if (cfg.algorithm === 'ChaCha20') {
+            ivGroup.style.display = '';
+            ivInput.placeholder = '十六进制 Nonce (8 字节 / 16 个十六进制字符)';
+        } else if (cfg.algorithm === 'Rabbit') {
+            ivGroup.style.display = '';
+            ivInput.placeholder = '十六进制 IV (8 字节 / 16 个十六进制字符，可选)';
+        }
+    }
+
+    // 填充选择：流模式 CTR 自动用 None 并禁用
+    const algoTab = getCryptoAlgoTab();
+    let paddingId;
+    if (algoTab === 'crypto-algo-aes') paddingId = 'crypto-aes-padding';
+    else if (algoTab === 'crypto-algo-des') paddingId = 'crypto-des-padding';
+    else if (algoTab === 'crypto-algo-rc2') paddingId = 'crypto-rc2-padding';
+    else if (algoTab === 'crypto-algo-rc5') paddingId = 'crypto-rc5-padding';
+    else if (algoTab === 'crypto-algo-rc6') paddingId = 'crypto-rc6-padding';
+    else paddingId = null;
+    const paddingSelect = document.getElementById(paddingId);
+    if (paddingSelect) {
+        if (['CTR', 'GCM'].includes(mode)) {
+            paddingSelect.value = 'none';
+            paddingSelect.disabled = true;
+            paddingSelect.style.opacity = '0.4';
+        } else {
+            paddingSelect.disabled = false;
+            paddingSelect.style.opacity = '';
+            if (paddingSelect.value === 'none') paddingSelect.value = 'pkcs7';
+        }
+    }
+
+    updateCryptoFileModeUI();
+}
+
+function updateCryptoAlgoTabUI() {
+    // 算法子标签切换时：清空密钥和 IV，更新提示
+    document.getElementById('crypto-key').value = '';
+    document.getElementById('crypto-iv').value = '';
+    onCryptoCfgChange();
+}
+
+function updateCryptoFileModeUI() {
+    const isFileMode = document.querySelector('[data-sub="crypto-file"]').classList.contains('active');
+    document.getElementById('crypto-fmt-row').style.display = isFileMode ? 'none' : '';
+    document.getElementById('crypto-result-card').style.display = isFileMode ? 'none' : '';
+}
+
+async function selectCryptoFile() {
+    const res = await pywebview.api.select_file(['All files (*.*)']);
+    if (res.success && res.data) {
+        document.getElementById('crypto-file-path').value = res.data;
+    } else if (!res.success && res.error !== 'Cancelled') {
+        showAlert(res.error);
+    }
+}
+
+async function cryptoOperation(action) {
+    const cfg = getCryptoConfig();
+    const isFileMode = document.querySelector('[data-sub="crypto-file"]').classList.contains('active');
+    const key = document.getElementById('crypto-key').value.trim();
+    const iv = document.getElementById('crypto-iv').value.trim();
+    const algo = cfg.algorithm;
+    const mode = cfg.mode;
+    const padding = cfg.padding;
+
+    if (!key) { showAlert('请输入密钥'); return; }
+    if (mode && mode !== 'ECB' && !iv) { showAlert('当前模式需要填写 IV'); return; }
+    // 流密码 ChaCha20 需要 nonce
+    if (!mode && algo === 'ChaCha20' && !iv) { showAlert('ChaCha20 需要填写 Nonce'); return; }
+
+    if (isFileMode) {
+        const filePath = document.getElementById('crypto-file-path').value;
+        if (!filePath) { showAlert('请先选择文件'); return; }
+        const res = await pywebview.api.crypto_file(filePath, algo, mode, key, iv, action, padding);
+        if (res.success) {
+            showToast('文件保存成功');
+        } else if (res.error !== '已取消') {
+            showAlert(res.error);
+        }
+        return;
+    }
+
+    const data = document.getElementById('crypto-input').value;
+    if (!data) { showAlert('请输入文本'); return; }
+
+    const inFmt = document.getElementById('crypto-in-fmt').value;
+    const outFmt = document.getElementById('crypto-out-fmt').value;
+    const res = await pywebview.api.crypto_symmetric(data, algo, mode, key, iv, action, inFmt, outFmt, padding);
+    if (res.success) {
+        document.getElementById('crypto-output').value = res.data;
+    } else {
+        showAlert(res.error);
+    }
+}
+
+async function cryptoGenerateKey() {
+    const size = getCryptoKeyIvSizes().key;
+    const res = await pywebview.api.crypto_generate_bytes(size);
+    if (res.success) {
+        document.getElementById('crypto-key').value = res.data;
+    } else {
+        showAlert(res.error);
+    }
+}
+
+async function cryptoGenerateIV() {
+    const sizes = getCryptoKeyIvSizes();
+    let size = sizes.iv;
+    if (size === 0) size = 8;  // fallback
+    const res = await pywebview.api.crypto_generate_bytes(size);
+    if (res.success) {
+        document.getElementById('crypto-iv').value = res.data;
+    } else {
+        showAlert(res.error);
+    }
+}
+
+function clearCrypto() {
+    document.getElementById('crypto-input').value = '';
+    document.getElementById('crypto-file-path').value = '';
+    document.getElementById('crypto-key').value = '';
+    document.getElementById('crypto-iv').value = '';
+    document.getElementById('crypto-output').value = '';
+}
+
 // Encode Tools
 async function encodeDecode(action) {
     const data = document.getElementById('encode-input').value;
@@ -965,7 +1194,18 @@ window.addEventListener('pywebviewready', () => {
     initQRCharCount();
     addApiHeaderRow("User-Agent", "Mozilla/5.0 (DeveloperTools)");
     loadLocalPermissions();
-    
+
+    // 加密解密：文件/文本模式切换时联动显示/隐藏格式行和结果卡
+    document.querySelectorAll('.sub-nav-item[data-sub="crypto-text"], .sub-nav-item[data-sub="crypto-file"]').forEach(btn => {
+        btn.addEventListener('click', () => setTimeout(updateCryptoFileModeUI, 0));
+    });
+    updateCryptoFileModeUI();
+
+    // 加密解密：算法子标签切换时更新 UI
+    document.querySelectorAll('.sub-nav-item[data-sub^="crypto-algo-"]').forEach(btn => {
+        btn.addEventListener('click', () => setTimeout(updateCryptoAlgoTabUI, 0));
+    });
+
     // Special handler for API Main Tabs (Request/Response)
     document.querySelectorAll('.sub-nav-item[data-sub^="api-"]').forEach(btn => {
         if (btn.id === 'api-req-nav-btn' || btn.id === 'api-res-nav-btn') {
@@ -1274,7 +1514,8 @@ async function sendApiRequest() {
 
             lastRawResponse = data.body;
             bodyEl.value = data.body;
-            
+            refreshRender();
+
             let headText = '';
             for (const [k, v] of Object.entries(data.headers)) {
                 headText += k + ': ' + v + '\n';
@@ -1293,7 +1534,7 @@ async function sendApiRequest() {
             // Network error (status -1)
             resContainer.style.display = 'none';
             errContainer.style.display = 'flex';
-            errMsgEl.textContent = res.error;
+            errMsgEl.value = res.error;
             
             statusEl.textContent = '-1';
         }
@@ -1302,7 +1543,7 @@ async function sendApiRequest() {
         document.getElementById('api-res-nav-btn').click();
         document.getElementById('api-response-container').style.display = 'none';
         document.getElementById('api-error-container').style.display = 'flex';
-        document.getElementById('api-error-message').textContent = '异常: ' + e;
+        document.getElementById('api-error-message').value = '异常: ' + e;
     } finally {
         btn.disabled = false;
         btn.textContent = '发送请求';
@@ -1329,5 +1570,13 @@ async function formatApiResponse(type) {
         }
     } catch (e) {
         showToast('格式化异常: ' + e.message);
+    }
+}
+
+function refreshRender() {
+    const html = document.getElementById('api-res-body').value;
+    const frame = document.getElementById('api-res-render-frame');
+    if (frame) {
+        frame.srcdoc = html;
     }
 }

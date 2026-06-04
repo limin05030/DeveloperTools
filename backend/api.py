@@ -264,6 +264,611 @@ class Api:
         except Exception as e:
             return self._error(e)
 
+    # --- Crypto Tools ---
+
+    # ---- RC5 分组密码实现 (RC5-32/12/16) ----
+    class _RC5Cipher:
+        """RC5-32/12/16 分组密码：32位字、12轮、8字节块"""
+        BLOCK_SIZE = 8
+        ROUNDS = 12
+        W = 32
+        P = 0xB7E15163
+        Q = 0x9E3779B9
+
+        def __init__(self, key):
+            U32 = lambda v: v & 0xFFFFFFFF
+            ROTL = lambda v, n: U32((v << (n % 32)) | (v >> (32 - (n % 32))))
+            ROTR = lambda v, n: U32((v >> (n % 32)) | (v << (32 - (n % 32))))
+
+            # 将密钥转换为小端序 32 位字数组 L
+            key_len = len(key)
+            c = max(1, (key_len + 3) // 4)
+            L = [0] * c
+            for i in range(key_len - 1, -1, -1):
+                L[i // 4] = U32((L[i // 4] << 8) | key[i])
+
+            # 初始化 S 数组
+            t = 2 * (self.ROUNDS + 1)
+            S = [0] * t
+            S[0] = self.P
+            for i in range(1, t):
+                S[i] = U32(S[i - 1] + self.Q)
+
+            # 混合 S 和 L
+            i = j = 0
+            A = B = 0
+            for _ in range(3 * max(t, c)):
+                A = S[i] = ROTL(U32(S[i] + A + B), 3)
+                B = L[j] = ROTL(U32(L[j] + A + B), (A + B) % 32)
+                i = (i + 1) % t
+                j = (j + 1) % c
+
+            self.S = S
+            self._ROTL = ROTL
+            self._ROTR = ROTR
+            self._U32 = U32
+
+        def encrypt_block(self, block):
+            """加密一个 8 字节块，返回 8 字节"""
+            U32 = self._U32
+            ROTL = self._ROTL
+            A = int.from_bytes(block[0:4], 'little')
+            B = int.from_bytes(block[4:8], 'little')
+            S = self.S
+            A = U32(A + S[0])
+            B = U32(B + S[1])
+            for i in range(1, self.ROUNDS + 1):
+                A = U32(ROTL(A ^ B, B % 32) + S[2 * i])
+                B = U32(ROTL(B ^ A, A % 32) + S[2 * i + 1])
+            return A.to_bytes(4, 'little') + B.to_bytes(4, 'little')
+
+        def decrypt_block(self, block):
+            """解密一个 8 字节块，返回 8 字节"""
+            U32 = self._U32
+            ROTR = self._ROTR
+            A = int.from_bytes(block[0:4], 'little')
+            B = int.from_bytes(block[4:8], 'little')
+            S = self.S
+            for i in range(self.ROUNDS, 0, -1):
+                B = U32(ROTR(U32(B - S[2 * i + 1]), A % 32) ^ A)
+                A = U32(ROTR(U32(A - S[2 * i]), B % 32) ^ B)
+            B = U32(B - S[1])
+            A = U32(A - S[0])
+            return A.to_bytes(4, 'little') + B.to_bytes(4, 'little')
+
+    # ---- RC6 分组密码实现 (RC6-32/20/16) ----
+    class _RC6Cipher:
+        """RC6-32/20/16 分组密码：32位字、20轮、16字节块"""
+        BLOCK_SIZE = 16
+        ROUNDS = 20
+        W = 32
+        LG_W = 5
+        P = 0xB7E15163
+        Q = 0x9E3779B9
+
+        def __init__(self, key):
+            U32 = lambda v: v & 0xFFFFFFFF
+            ROTL = lambda v, n: U32((v << (n % 32)) | (v >> (32 - (n % 32))))
+            ROTR = lambda v, n: U32((v >> (n % 32)) | (v << (32 - (n % 32))))
+
+            # 将密钥转换为小端序 32 位字数组 L
+            key_len = len(key)
+            c = max(1, (key_len + 3) // 4)
+            L = [0] * c
+            for i in range(key_len - 1, -1, -1):
+                L[i // 4] = U32((L[i // 4] << 8) | key[i])
+
+            # 初始化 S 数组: t = 2 * (r + 2) = 44
+            t = 2 * (self.ROUNDS + 2)
+            S = [0] * t
+            S[0] = self.P
+            for i in range(1, t):
+                S[i] = U32(S[i - 1] + self.Q)
+
+            # 混合 S 和 L
+            i = j = 0
+            A = B = 0
+            for _ in range(3 * max(t, c)):
+                A = S[i] = ROTL(U32(S[i] + A + B), 3)
+                B = L[j] = ROTL(U32(L[j] + A + B), (A + B) % 32)
+                i = (i + 1) % t
+                j = (j + 1) % c
+
+            self.S = S
+            self._ROTL = ROTL
+            self._ROTR = ROTR
+            self._U32 = U32
+
+        def encrypt_block(self, block):
+            """加密一个 16 字节块，返回 16 字节"""
+            U32 = self._U32
+            ROTL = self._ROTL
+            S = self.S
+            A = int.from_bytes(block[0:4], 'little')
+            B = int.from_bytes(block[4:8], 'little')
+            C = int.from_bytes(block[8:12], 'little')
+            D = int.from_bytes(block[12:16], 'little')
+            B = U32(B + S[0])
+            D = U32(D + S[1])
+            for i in range(1, self.ROUNDS + 1):
+                t = ROTL(U32(B * (2 * B + 1)), self.LG_W)
+                u = ROTL(U32(D * (2 * D + 1)), self.LG_W)
+                A = U32(ROTL(A ^ t, u % 32) + S[2 * i])
+                C = U32(ROTL(C ^ u, t % 32) + S[2 * i + 1])
+                A, B, C, D = B, C, D, A
+            A = U32(A + S[2 * self.ROUNDS + 2])
+            C = U32(C + S[2 * self.ROUNDS + 3])
+            return A.to_bytes(4, 'little') + B.to_bytes(4, 'little') + C.to_bytes(4, 'little') + D.to_bytes(4, 'little')
+
+        def decrypt_block(self, block):
+            """解密一个 16 字节块，返回 16 字节"""
+            U32 = self._U32
+            ROTR = self._ROTR
+            ROTL = self._ROTL
+            S = self.S
+            A = int.from_bytes(block[0:4], 'little')
+            B = int.from_bytes(block[4:8], 'little')
+            C = int.from_bytes(block[8:12], 'little')
+            D = int.from_bytes(block[12:16], 'little')
+            C = U32(C - S[2 * self.ROUNDS + 3])
+            A = U32(A - S[2 * self.ROUNDS + 2])
+            for i in range(self.ROUNDS, 0, -1):
+                A, B, C, D = D, A, B, C
+                u = ROTL(U32(D * (2 * D + 1)), self.LG_W)
+                t = ROTL(U32(B * (2 * B + 1)), self.LG_W)
+                C = U32(ROTR(U32(C - S[2 * i + 1]), t % 32) ^ u)
+                A = U32(ROTR(U32(A - S[2 * i]), u % 32) ^ t)
+            D = U32(D - S[1])
+            B = U32(B - S[0])
+            return A.to_bytes(4, 'little') + B.to_bytes(4, 'little') + C.to_bytes(4, 'little') + D.to_bytes(4, 'little')
+
+    # ---- 通用分组密码模式处理器 ----
+    def _raw_block_crypt(self, data_bytes, operation, mode, encrypt_fn, decrypt_fn,
+                         block_size, key, iv, padding):
+        """为自实现的分组密码提供 ECB/CBC/CFB/OFB/CTR 模式支持"""
+        from Crypto.Util.Padding import pad, unpad
+
+        # 重用 _crypto_core 中的填充函数
+        def _crypto_pad(d, bs, style):
+            if style == 'none': return d
+            if style == 'zero':
+                n = bs - (len(d) % bs)
+                return d + b'\x00' * (n if n else bs)
+            if style == 'iso10126':
+                n = bs - (len(d) % bs)
+                return d + os.urandom((n if n else bs) - 1) + bytes([n if n else bs])
+            return pad(d, bs, style=style)
+
+        def _crypto_unpad(d, bs, style):
+            if style == 'none': return d
+            if style == 'zero': return d.rstrip(b'\x00')
+            if style == 'iso10126':
+                n = d[-1]
+                if n < 1 or n > bs:
+                    raise ValueError("无效的 ISO 10126 填充")
+                return d[:-n]
+            return unpad(d, bs, style=style)
+
+        needs_padding = mode in ('ECB', 'CBC', 'CFB', 'OFB')
+        if operation == 'encrypt' and needs_padding:
+            data_bytes = _crypto_pad(data_bytes, block_size, padding)
+
+        result = bytearray()
+
+        if mode == 'ECB':
+            for i in range(0, len(data_bytes), block_size):
+                chunk = data_bytes[i:i + block_size]
+                result.extend(encrypt_fn(chunk) if operation == 'encrypt' else decrypt_fn(chunk))
+
+        elif mode == 'CBC':
+            if not iv or len(iv) != block_size:
+                raise ValueError(f"CBC 模式需要 {block_size} 字节 IV")
+            prev = iv
+            for i in range(0, len(data_bytes), block_size):
+                chunk = data_bytes[i:i + block_size]
+                if operation == 'encrypt':
+                    xored = bytes(c ^ p for c, p in zip(chunk, prev))
+                    prev = encrypt_fn(xored)
+                    result.extend(prev)
+                else:
+                    dec = decrypt_fn(chunk)
+                    result.extend(bytes(d ^ p for d, p in zip(dec, prev)))
+                    prev = chunk
+
+        elif mode == 'CFB':
+            if not iv or len(iv) != block_size:
+                raise ValueError(f"CFB 模式需要 {block_size} 字节 IV")
+            prev = iv
+            for i in range(0, len(data_bytes), block_size):
+                chunk = data_bytes[i:i + block_size]
+                enc_prev = encrypt_fn(prev)
+                if operation == 'encrypt':
+                    prev = bytes(c ^ e for c, e in zip(chunk, enc_prev))
+                    result.extend(prev)
+                else:
+                    result.extend(bytes(c ^ e for c, e in zip(chunk, enc_prev)))
+                    prev = chunk
+
+        elif mode == 'OFB':
+            if not iv or len(iv) != block_size:
+                raise ValueError(f"OFB 模式需要 {block_size} 字节 IV")
+            prev = iv
+            for i in range(0, len(data_bytes), block_size):
+                chunk = data_bytes[i:i + block_size]
+                prev = encrypt_fn(prev)
+                result.extend(bytes(c ^ p for c, p in zip(chunk, prev)))
+
+        elif mode == 'CTR':
+            # 将 IV 拆分为 nonce 和 counter：前 block_size/2 为 nonce，后 block_size/2 为 counter
+            half = block_size // 2
+            if iv and len(iv) >= half:
+                nonce = iv[:half]
+                ctr = int.from_bytes(iv[half:], 'big')
+            else:
+                nonce = b'\x00' * half
+                ctr = 0
+            for offset in range(0, len(data_bytes), block_size):
+                ctr_block = nonce + ctr.to_bytes(block_size - half, 'big')
+                keystream = encrypt_fn(ctr_block)
+                chunk = data_bytes[offset:offset + block_size]
+                result.extend(bytes(c ^ k for c, k in zip(chunk, keystream)))
+                ctr += 1
+
+        else:
+            raise ValueError(f"不支持的模式: {mode}")
+
+        result_bytes = bytes(result)
+
+        if operation == 'decrypt' and needs_padding:
+            result_bytes = _crypto_unpad(result_bytes, block_size, padding)
+
+        return result_bytes
+
+    @staticmethod
+    def _rabbit_crypt(data, key, iv):
+        """Rabbit 流密码 (RFC 4503)，加解密相同"""
+        if len(key) != 16:
+            raise ValueError("Rabbit 密钥必须是 16 字节 (32 个十六进制字符)")
+        if iv is not None and len(iv) != 8:
+            raise ValueError("Rabbit IV 必须是 8 字节 (16 个十六进制字符)")
+
+        U32 = lambda v: v & 0xFFFFFFFF
+        ROTL = lambda v, n: U32((v << n) | (v >> (32 - n)))
+
+        class _RS:
+            def __init__(self):
+                self.x = [0] * 8
+                self.c = [0] * 8
+                self.carry = 0
+
+            def _counter(self):
+                A = [0x4D34D34D, 0xD34D34D3, 0x34D34D34, 0x4D34D34D,
+                     0xD34D34D3, 0x34D34D34, 0x4D34D34D, 0xD34D34D3]
+                for j in range(8):
+                    s = U32(self.c[j] + A[j] + self.carry)
+                    self.carry = 1 if s < self.c[j] + (1 if j == 0 else 0) else 0
+                    self.c[j] = s
+
+            def next_state(self):
+                self._counter()
+                g = [0] * 8
+                for j in range(8):
+                    s = U32(self.x[j] + self.c[j])
+                    sq = U32((s * s) ^ ((s * s) >> 32))
+                    g[j] = U32(sq ^ (sq >> 32))
+                nx = [0] * 8
+                nx[0] = U32(g[0] + ROTL(g[7], 16) + ROTL(g[6], 16))
+                nx[1] = U32(g[1] + ROTL(g[0],  8) + g[7])
+                nx[2] = U32(g[2] + ROTL(g[1], 16) + ROTL(g[0], 16))
+                nx[3] = U32(g[3] + ROTL(g[2],  8) + g[1])
+                nx[4] = U32(g[4] + ROTL(g[3], 16) + ROTL(g[2], 16))
+                nx[5] = U32(g[5] + ROTL(g[4],  8) + g[3])
+                nx[6] = U32(g[6] + ROTL(g[5], 16) + ROTL(g[4], 16))
+                nx[7] = U32(g[7] + ROTL(g[6],  8) + g[5])
+                self.x = nx
+
+            def extract(self):
+                s = [0] * 16
+                s[0]  = U32(self.x[0]) >> 16;     s[1]  = self.x[0] & 0xFFFF
+                s[2]  = self.x[1] >> 16;           s[3]  = self.x[1] & 0xFFFF
+                s[4]  = self.x[2] >> 16;           s[5]  = self.x[2] & 0xFFFF
+                s[6]  = self.x[3] >> 16;           s[7]  = self.x[3] & 0xFFFF
+                s[8]  = U32(self.x[4]) >> 16;      s[9]  = self.x[4] & 0xFFFF
+                s[10] = self.x[5] >> 16;           s[11] = self.x[5] & 0xFFFF
+                s[12] = self.x[6] >> 16;           s[13] = self.x[6] & 0xFFFF
+                s[14] = self.x[7] >> 16;           s[15] = self.x[7] & 0xFFFF
+                s[0]  ^= self.x[4] >> 16;          s[1]  ^= self.x[4] & 0xFFFF
+                s[2]  ^= self.x[5] >> 16;          s[3]  ^= self.x[5] & 0xFFFF
+                s[4]  ^= self.x[6] >> 16;          s[5]  ^= self.x[6] & 0xFFFF
+                s[6]  ^= self.x[7] >> 16;          s[7]  ^= self.x[7] & 0xFFFF
+                s[8]  ^= self.x[0] >> 16;          s[9]  ^= self.x[0] & 0xFFFF
+                s[10] ^= self.x[1] >> 16;          s[11] ^= self.x[1] & 0xFFFF
+                s[12] ^= self.x[2] >> 16;          s[13] ^= self.x[2] & 0xFFFF
+                s[14] ^= self.x[3] >> 16;          s[15] ^= self.x[3] & 0xFFFF
+                return bytes([b & 0xFF for v in s for b in [v & 0xFF, (v >> 8) & 0xFF]])
+
+        # ---- Key Setup Scheme ----
+        st = _RS()
+        kw = lambda i: U32((key[(i * 2 + 1) % 16] << 8) | key[(i * 2) % 16])
+        k = [kw(i) for i in range(8)]
+        st.x = [
+            U32(k[0] | (k[3] << 16)), U32(k[5] | (k[2] << 16)),
+            U32(k[4] | (k[7] << 16)), U32(k[1] | (k[6] << 16)),
+            U32(k[6] | (k[1] << 16)), U32(k[3] | (k[0] << 16)),
+            U32(k[2] | (k[5] << 16)), U32(k[7] | (k[4] << 16)),
+        ]
+        st.c = [
+            ROTL(k[4], 16), U32(k[1] | (k[6] << 16)),
+            ROTL(k[5], 16), U32(k[3] | (k[0] << 16)),
+            ROTL(k[2], 16), U32(k[7] | (k[4] << 16)),
+            ROTL(k[7], 16), U32(k[5] | (k[2] << 16)),
+        ]
+
+        # ---- IV Setup Scheme ----
+        if iv:
+            i0 = int.from_bytes(iv[0:4], 'little')
+            i1 = int.from_bytes(iv[4:8], 'little')
+            st.c[0] ^= i0; st.c[1] ^= i1
+            st.c[2] ^= U32((i0 >> 16) | (i1 & 0xFFFF0000))
+            st.c[3] ^= U32((i1 << 16) | (i0 & 0xFFFF))
+            st.c[4] ^= i0; st.c[5] ^= i1
+            st.c[6] ^= U32((i0 >> 16) | (i1 & 0xFFFF0000))
+            st.c[7] ^= U32((i1 << 16) | (i0 & 0xFFFF))
+            for _ in range(4):
+                st.next_state()
+
+        # ---- 生成密钥流 + XOR ----
+        result = bytearray()
+        for offset in range(0, len(data), 16):
+            st.next_state()
+            ks = st.extract()
+            chunk = data[offset:offset + 16]
+            for j in range(len(chunk)):
+                result.append(chunk[j] ^ ks[j])
+        return bytes(result)
+
+    def _crypto_core(self, data_bytes, algorithm, mode, key_hex, iv_hex, operation, padding):
+        """核心加解密逻辑：输入 bytes → 输出 bytes"""
+        from Crypto.Cipher import AES, DES, DES3, ARC2
+
+        # ---- 解析密钥 / IV ----
+        try:
+            key = bytes.fromhex(key_hex)
+        except Exception:
+            raise ValueError("密钥格式错误，请输入十六进制字符串")
+
+        iv = bytes.fromhex(iv_hex) if iv_hex else None
+
+        # ---- 流密码 (无需模式和填充) ----
+        if algorithm == 'RC4':
+            if len(key) == 0:
+                raise ValueError("RC4 需要密钥")
+            from Crypto.Cipher import ARC4
+            return ARC4.new(key).encrypt(data_bytes)
+
+        if algorithm == 'ChaCha20':
+            if len(key) != 32:
+                raise ValueError("ChaCha20 密钥必须是 32 字节 (64 个十六进制字符)")
+            from Crypto.Cipher import ChaCha20
+            nonce = iv[:8] if iv and len(iv) >= 8 else b'\x00' * 8
+            return ChaCha20.new(key=key, nonce=nonce).encrypt(data_bytes)
+
+        if algorithm == 'XOR':
+            if len(key) == 0:
+                raise ValueError("XOR 需要密钥")
+            return bytes([data_bytes[i] ^ key[i % len(key)] for i in range(len(data_bytes))])
+
+        if algorithm == 'Rabbit':
+            return self._rabbit_crypt(data_bytes, key, iv)
+
+        # ---- 自实现分组密码 (RC5 / RC6)：通过 _raw_block_crypt 处理模式 ----
+        if algorithm == 'RC5':
+            if len(key) == 0:
+                raise ValueError("RC5 需要密钥")
+            cipher = self._RC5Cipher(key)
+            return self._raw_block_crypt(
+                data_bytes, operation, mode,
+                cipher.encrypt_block, cipher.decrypt_block,
+                self._RC5Cipher.BLOCK_SIZE, key, iv, padding
+            )
+
+        if algorithm == 'RC6':
+            if len(key) == 0:
+                raise ValueError("RC6 需要密钥")
+            cipher = self._RC6Cipher(key)
+            return self._raw_block_crypt(
+                data_bytes, operation, mode,
+                cipher.encrypt_block, cipher.decrypt_block,
+                self._RC6Cipher.BLOCK_SIZE, key, iv, padding
+            )
+
+        # ---- 分组密码 (pycryptodome) ----
+        from Crypto.Util.Padding import pad, unpad
+
+        def _crypto_pad(d, bs, style):
+            if style == 'none': return d
+            if style == 'zero':
+                n = bs - (len(d) % bs)
+                return d + b'\x00' * (n if n else bs)
+            if style == 'iso10126':
+                n = bs - (len(d) % bs)
+                return d + os.urandom((n if n else bs) - 1) + bytes([n if n else bs])
+            return pad(d, bs, style=style)
+
+        def _crypto_unpad(d, bs, style):
+            if style == 'none': return d
+            if style == 'zero': return d.rstrip(b'\x00')
+            if style == 'iso10126':
+                n = d[-1]
+                if n < 1 or n > bs:
+                    raise ValueError("无效的 ISO 10126 填充")
+                return d[:-n]
+            return unpad(d, bs, style=style)
+
+        block_size = 16
+        if algorithm.startswith('AES'):
+            block_size = 16
+            expected = {'AES-128': 16, 'AES-192': 24, 'AES-256': 32}.get(algorithm, 16)
+            if len(key) != expected:
+                raise ValueError(f"{algorithm} 密钥必须是 {expected} 字节 ({expected * 2} 个十六进制字符)")
+            algo_cls = AES
+        elif algorithm == 'DES':
+            block_size = 8
+            if len(key) != 8:
+                raise ValueError("DES 密钥必须是 8 字节 (16 个十六进制字符)")
+            algo_cls = DES
+        elif algorithm == '3DES':
+            block_size = 8
+            if len(key) not in (16, 24):
+                raise ValueError("3DES 密钥必须是 16 或 24 字节")
+            algo_cls = DES3
+        elif algorithm == 'RC2':
+            block_size = 8
+            if len(key) == 0:
+                raise ValueError("RC2 需要密钥")
+            algo_cls = ARC2
+        else:
+            raise ValueError(f"不支持的算法: {algorithm}")
+
+        if mode == 'ECB':
+            cipher = algo_cls.new(key, algo_cls.MODE_ECB)
+        elif mode == 'CBC':
+            if not iv or len(iv) != block_size:
+                raise ValueError(f"CBC 模式需要 {block_size} 字节 IV")
+            cipher = algo_cls.new(key, algo_cls.MODE_CBC, iv=iv)
+        elif mode == 'CFB':
+            if not iv or len(iv) != block_size:
+                raise ValueError(f"CFB 模式需要 {block_size} 字节 IV")
+            cipher = algo_cls.new(key, algo_cls.MODE_CFB, iv=iv)
+        elif mode == 'OFB':
+            if not iv or len(iv) != block_size:
+                raise ValueError(f"OFB 模式需要 {block_size} 字节 IV")
+            cipher = algo_cls.new(key, algo_cls.MODE_OFB, iv=iv)
+        elif mode == 'CTR':
+            nl = 8 if algorithm.startswith('AES') else 4
+            nonce = iv[:nl] if iv and len(iv) >= nl else b'\x00' * nl
+            cipher = algo_cls.new(key, algo_cls.MODE_CTR, nonce=nonce)
+        elif mode == 'GCM':
+            if not algorithm.startswith('AES'):
+                raise ValueError("GCM 模式仅支持 AES")
+            nonce = iv[:12] if iv and len(iv) >= 12 else b'\x00' * 12
+            cipher = algo_cls.new(key, algo_cls.MODE_GCM, nonce=nonce)
+        else:
+            raise ValueError(f"不支持的模式: {mode}")
+
+        needs_padding = mode in ('ECB', 'CBC', 'CFB', 'OFB')
+        if operation == 'encrypt':
+            if needs_padding:
+                data_bytes = _crypto_pad(data_bytes, block_size, padding)
+            return cipher.encrypt(data_bytes)
+        else:
+            result_bytes = cipher.decrypt(data_bytes)
+            if needs_padding:
+                result_bytes = _crypto_unpad(result_bytes, block_size, padding)
+            return result_bytes
+
+    def crypto_symmetric(self, data, algorithm, mode, key_hex, iv_hex, operation, input_fmt, output_fmt, padding='pkcs7'):
+        """对称加密/解密（文本模式）"""
+        try:
+            # 输入解析
+            if operation == 'encrypt':
+                data_bytes = data.encode('utf-8')
+            else:
+                if input_fmt == 'hex':
+                    data_bytes = bytes.fromhex(data)
+                elif input_fmt == 'base64':
+                    data_bytes = base64.b64decode(data)
+                else:
+                    return self._error("不支持的输入格式")
+
+            result_bytes = self._crypto_core(data_bytes, algorithm, mode, key_hex, iv_hex, operation, padding)
+
+            # 输出格式化
+            if operation == 'encrypt':
+                if output_fmt == 'hex':
+                    result = result_bytes.hex()
+                elif output_fmt == 'base64':
+                    result = base64.b64encode(result_bytes).decode()
+                else:
+                    return self._error("不支持的输出格式")
+            else:
+                try:
+                    result = result_bytes.decode('utf-8')
+                except Exception:
+                    result = result_bytes.hex()
+
+            return self._success(result)
+        except ImportError:
+            return self._error("请先安装 pycryptodome: pip install pycryptodome")
+        except Exception as e:
+            msg = str(e)
+            translations = {
+                'Data must be padded to ': '块加密模式要求数据长度是 ',
+                ' byte boundary in CBC mode': ' 字节的整数倍（CBC 模式）',
+                ' byte boundary in ECB mode': ' 字节的整数倍（ECB 模式）',
+                'Data must be aligned to block boundary in ECB mode': 'ECB 模式要求数据长度是块大小的整数倍',
+                'Padding is incorrect.': '填充校验失败，请检查密钥或密文是否正确',
+                'PKCS#7 padding is incorrect.': 'PKCS7 填充校验失败，请检查密钥或密文是否正确',
+                'Invalid ISO 10126 padding': '无效的 ISO 10126 填充',
+            }
+            for eng, chn in translations.items():
+                msg = msg.replace(eng, chn)
+            return self._error(msg)
+
+    def crypto_file(self, src_path, algorithm, mode, key_hex, iv_hex, operation, padding='pkcs7'):
+        """对称加密/解密（文件模式）：读取文件 → 加解密 → 弹窗选择保存路径"""
+        try:
+            if not os.path.isfile(src_path):
+                return self._error("文件不存在")
+
+            with open(src_path, 'rb') as f:
+                data_bytes = f.read()
+
+            result_bytes = self._crypto_core(data_bytes, algorithm, mode, key_hex, iv_hex, operation, padding)
+
+            # 弹窗选择保存路径
+            base_name = os.path.basename(src_path)
+            suffix = '.enc' if operation == 'encrypt' else '.dec'
+            save_path = self.save_file(base_name + suffix, [("All files", "*.*")])
+            if not save_path:
+                return self._error("已取消")
+
+            with open(save_path, 'wb') as f:
+                f.write(result_bytes)
+
+            return self._success("保存成功")
+        except ImportError:
+            return self._error("请先安装 pycryptodome: pip install pycryptodome")
+        except Exception as e:
+            msg = str(e)
+            translations = {
+                'Data must be padded to ': '块加密模式要求数据长度是 ',
+                ' byte boundary in CBC mode': ' 字节的整数倍（CBC 模式）',
+                ' byte boundary in ECB mode': ' 字节的整数倍（ECB 模式）',
+                'Padding is incorrect.': '填充校验失败，请检查密钥或密文是否正确',
+            }
+            for eng, chn in translations.items():
+                msg = msg.replace(eng, chn)
+            return self._error(msg)
+
+    def crypto_generate_bytes(self, size):
+        """生成指定长度的随机字节（返回十六进制字符串）"""
+        try:
+            import secrets
+            return self._success(secrets.token_bytes(size).hex())
+        except Exception as e:
+            return self._error(str(e))
+
+    def crypto_read_file(self, path):
+        """读取文件内容并返回十六进制字符串"""
+        try:
+            if not os.path.isfile(path):
+                return self._error("文件不存在")
+            with open(path, 'rb') as f:
+                return self._success(f.read().hex())
+        except Exception as e:
+            return self._error(str(e))
+
     # --- Encode Tools ---
     def encode_decode(self, data, action):
         try:
@@ -281,6 +886,10 @@ class Api:
             elif action == "unicode_decode": res = data.encode().decode('unicode_escape')
             elif action == "html_escape": res = html.escape(data)
             elif action == "html_unescape": res = html.unescape(data)
+            elif action == "utf8_to_utf16": res = data.encode('utf-8').decode('utf-8').encode('utf-16-le').hex()
+            elif action == "utf16_to_utf8": res = bytes.fromhex(data).decode('utf-16-le')
+            elif action == "utf8_to_hex": res = data.encode('utf-8').hex()
+            elif action == "hex_to_utf8": res = bytes.fromhex(data).decode('utf-8')
             elif action == "upper": res = data.upper()
             elif action == "lower": res = data.lower()
             elif action == "swap": res = data.swapcase()
@@ -888,7 +1497,20 @@ class Api:
             
             
             headers = json.loads(headers_json) if headers_json else {}
-            
+
+            # 对 URL 中的非 ASCII 字符做百分号编码（保留已编码的 %XX 序列）
+            try:
+                parsed = urllib.parse.urlsplit(url)
+                safe = "/:@?=&%#[]!$&'()*+,;=-._~"
+                encoded_path = urllib.parse.quote(parsed.path, safe=safe)
+                encoded_query = urllib.parse.quote(parsed.query, safe=safe)
+                encoded_fragment = urllib.parse.quote(parsed.fragment, safe=safe) if parsed.fragment else ''
+                url = urllib.parse.urlunsplit(
+                    (parsed.scheme, parsed.netloc, encoded_path, encoded_query, encoded_fragment)
+                )
+            except Exception:
+                pass  # URL 解析失败则使用原始 url
+
             # 智能处理 Body 编码
             if body:
                 # 检查是否为表单格式
