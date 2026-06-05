@@ -2,8 +2,8 @@
 """
 嵌入式原生浏览器（Windows Edge WebView2）
 
-创建无边框 pywebview 窗口，通过 Win32 API 附加为子窗口并定位在内容区。
-绕过 X-Frame-Options / CSP：原生 WebView2 不是 iframe。
+创建无边框 pywebview 窗口，实时跟随主窗口位置，视觉上嵌入在内容区。
+保持顶层窗口身份 → X-Frame-Options / CSP 不适用。
 """
 
 import sys
@@ -18,12 +18,8 @@ SIDEBAR_W = 220
 TAB_BAR_H = 68
 
 user32 = ctypes.windll.user32
-kernel32 = ctypes.windll.kernel32
 
 GWL_STYLE = -16
-GWL_EXSTYLE = -20
-WS_CHILD = 0x40000000
-WS_POPUP = 0x80000000
 WS_CAPTION = 0x00C00000
 WS_THICKFRAME = 0x00040000
 WS_SYSMENU = 0x00080000
@@ -32,18 +28,21 @@ WS_MAXIMIZEBOX = 0x00010000
 SWP_NOZORDER = 0x0004
 SWP_NOACTIVATE = 0x0010
 SWP_SHOWWINDOW = 0x0040
+HWND_TOPMOST = -1
+SWP_NOMOVE = 0x0002
 SWP_NOSIZE = 0x0001
 
 
 class EmbeddedBrowser:
 
     def __init__(self):
-        self._windows = {}     # tab_id -> pywebview Window
+        self._windows = {}
         self._urls = {}
-        self._hwnds = {}       # tab_id -> HWND
+        self._hwnds = {}
         self._current = None
         self._initialized = False
         self._hwnd_main = None
+        self._tracking = False
 
     def _find_main_window(self):
         if self._hwnd_main:
@@ -62,46 +61,34 @@ class EmbeddedBrowser:
             return False
         return self._find_main_window()
 
-    def _make_child_window(self, hwnd):
-        """将窗口改为无边框子窗口并嵌入主窗口"""
-        # 1. 去掉边框、标题栏
+    def _reposition(self, hwnd):
+        """将浮动窗口定位到主窗口内容区"""
+        if not self._hwnd_main:
+            return
+        rect = wintypes.RECT()
+        user32.GetWindowRect(self._hwnd_main, ctypes.byref(rect))
+        user32.SetWindowPos(
+            hwnd, HWND_TOPMOST,
+            rect.left + SIDEBAR_W,
+            rect.top + TAB_BAR_H,
+            max(rect.right - rect.left - SIDEBAR_W, 100),
+            max(rect.bottom - rect.top - TAB_BAR_H, 100),
+            SWP_NOACTIVATE | SWP_SHOWWINDOW)
+
+    def _make_floating(self, hwnd):
+        """去掉边框，置顶，跟随主窗口"""
+        # 去掉标题栏和边框
         style = user32.GetWindowLongW(hwnd, GWL_STYLE)
         style &= ~(WS_CAPTION | WS_THICKFRAME | WS_SYSMENU |
                     WS_MINIMIZEBOX | WS_MAXIMIZEBOX)
         user32.SetWindowLongW(hwnd, GWL_STYLE, style)
 
-        # 2. SetParent 嵌入主窗口（关键！）
-        user32.SetParent(hwnd, self._hwnd_main)
-
-        # 3. 改为 WS_CHILD 风格（不再是弹出窗口）
-        style = user32.GetWindowLongW(hwnd, GWL_STYLE)
-        style = (style & ~WS_POPUP) | WS_CHILD
-        user32.SetWindowLongW(hwnd, GWL_STYLE, style)
-
-        # 4. 定位（子窗口用客户区坐标）
-        user32.SetWindowPos(
-            hwnd, 0,
-            SIDEBAR_W, TAB_BAR_H,
-            0, 0,
-            SWP_NOSIZE | SWP_NOZORDER | SWP_SHOWWINDOW)
-
-    def _resize_child(self, hwnd):
-        """调整子窗口大小以填充内容区"""
-        if not self._hwnd_main:
-            return
-        rect = wintypes.RECT()
-        user32.GetClientRect(self._hwnd_main, ctypes.byref(rect))
-        w = max(rect.right - SIDEBAR_W, 100)
-        h = max(rect.bottom - TAB_BAR_H, 100)
-        user32.SetWindowPos(
-            hwnd, 0,
-            SIDEBAR_W, TAB_BAR_H, w, h,
-            SWP_NOZORDER | SWP_SHOWWINDOW)
+        # 定位
+        self._reposition(hwnd)
 
     def _find_child_hwnd(self, title):
-        """查找刚创建的 pywebview 窗口 HWND"""
         import time
-        for _ in range(50):  # 最多等 5 秒
+        for _ in range(50):
             hwnd = user32.FindWindowW(None, title)
             if hwnd:
                 return hwnd
@@ -121,7 +108,6 @@ class EmbeddedBrowser:
             if self._current and self._current in self._hwnds:
                 user32.ShowWindow(self._hwnds[self._current], 0)
 
-            # 创建或显示
             if tab_id not in self._windows:
                 title = f"__eb_{tab_id}__"
                 win = webview.create_window(title, url,
@@ -129,15 +115,13 @@ class EmbeddedBrowser:
                 self._windows[tab_id] = win
                 self._urls[tab_id] = url
 
-                # 等窗口创建完成，找到 HWND 后嵌入
                 hwnd = self._find_child_hwnd(title)
                 if hwnd:
-                    self._make_child_window(hwnd)
-                    self._resize_child(hwnd)
+                    self._make_floating(hwnd)
                     self._hwnds[tab_id] = hwnd
             else:
                 hwnd = self._hwnds[tab_id]
-                self._resize_child(hwnd)
+                self._reposition(hwnd)
                 user32.ShowWindow(hwnd, 1)
 
             self._current = tab_id
