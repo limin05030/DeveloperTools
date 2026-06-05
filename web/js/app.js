@@ -3,10 +3,27 @@ let currentAspectRatio = 1;  // 当前图片的宽高比
 // Tab Switching Logic
 document.querySelectorAll('.nav-item').forEach(btn => {
     btn.addEventListener('click', () => {
+        const prevTab = document.querySelector('.nav-item.active');
+        const prevId = prevTab ? prevTab.dataset.tab : '';
+
         document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
         document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
         btn.classList.add('active');
         document.getElementById(btn.dataset.tab).classList.add('active');
+
+        // 嵌入式浏览器（AI 聊天）管理
+        const target = btn.dataset.tab;
+        if (target === 'aichat') {
+            // 激活第一个子标签
+            const firstTab = document.querySelector('#aichat-tabs .sub-nav-item.active');
+            if (firstTab) {
+                const url = firstTab.dataset.url;
+                const tabId = firstTab.textContent.trim();
+                pywebview.api.embed_browser_show_tab(tabId, url);
+            }
+        } else if (prevId === 'aichat') {
+            pywebview.api.embed_browser_hide();
+        }
     });
 });
 
@@ -1240,6 +1257,18 @@ window.addEventListener('pywebviewready', () => {
         btn.addEventListener('click', () => setTimeout(updateCryptoFileModeUI, 0));
     });
     updateCryptoFileModeUI();
+
+    // AI 聊天子标签切换
+    document.querySelectorAll('#aichat-tabs .sub-nav-item').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();  // 防止触发外层 .sub-nav-item 的通用处理
+            document.querySelectorAll('#aichat-tabs .sub-nav-item').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            const url = btn.dataset.url;
+            const tabId = btn.textContent.trim();
+            pywebview.api.embed_browser_show_tab(tabId, url);
+        });
+    });
 
     // 加密解密：算法子标签切换时更新 UI
     document.querySelectorAll('.sub-nav-item[data-sub^="crypto-algo-"]').forEach(btn => {

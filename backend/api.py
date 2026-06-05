@@ -45,6 +45,26 @@ class Api:
         except Exception as e:
             return self._error(e)
 
+    def embed_browser_show_tab(self, tab_id, url):
+        """切换/显示嵌入式浏览器的标签页"""
+        try:
+            from backend.embedded_browser import get_embedded_browser
+            eb = get_embedded_browser()
+            ok = eb.show_tab(tab_id, url)
+            return self._success(ok)
+        except Exception as e:
+            return self._error(e)
+
+    def embed_browser_hide(self):
+        """隐藏嵌入式浏览器"""
+        try:
+            from backend.embedded_browser import get_embedded_browser
+            eb = get_embedded_browser()
+            eb.hide()
+            return self._success(True)
+        except Exception as e:
+            return self._error(e)
+
     def get_local_permissions(self, platform):
         try:
             path = os.path.join(self.storage_dir, f"{platform}_perms.json")

@@ -22,6 +22,7 @@
                 <button class="nav-item" data-tab="generate">生成工具</button>
                 <button class="nav-item" data-tab="query">查询工具</button>
                 <button class="nav-item" data-tab="api-test">API 测试</button>
+                <button class="nav-item" data-tab="aichat">AI 聊天</button>
             </nav>
             <div class="sidebar-footer">
                 <div class="version">Version: v2.13.5</div>
@@ -1132,7 +1133,20 @@
                 </div>
             </section>
 
-
+            <!-- AI Chat Tab -->
+            <section id="aichat" class="tab-content">
+                <div class="tab-sub-nav" id="aichat-tabs">
+                    <button class="sub-nav-item active" data-url="https://chat.deepseek.com">DeepSeek</button>
+                    <button class="sub-nav-item" data-url="https://chatgpt.com/">ChatGPT</button>
+                    <button class="sub-nav-item" data-url="https://claude.ai">Claude</button>
+                    <button class="sub-nav-item" data-url="https://gemini.google.com">Gemini</button>
+                    <button class="sub-nav-item" data-url="https://www.perplexity.ai">Perplexity</button>
+                    <button class="sub-nav-item" data-url="https://kimi.moonshot.cn">Kimi</button>
+                </div>
+                <div id="aichat-placeholder" style="display: flex; align-items: center; justify-content: center; height: calc(100vh - 120px); color: var(--text-secondary); font-size: 14px;">
+                    <p>正在加载...</p>
+                </div>
+            </section>
 
         </main>
     </div>

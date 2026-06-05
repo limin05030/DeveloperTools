@@ -17,10 +17,6 @@
 
 下载 `DeveloperTools.exe`，免安装直接运行。
 
-# Linux 版本安装说明
-
-下载 `DeveloperTools`。
-
 # macOS 版本安装说明
 
 下载 `DeveloperTools-macos.tar.gz`，解压后得到 `DeveloperTools.app
