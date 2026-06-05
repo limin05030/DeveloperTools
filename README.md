@@ -12,6 +12,8 @@
 ![](screenshot/9.png)
 ![](screenshot/10.png)
 ![](screenshot/11.png)
+![](screenshot/12.png)
+![](screenshot/13.png)
 
 # windows 版本安装说明
 
