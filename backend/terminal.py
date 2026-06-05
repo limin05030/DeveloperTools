@@ -55,6 +55,7 @@ class TerminalSession:
             [self._shell],
             stdin=slave_fd, stdout=slave_fd, stderr=slave_fd,
             close_fds=True, preexec_fn=os.setsid, env=env,
+            cwd=os.path.expanduser('~'),
         )
         os.close(slave_fd)
 
@@ -65,6 +66,7 @@ class TerminalSession:
             stdin=subprocess.PIPE, stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             text=False, bufsize=0,
+            cwd=os.path.expanduser('~'),
         )
         self._fd = self._proc.stdout.fileno()
 
