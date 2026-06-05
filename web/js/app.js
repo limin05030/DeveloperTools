@@ -1249,8 +1249,8 @@ window.addEventListener('pywebviewready', () => {
     initPermissionSearch();
     initCustomTooltip();
     initQRCharCount();
-    // Linux 平台隐藏 AI 聊天
-    if (navigator.platform.toLowerCase().includes('linux')) {
+    // AI 聊天仅 macOS 可用
+    if (!navigator.platform.toLowerCase().includes('mac')) {
         const aichatBtn = document.querySelector('[data-tab="aichat"]');
         if (aichatBtn) aichatBtn.style.display = 'none';
     }
