@@ -113,6 +113,45 @@ function toggleCase(id) {
     el.value = val === val.toUpperCase() ? val.toLowerCase() : val.toUpperCase();
 }
 
+// Translate Tools
+async function doTranslate() {
+    const text = document.getElementById('translate-input').value;
+    if (!text) { showAlert('请输入待翻译文本'); return; }
+    const source = document.getElementById('translate-source-lang').value;
+    const target = document.getElementById('translate-target-lang').value;
+
+    const btn = document.getElementById('translate-btn');
+    const oldText = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = '翻译中...';
+
+    try {
+        const res = await pywebview.api.translate(text, source, target);
+        if (res.success) {
+            document.getElementById('translate-output').value = res.data.translated;
+        } else {
+            showAlert(res.error);
+        }
+    } finally {
+        btn.disabled = false;
+        btn.textContent = oldText;
+    }
+}
+
+function swapTranslateLangs() {
+    const src = document.getElementById('translate-source-lang');
+    const tgt = document.getElementById('translate-target-lang');
+    if (src.value === 'auto') return;  // 自动检测无法交换
+    const tmp = src.value;
+    src.value = tgt.value;
+    tgt.value = tmp;
+}
+
+function clearTranslate() {
+    document.getElementById('translate-input').value = '';
+    document.getElementById('translate-output').value = '';
+}
+
 // Hash Tools
 async function calcHash(algo, isHmac = false) {
     const isFileMode = document.querySelector('[data-sub="hash-file"]').classList.contains('active');
@@ -235,7 +274,7 @@ function onCryptoCfgChange() {
     // IV 显示/隐藏
     const needsIV = mode !== 'ECB' && sizes.iv > 0;
     if (needsIV) {
-        ivGroup.style.display = '';
+        ivGroup.style.display = 'flex';
         ivInput.placeholder = `十六进制 IV (${sizes.iv} 字节 / ${sizes.iv * 2} 个十六进制字符)`;
     } else {
         ivGroup.style.display = 'none';
@@ -246,10 +285,10 @@ function onCryptoCfgChange() {
         if (cfg.algorithm === 'RC4' || cfg.algorithm === 'XOR') {
             ivGroup.style.display = 'none';
         } else if (cfg.algorithm === 'ChaCha20') {
-            ivGroup.style.display = '';
+            ivGroup.style.display = 'flex';
             ivInput.placeholder = '十六进制 Nonce (8 字节 / 16 个十六进制字符)';
         } else if (cfg.algorithm === 'Rabbit') {
-            ivGroup.style.display = '';
+            ivGroup.style.display = 'flex';
             ivInput.placeholder = '十六进制 IV (8 字节 / 16 个十六进制字符，可选)';
         }
     }
@@ -288,7 +327,8 @@ function updateCryptoAlgoTabUI() {
 
 function updateCryptoFileModeUI() {
     const isFileMode = document.querySelector('[data-sub="crypto-file"]').classList.contains('active');
-    document.getElementById('crypto-fmt-row').style.display = isFileMode ? 'none' : '';
+    document.getElementById('crypto-in-fmt-wrap').style.display = isFileMode ? 'none' : 'flex';
+    document.getElementById('crypto-out-fmt-wrap').style.display = isFileMode ? 'none' : 'flex';
     document.getElementById('crypto-result-card').style.display = isFileMode ? 'none' : '';
 }
 
@@ -1205,6 +1245,8 @@ window.addEventListener('pywebviewready', () => {
     document.querySelectorAll('.sub-nav-item[data-sub^="crypto-algo-"]').forEach(btn => {
         btn.addEventListener('click', () => setTimeout(updateCryptoAlgoTabUI, 0));
     });
+    // 初始加载时设置默认标签（AES）的密钥/IV 占位提示
+    setTimeout(onCryptoCfgChange, 0);
 
     // Special handler for API Main Tabs (Request/Response)
     document.querySelectorAll('.sub-nav-item[data-sub^="api-"]').forEach(btn => {

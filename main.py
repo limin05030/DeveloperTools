@@ -51,7 +51,7 @@ if __name__ == "__main__":
         "开发者工具",
         get_entrypoint(),
         js_api=api,
-        width=1000,
+        width=1200,
         height=880,
         resizable=False
     )

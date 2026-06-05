@@ -1,27 +1,24 @@
 # -*- coding: utf-8 -*-
 import ssl
 import sys
-import webbrowser
-import urllib.request
 import os
 import re
 import json
-import hashlib
-import hmac
 import base64
 import urllib.parse
-import html
+import urllib.request
 import time
-import uuid
-
 import certifi
-import qrcode
 from datetime import datetime, timezone, timedelta
-from io import BytesIO
-from PIL import Image, ImageDraw
-import zhconv
-from bs4 import BeautifulSoup, formatter
 import webview
+
+# 以下重型模块已改为按需延迟导入，减少启动时间：
+#   PIL (Image, ImageDraw) — 仅在图片处理方法中导入
+#   qrcode                   — 仅在 generate_qr 中导入
+#   zhconv                   — 仅在 encode_decode 中导入
+#   bs4 (BeautifulSoup)      — 仅在 _fetch_android 和 format_data 中导入
+#   hashlib, hmac            — 仅在 calc_hash / calc_file_hash 中导入
+#   html, uuid, webbrowser   — 仅在对应方法中导入
 
 class Api:
     def __init__(self, is_debug: bool=False):
@@ -42,6 +39,7 @@ class Api:
         self._window = window
     def open_url(self, url):
         try:
+            import webbrowser
             webbrowser.open(url)
             return self._success(True)
         except Exception as e:
@@ -69,6 +67,7 @@ class Api:
     def _fetch_android(self):
         url = "https://developer.android.com/reference/android/Manifest.permission"
         try:
+            from bs4 import BeautifulSoup
             context = ssl.create_default_context(cafile=certifi.where())
             req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
             with urllib.request.urlopen(req, context=context) as response:
@@ -241,6 +240,8 @@ class Api:
     # --- Hash Tools ---
     def calc_hash(self, data, algo, is_hmac, key_str):
         try:
+            import hashlib
+            import hmac
             key = key_str.encode()
             actual_algo = "md5" if algo.startswith("md5") else algo
             h = hmac.new(key, digestmod=actual_algo) if is_hmac else hashlib.new(actual_algo)
@@ -252,6 +253,8 @@ class Api:
 
     def calc_file_hash(self, path, algo, is_hmac, key_str):
         try:
+            import hashlib
+            import hmac
             if not os.path.isfile(path): return self._error("File not found")
             key = key_str.encode()
             actual_algo = "md5" if algo.startswith("md5") else algo
@@ -872,6 +875,8 @@ class Api:
     # --- Encode Tools ---
     def encode_decode(self, data, action):
         try:
+            import html
+            import zhconv
             if action == "b64_encode": res = base64.b64encode(data.encode()).decode()
             elif action == "b64_decode":
                 try:
@@ -909,6 +914,7 @@ class Api:
             elif fmt_type == "json_compress":
                 res = json.dumps(json.loads(data), separators=(',', ':'), ensure_ascii=False)
             elif fmt_type in ("html_format", "html_xml"):
+                from bs4 import BeautifulSoup, formatter
                 is_xml = data.startswith("<?xml") or ("<" in data and not data.lower().startswith("<!doctype html"))
                 soup = BeautifulSoup(data, "xml" if is_xml else "html.parser")
                 res = soup.prettify(formatter=formatter.HTMLFormatter(indent=4))
@@ -1116,6 +1122,8 @@ class Api:
     # --- Generation Tools ---
     def generate_qr(self, data):
         try:
+            import qrcode
+            from io import BytesIO
             qr = qrcode.QRCode(version=1, box_size=10, border=4)
             qr.add_data(data)
             qr.make(fit=True)
@@ -1129,6 +1137,7 @@ class Api:
 
     def generate_uuids(self, count, hyphen, upper, braces):
         try:
+            import uuid
             self._raw_uuids = [str(uuid.uuid4()) for _ in range(int(count))]
             return self._success(self.format_uuids(hyphen, upper, braces))
         except Exception as e:
@@ -1141,6 +1150,7 @@ class Api:
             return self._error("缺失 zxing-cpp 库，请运行 'pip install zxing-cpp' 安装。")
             
         try:
+            from PIL import Image
             if not os.path.exists(file_path):
                 return self._error("文件不存在")
             img = Image.open(file_path)
@@ -1168,9 +1178,10 @@ class Api:
         return self._success(self.format_uuids(hyphen, upper, braces))
 
     # --- Image Tools ---
-    def get_image_info(self, src): 
-        try: 
-            with Image.open(src) as img: 
+    def get_image_info(self, src):
+        try:
+            from PIL import Image
+            with Image.open(src) as img:
                 return self._success({"width": img.width, "height": img.height}) 
         except Exception as e: 
             return self._error(e) 
@@ -1204,6 +1215,7 @@ class Api:
 
     def image_convert(self, src, fmt, save_path=None):
         try:
+            from PIL import Image
             target_fmt = fmt.upper()
             ext = "jpg" if target_fmt == "JPEG" else target_fmt.lower()
             if not save_path: save_path = self.save_file(f"converted.{ext}", [("Image", f"*.{ext}")])
@@ -1261,6 +1273,7 @@ class Api:
     def _save_as_svg(self, src_path, save_path):
         """真正的矢量化转换：将像素区域转换为 SVG 路径"""
         try:
+            from PIL import Image
             with Image.open(src_path) as img:
                 # 如果图片太大，先进行适度缩放以防生成的 SVG 过大（超过 1000px 宽度则缩放）
                 max_size = 800
@@ -1325,6 +1338,7 @@ class Api:
 
     def image_compress(self, src, quality, save_path=None):
         try:
+            from PIL import Image
             ext_orig = os.path.splitext(src)[1].lower()
             ext = "jpg" if ext_orig in [".jpg", ".jpeg"] else ext_orig.replace(".", "")
             if not save_path: save_path = self.save_file(f"compressed.{ext}", [("Image", f"*.{ext}")])
@@ -1344,6 +1358,7 @@ class Api:
 
     def image_resize_crop(self, src, tw, th, mode, save_path=None):
         try:
+            from PIL import Image
             ext = os.path.splitext(src)[1].lower().replace(".", "")
             if not save_path: save_path = self.save_file(f"processed.{ext}", [("Image", f"*.{ext}")])
             if not save_path: return self._error("Cancelled or failed")
@@ -1367,6 +1382,7 @@ class Api:
 
     def image_radius(self, src, radii, save_path=None):
         try:
+            from PIL import Image, ImageDraw
             if not save_path: save_path = self.save_file("rounded.png", [("PNG", "*.png")])
             if not save_path: return self._error("Cancelled or failed")
             tl, tr, bl, br = [int(r) for r in radii]
@@ -1421,6 +1437,8 @@ class Api:
 
     def base64_to_image(self, b64_data):
         try:
+            from PIL import Image
+            from io import BytesIO
             if b64_data.startswith("data:image/"):
                 try:
                     header, data = b64_data.split(",", 1)
@@ -1488,6 +1506,25 @@ class Api:
         except Exception as e:
             self._log(f"Translation error: {e}")
             return text # 失败时返回原文
+
+    def translate(self, text, source_lang, target_lang):
+        """多语言翻译，使用 Google Translate GTX 免费接口"""
+        try:
+            import urllib.parse
+            import urllib.request
+            if not text or len(text.strip()) == 0:
+                return self._error("请输入待翻译文本")
+            url = f"https://translate.googleapis.com/translate_a/single?client=gtx&sl={source_lang}&tl={target_lang}&dt=t&q={urllib.parse.quote(text)}"
+            context = ssl.create_default_context(cafile=certifi.where())
+            req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+            with urllib.request.urlopen(req, context=context, timeout=10) as response:
+                res = json.loads(response.read().decode('utf-8'))
+                translated = "".join([part[0] for part in res[0]])
+                # 如果返回了检测到的源语言
+                detected = res[2] if len(res) > 2 and res[2] else source_lang
+                return self._success({"translated": translated, "detected": detected})
+        except Exception as e:
+            return self._error(f"翻译失败: {str(e)}")
 
     def request_api(self, url, method, headers_json, body, ignore_ssl=False):
         try:

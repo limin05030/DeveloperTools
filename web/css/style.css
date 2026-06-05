@@ -329,6 +329,20 @@ button.primary:disabled {
     max-height: 650px;
     border: 1px solid var(--border-color);
     border-radius: 8px;
+    /* 统一滚动条样式（跨平台） */
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-color) var(--bg-window);
+}
+.table-container::-webkit-scrollbar {
+    width: 6px;
+}
+.table-container::-webkit-scrollbar-track {
+    background: var(--bg-window);
+    border-radius: 4px;
+}
+.table-container::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 4px;
 }
 
 table {
