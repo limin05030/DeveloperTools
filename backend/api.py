@@ -25,6 +25,7 @@ class Api:
         self._window = None
         self._debug = is_debug
         self._raw_uuids = []
+        self._term = None       # TerminalSession
         self.APPLE_OFFSET = 978307200
         self.storage_dir = os.path.join(os.path.expanduser("~"), ".developer_tools")
         if not os.path.exists(self.storage_dir):
@@ -1491,6 +1492,50 @@ class Api:
             return self._success("Success")
         except Exception as e:
             return self._error(f"还原失败: {str(e)}")
+    # ---- Terminal ----
+
+    def term_start(self):
+        """启动终端会话"""
+        try:
+            from backend.terminal import TerminalSession
+            if self._term:
+                self._term.stop()
+            self._term = TerminalSession()
+
+            def _push(data):
+                # 使用 JSON 编码安全传递任意字符
+                import json as _json
+                encoded = _json.dumps(data)
+                js = f"if(window._termWrite)window._termWrite({encoded})"
+                try:
+                    self._window.evaluate_js(js)
+                except Exception:
+                    pass
+
+            self._term.start(on_output=_push)
+            return self._success(True)
+        except Exception as e:
+            return self._error(str(e))
+
+    def term_input(self, data):
+        """终端输入"""
+        if self._term:
+            self._term.write(data)
+        return self._success(True)
+
+    def term_resize(self, cols, rows):
+        """调整终端大小"""
+        if self._term:
+            self._term.resize(int(cols), int(rows))
+        return self._success(True)
+
+    def term_stop(self):
+        """停止终端"""
+        if self._term:
+            self._term.stop()
+            self._term = None
+        return self._success(True)
+
     def _get_translation_cache(self):
         path = os.path.join(self.storage_dir, "android_perms_zh_cache.json")
         if os.path.exists(path):

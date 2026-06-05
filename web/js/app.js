@@ -14,7 +14,6 @@ document.querySelectorAll('.nav-item').forEach(btn => {
         // 嵌入式浏览器（AI 聊天）管理
         const target = btn.dataset.tab;
         if (target === 'aichat') {
-            // 激活第一个子标签
             const firstTab = document.querySelector('#aichat-tabs .sub-nav-item.active');
             if (firstTab) {
                 const url = firstTab.dataset.url;
@@ -23,6 +22,13 @@ document.querySelectorAll('.nav-item').forEach(btn => {
             }
         } else if (prevId === 'aichat') {
             pywebview.api.embed_browser_hide();
+        }
+
+        // 终端管理
+        if (target === 'terminal') {
+            if (typeof initTerminal === 'function') initTerminal();
+        } else if (prevId === 'terminal') {
+            if (typeof stopTerminal === 'function') stopTerminal();
         }
     });
 });

@@ -4,7 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>开发者工具</title>
-    <link rel="stylesheet" href="css/style.css"><link rel="icon" href="../images/app.png" type="image/png">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5/css/xterm.css">
+    <link rel="icon" href="../images/app.png" type="image/png">
 </head>
 <body>
     <div class="container">
@@ -23,6 +25,7 @@
                 <button class="nav-item" data-tab="query">查询工具</button>
                 <button class="nav-item" data-tab="api-test">API 测试</button>
                 <button class="nav-item" data-tab="aichat">AI 聊天</button>
+                <button class="nav-item" data-tab="terminal">终端</button>
             </nav>
             <div class="sidebar-footer">
                 <div class="version">Version: v2.13.5</div>
@@ -1133,6 +1136,16 @@
                 </div>
             </section>
 
+            <!-- Claude Code Tab -->
+            <section id="terminal" class="tab-content">
+                <div id="terminal-container" style="width: 100%; height: calc(100vh - 60px);"></div>
+            </section>
+            <style>
+                #terminal-container .xterm-screen { padding: 10px !important; box-sizing: border-box !important; }
+                #terminal-container .xterm-viewport { padding: 0 !important; }
+                #terminal-container .xterm { padding: 0 !important; }
+            </style>
+
             <!-- AI Chat Tab -->
             <section id="aichat" class="tab-content">
                 <div class="tab-sub-nav" id="aichat-tabs">
@@ -1166,6 +1179,78 @@
             <li id="menu-copy-all">复制整行</li>
         </ul>
     </div>
+    <script src="https://cdn.jsdelivr.net/npm/xterm@5/lib/xterm.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.8/lib/xterm-addon-fit.js"></script>
     <script src="js/app.js"></script>
+    <script>
+    // ---- 终端初始化 ----
+    let term = null;
+    let termFit = null;
+    let termStarted = false;
+
+    function initTerminal() {
+        if (term) return;
+        const container = document.getElementById('terminal-container');
+        if (!container) return;
+
+        term = new Terminal({
+            fontSize: 14,
+            fontFamily: 'Menlo, Monaco, "Courier New", monospace',
+            theme: {
+                background: '#1e1e1e',
+                foreground: '#d4d4d4',
+                cursor: '#ffffff',
+            },
+            cursorBlink: true,
+            allowProposedApi: true,
+        });
+
+        termFit = new FitAddon.FitAddon();
+        term.loadAddon(termFit);
+        term.open(container);
+        // 延迟 fit 确保容器已完成布局
+        setTimeout(() => { if (termFit) termFit.fit(); }, 50);
+
+        // 用户输入 → 后端
+        term.onData(data => {
+            if (termStarted) {
+                pywebview.api.term_input(data);
+            }
+        });
+
+        // 后端输出 → 终端（由 Python evaluate_js 调用）
+        window._termWrite = function(text) {
+            if (term) term.write(text);
+        };
+
+        // 启动终端会话
+        pywebview.api.term_start().then(() => {
+            termStarted = true;
+            term.focus();
+        });
+
+        // 窗口大小变化时调整
+        window.addEventListener('resize', () => {
+            if (termFit) termFit.fit();
+            if (termStarted) {
+                pywebview.api.term_resize(term.cols, term.rows);
+            }
+        });
+    }
+
+    // 离开终端标签时停止
+    function stopTerminal() {
+        if (termStarted) {
+            pywebview.api.term_stop();
+            termStarted = false;
+        }
+        if (term) {
+            term.dispose();
+            term = null;
+            termFit = null;
+            window._termWrite = null;
+        }
+    }
+    </script>
 </body>
 </html>
