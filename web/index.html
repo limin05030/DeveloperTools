@@ -1241,6 +1241,11 @@
 
         _terms[tid] = { term: t, fit: f, started: false, panel: p };
 
+        // 点击终端区域时强制聚焦（WebView2 可能需要手动触发）
+        p.addEventListener('click', function() { t.focus(); });
+        // 文本选区变化时也尝试聚焦
+        t.onSelectionChange(function() { t.focus(); });
+
         pywebview.api.term_create(tid).then(function(r) {
             if (r && r.success) { _terms[tid].started = true; t.focus(); }
         });

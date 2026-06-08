@@ -1562,11 +1562,19 @@ class Api:
 
     def term_input(self, tid, data):
         """终端输入"""
+        # 调试：记录每次调用
+        try:
+            import tempfile, os as _os
+            _log = _os.path.join(tempfile.gettempdir(), 'devtools_terminal.log')
+            with open(_log, 'a', encoding='utf-8') as f:
+                f.write(f"[API] term_input CALLED: tid={tid}, type={type(tid).__name__}, data_len={len(data)}, repr={repr(data[:30])}\n")
+        except Exception:
+            pass
+
         s = self._terms.get(int(tid))
         if s:
             s.write(data)
         else:
-            # 调试：记录输入未被处理的情况
             try:
                 import tempfile, os as _os
                 _log = _os.path.join(tempfile.gettempdir(), 'devtools_terminal.log')
