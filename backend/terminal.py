@@ -317,11 +317,26 @@ class TerminalSession:
 
     def _read_conpty(self):
         """Windows ConPTY 读取"""
+        import tempfile as _tf
+        _log = os.path.join(_tf.gettempdir(), 'devtools_terminal.log')
+        with open(_log, 'a', encoding='utf-8') as f:
+            f.write("[Terminal] _read_conpty: 读取循环已启动, fd=%s\n" % self._fd)
+
+        read_count = 0
         while self._running:
             try:
                 data = os.read(self._fd, 4096)
                 if not data:
+                    with open(_log, 'a', encoding='utf-8') as f:
+                        f.write("[Terminal] _read_conpty: 读取到空数据（管道关闭）\n")
                     break
+
+                read_count += 1
+                if read_count <= 3:
+                    with open(_log, 'a', encoding='utf-8') as f:
+                        f.write("[Terminal] _read_conpty: 读取 #%d, len=%d, repr=%s\n" % (
+                            read_count, len(data), repr(data[:100])))
+
                 if self._on_output:
                     # Windows 控制台使用系统 OEM 编码（中文 Windows 为 GBK）
                     try:
@@ -329,7 +344,9 @@ class TerminalSession:
                     except Exception:
                         text = data.decode('utf-8', errors='replace')
                     self._on_output(text)
-            except (OSError, ValueError):
+            except (OSError, ValueError) as e:
+                with open(_log, 'a', encoding='utf-8') as f:
+                    f.write("[Terminal] _read_conpty: 读取异常: %s\n" % e)
                 break
 
     # ==================== 写入 ====================
