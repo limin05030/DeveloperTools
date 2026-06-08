@@ -10,7 +10,7 @@ from backend.api import Api
 # git tag v1.0.0
 # git push origin v1.0.0
 
-DEBUG_MODE = False
+DEBUG_MODE = True
 
 # eruda — 轻量级移动端 DevTools，嵌入页面后无需系统配置即可使用 Console / Elements / Network 等面板
 ERUDA_INJECT_JS = """
