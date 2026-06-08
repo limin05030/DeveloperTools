@@ -6,23 +6,8 @@ import sys
 import subprocess
 import threading
 import signal
-import tempfile
 
 _instances = {}
-
-# 调试日志文件（Windows 上无控制台，写文件才能看到）
-_DBG_FILE = os.path.join(tempfile.gettempdir(), 'devtools_terminal.log')
-
-
-def _dbg(msg, *args):
-    """调试输出：写入临时文件"""
-    if args:
-        msg = msg % args
-    try:
-        with open(_DBG_FILE, 'a', encoding='utf-8') as f:
-            f.write(f"[Terminal] {msg}\n")
-    except Exception:
-        pass
 
 
 class TerminalSession:
@@ -47,8 +32,6 @@ class TerminalSession:
         self._on_output = on_output
         self._running = True
 
-        _dbg("start() 被调用, platform=%s, cols=%s, rows=%s", sys.platform, cols, rows)
-
         if sys.platform == 'win32':
             self._start_windows(cols, rows)
         else:
@@ -56,7 +39,6 @@ class TerminalSession:
 
         self._reader = threading.Thread(target=self._read_loop, daemon=True)
         self._reader.start()
-        _dbg("读取线程已启动")
 
     # ==================== Unix ====================
 
@@ -88,20 +70,15 @@ class TerminalSession:
     # ==================== Windows ====================
 
     def _start_windows(self, cols, rows):
-        """Windows: 依次尝试 ConPTY → 回退方案"""
-        _dbg("_start_windows: 尝试 ConPTY...")
-
+        """Windows: 优先使用 ConPTY，不支持时回退到 PIPE"""
         if self._try_conpty(cols, rows):
-            _dbg(">>> ConPTY 启动成功")
             return
-
-        _dbg(">>> ConPTY 不可用，回退到 PIPE 模式（输入可能受限）")
         self._start_windows_pipe()
 
     # ---- ConPTY 实现 ----
 
     def _try_conpty(self, cols, rows):
-        """尝试使用 ConPTY 伪终端启动（Windows 10 1809+, 通过 ctypes 调用 kernel32）"""
+        """尝试使用 ConPTY 伪终端启动（Windows 10 1809+）"""
         try:
             import ctypes
             from ctypes import wintypes, byref
@@ -112,27 +89,22 @@ class TerminalSession:
             try:
                 create_pc = kernel32.CreatePseudoConsole
             except AttributeError:
-                _dbg("kernel32.CreatePseudoConsole 不存在（需要 Windows 10 1809+）")
                 return False
 
-            # ---- 创建管道 ----
+            # 创建通信管道
             out_read = wintypes.HANDLE()
             out_write = wintypes.HANDLE()
             if not kernel32.CreatePipe(byref(out_read), byref(out_write), None, 0):
-                _dbg("CreatePipe (output) 失败, err=%s", ctypes.get_last_error())
                 return False
 
             in_read = wintypes.HANDLE()
             in_write = wintypes.HANDLE()
             if not kernel32.CreatePipe(byref(in_read), byref(in_write), None, 0):
-                _dbg("CreatePipe (input) 失败, err=%s", ctypes.get_last_error())
                 kernel32.CloseHandle(out_read)
                 kernel32.CloseHandle(out_write)
                 return False
 
-            _dbg("管道已创建 out_read=%s in_write=%s", out_read.value, in_write.value)
-
-            # ---- 创建伪控制台 ----
+            # 创建伪控制台
             class COORD(ctypes.Structure):
                 _fields_ = [('X', ctypes.c_short), ('Y', ctypes.c_short)]
 
@@ -141,16 +113,13 @@ class TerminalSession:
 
             ret = create_pc(size, in_read, out_write, 0, byref(hpc))
             if ret != 0:  # S_OK == 0
-                _dbg("CreatePseudoConsole 失败, HRESULT=0x%08X", ret & 0xFFFFFFFF)
                 kernel32.CloseHandle(in_read)
                 kernel32.CloseHandle(in_write)
                 kernel32.CloseHandle(out_read)
                 kernel32.CloseHandle(out_write)
                 return False
 
-            _dbg("CreatePseudoConsole 成功, hpc=%s", hpc.value)
-
-            # ---- 创建进程 ----
+            # 创建进程
             success, pi = self._conpty_create_process(
                 kernel32, hpc,
                 in_read.value, in_write.value,
@@ -159,28 +128,19 @@ class TerminalSession:
 
             if not success:
                 kernel32.ClosePseudoConsole(hpc)
-                _dbg("CreateProcess 失败")
                 return False
 
-            _dbg("CreateProcess 成功, pid=%s", pi.dwProcessId)
-
-            # 将 Win32 HANDLE 转为 CRT fd（os.read/os.write 需要）
+            # Win32 HANDLE → CRT fd
             import msvcrt
             self._fd = msvcrt.open_osfhandle(out_read.value, os.O_RDONLY)
             self._conpty_in_write = msvcrt.open_osfhandle(in_write.value, os.O_WRONLY)
-            _dbg("fd 转换完成: _fd=%s, _conpty_in_write=%s",
-                 self._fd, self._conpty_in_write)
-
             self._conpty_hpc = hpc
             self._conpty_pi = pi
             self._conpty_mode = True
             self._proc = True
             return True
 
-        except Exception as e:
-            _dbg("ConPTY 异常: %s: %s", type(e).__name__, e)
-            import traceback
-            _dbg("Traceback: %s", traceback.format_exc())
+        except Exception:
             return False
 
     def _conpty_create_process(self, kernel32, hpc, in_read, in_write,
@@ -191,9 +151,6 @@ class TerminalSession:
 
         PROC_THREAD_ATTRIBUTE_PSEUDOCONSOLE = 0x00020016
         EXTENDED_STARTUPINFO_PRESENT = 0x00080000
-
-        class COORD(ctypes.Structure):
-            _fields_ = [('X', ctypes.c_short), ('Y', ctypes.c_short)]
 
         class STARTUPINFOW(ctypes.Structure):
             _fields_ = [
@@ -236,11 +193,10 @@ class TerminalSession:
         kernel32.InitializeProcThreadAttributeList(None, 1, 0, byref(attr_size))
         attr_list = ctypes.create_string_buffer(attr_size.value)
         if not kernel32.InitializeProcThreadAttributeList(attr_list, 1, 0, byref(attr_size)):
-            _dbg("InitializeProcThreadAttributeList 失败")
             self._close_handles(kernel32, in_read, in_write, out_read, out_write)
             return False, None
 
-        # 获取 hpc 的原始值（兼容 int 和 ctypes 类型）
+        # 设置 ConPTY 属性
         hpc_val = hpc.value if hasattr(hpc, 'value') else hpc
         hpc_void = ctypes.c_void_p(hpc_val)
         if not kernel32.UpdateProcThreadAttribute(
@@ -248,10 +204,10 @@ class TerminalSession:
             hpc_void, ctypes.sizeof(hpc_void), None, None
         ):
             kernel32.DeleteProcThreadAttributeList(attr_list)
-            _dbg("UpdateProcThreadAttribute 失败, err=%s", ctypes.get_last_error())
             self._close_handles(kernel32, in_read, in_write, out_read, out_write)
             return False, None
 
+        # 创建进程
         si = STARTUPINFOEXW()
         si.StartupInfo.cb = sizeof(STARTUPINFOEXW)
         si.lpAttributeList = cast(attr_list, ctypes.c_void_p)
@@ -262,18 +218,13 @@ class TerminalSession:
         cmdline = ctypes.create_unicode_buffer(comspec)
         home = os.path.expanduser('~')
 
-        _dbg("CreateProcessW: cmd=%s, cwd=%s", comspec, home)
-
         success = kernel32.CreateProcessW(
-            None,
-            cmdline,
+            None, cmdline,
             None, None,
             False,
             EXTENDED_STARTUPINFO_PRESENT,
-            None,
-            home,
-            ctypes.byref(si),
-            ctypes.byref(pi),
+            None, home,
+            ctypes.byref(si), ctypes.byref(pi),
         )
 
         kernel32.DeleteProcThreadAttributeList(attr_list)
@@ -283,8 +234,6 @@ class TerminalSession:
         kernel32.CloseHandle(out_write)
 
         if not success:
-            err = ctypes.get_last_error()
-            _dbg("CreateProcessW 失败, error=%d", err)
             kernel32.CloseHandle(out_read)
             kernel32.CloseHandle(in_write)
             return False, None
@@ -293,7 +242,6 @@ class TerminalSession:
 
     @staticmethod
     def _close_handles(kernel32, *handles):
-        """批量关闭句柄"""
         for h in handles:
             try:
                 kernel32.CloseHandle(h)
@@ -311,7 +259,6 @@ class TerminalSession:
             cwd=os.path.expanduser('~'),
         )
         self._fd = self._proc.stdout.fileno()
-        _dbg("PIPE 回退启动完成, fd=%s", self._fd)
 
     # ==================== 读写循环 ====================
 
@@ -319,17 +266,13 @@ class TerminalSession:
         """持续读取 shell 输出"""
         try:
             if self._conpty_mode:
-                _dbg("进入 ConPTY 读取循环")
                 self._read_conpty()
             elif sys.platform == 'win32' and self._proc:
-                _dbg("进入 PIPE 读取循环")
                 self._read_pipe()
             else:
-                _dbg("进入 Unix 读取循环")
                 self._read_unix()
         except Exception:
-            import traceback
-            _dbg("读取循环异常: %s", traceback.format_exc())
+            pass
 
     def _read_unix(self):
         """Unix pty 读取"""
@@ -373,25 +316,17 @@ class TerminalSession:
     def write(self, data):
         """写入数据到 shell stdin"""
         if not self._running:
-            _dbg("write: 终端未运行, 忽略")
             return
         try:
             if self._conpty_mode and self._conpty_in_write is not None:
-                encoded = data.encode('utf-8')
-                _dbg("write(ConPTY): len=%d, repr=%s", len(encoded), repr(encoded[:50]))
-                os.write(self._conpty_in_write, encoded)
+                os.write(self._conpty_in_write, data.encode('utf-8'))
             elif sys.platform == 'win32' and isinstance(self._proc, subprocess.Popen):
-                encoded = data.encode('utf-8')
-                _dbg("write(PIPE): len=%d, repr=%s", len(encoded), repr(encoded[:50]))
-                self._proc.stdin.write(encoded)
+                self._proc.stdin.write(data.encode('utf-8'))
                 self._proc.stdin.flush()
             elif self._fd is not None:
-                encoded = data.encode('utf-8')
-                _dbg("write(Unix): len=%d, repr=%s", len(encoded), repr(encoded[:50]))
-                os.write(self._fd, encoded)
+                os.write(self._fd, data.encode('utf-8'))
         except Exception:
-            import traceback
-            _dbg("write 异常: %s", traceback.format_exc())
+            pass
 
     # ==================== 调整大小 ====================
 
@@ -399,16 +334,7 @@ class TerminalSession:
         """调整终端大小"""
         try:
             if self._conpty_hpc is not None:
-                try:
-                    import ctypes
-                    kernel32 = ctypes.WinDLL('kernel32', use_last_error=True)
-                    class COORD(ctypes.Structure):
-                        _fields_ = [('X', ctypes.c_short), ('Y', ctypes.c_short)]
-                    size = COORD(ctypes.c_short(cols), ctypes.c_short(rows))
-                    kernel32.ResizePseudoConsole(self._conpty_hpc, size)
-                    _dbg("ConPTY resize 成功: %sx%s", cols, rows)
-                except Exception as e:
-                    _dbg("ConPTY resize 失败: %s", e)
+                self._resize_conpty(cols, rows)
             elif sys.platform != 'win32' and self._fd is not None:
                 import fcntl
                 import struct
@@ -418,11 +344,23 @@ class TerminalSession:
         except Exception:
             pass
 
+    def _resize_conpty(self, cols, rows):
+        """ConPTY 大小调整"""
+        try:
+            import ctypes
+            kernel32 = ctypes.WinDLL('kernel32', use_last_error=True)
+
+            class COORD(ctypes.Structure):
+                _fields_ = [('X', ctypes.c_short), ('Y', ctypes.c_short)]
+            size = COORD(ctypes.c_short(cols), ctypes.c_short(rows))
+            kernel32.ResizePseudoConsole(self._conpty_hpc, size)
+        except Exception:
+            pass
+
     # ==================== 停止 ====================
 
     def stop(self):
         """终止 shell 进程"""
-        _dbg("stop() 被调用")
         self._running = False
 
         if self._conpty_hpc is not None:
@@ -466,7 +404,6 @@ class TerminalSession:
                 if pi.hThread:
                     kernel32.CloseHandle(pi.hThread)
 
-            # 关闭伪控制台（先尝试 kernel32，失败则忽略）
             try:
                 kernel32.ClosePseudoConsole(self._conpty_hpc)
             except Exception:

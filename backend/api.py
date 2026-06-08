@@ -1540,48 +1540,15 @@ class Api:
 
             session.start(on_output=_make_push(tid))
             self._terms[tid] = session
-            # 调试日志
-            try:
-                import tempfile, os as _os
-                _log = _os.path.join(tempfile.gettempdir(), 'devtools_terminal.log')
-                with open(_log, 'a', encoding='utf-8') as f:
-                    f.write(f"[API] term_create: tid={tid}, conpty_mode={session._conpty_mode}\n")
-            except Exception:
-                pass
             return self._success({"id": tid})
         except Exception as e:
-            # 调试日志
-            try:
-                import tempfile, os as _os, traceback
-                _log = _os.path.join(tempfile.gettempdir(), 'devtools_terminal.log')
-                with open(_log, 'a', encoding='utf-8') as f:
-                    f.write(f"[API] term_create FAILED: {e}\n{traceback.format_exc()}\n")
-            except Exception:
-                pass
             return self._error(str(e))
 
     def term_input(self, tid, data):
         """终端输入"""
-        # 调试：记录每次调用
-        try:
-            import tempfile, os as _os
-            _log = _os.path.join(tempfile.gettempdir(), 'devtools_terminal.log')
-            with open(_log, 'a', encoding='utf-8') as f:
-                f.write(f"[API] term_input CALLED: tid={tid}, type={type(tid).__name__}, data_len={len(data)}, repr={repr(data[:30])}\n")
-        except Exception:
-            pass
-
         s = self._terms.get(int(tid))
         if s:
             s.write(data)
-        else:
-            try:
-                import tempfile, os as _os
-                _log = _os.path.join(tempfile.gettempdir(), 'devtools_terminal.log')
-                with open(_log, 'a', encoding='utf-8') as f:
-                    f.write(f"[API] term_input: tid={tid} NOT FOUND in _terms (keys={list(self._terms.keys())})\n")
-            except Exception:
-                pass
         return self._success(True)
 
     def term_resize(self, tid, cols, rows):
