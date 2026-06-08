@@ -25,6 +25,7 @@ class TerminalSession:
         self._conpty_hpc = None       # 伪控制台句柄
         self._conpty_in_write = None  # 写入端 fd（用户输入 → 进程）
         self._conpty_in_handle = None # 写入端原始 HANDLE（绕过 CRT 缓冲）
+        self._conpty_out_handle = None # 输出端原始 HANDLE（读取进程输出）
         self._conpty_pi = None        # PROCESS_INFORMATION
         self._conpty_mode = False     # 是否成功启用 ConPTY
 
@@ -131,10 +132,12 @@ class TerminalSession:
                 kernel32.ClosePseudoConsole(hpc)
                 return False
 
-            # Win32 HANDLE → CRT fd
+            # 保存原始 HANDLE（用于 ReadFile/WriteFile 直接操作）
+            self._conpty_out_handle = out_read.value
+            self._conpty_in_handle = in_write.value
+            # 同时创建 CRT fd（备用）
             import msvcrt
             self._fd = msvcrt.open_osfhandle(out_read.value, os.O_RDONLY)
-            self._conpty_in_handle = in_write.value  # 保存原始句柄，用于 WriteFile 绕过 CRT 缓冲
             self._conpty_in_write = msvcrt.open_osfhandle(in_write.value, os.O_WRONLY)
             self._conpty_hpc = hpc
             self._conpty_pi = pi
@@ -316,38 +319,46 @@ class TerminalSession:
                 self._on_output(line.decode('utf-8', errors='replace'))
 
     def _read_conpty(self):
-        """Windows ConPTY 读取"""
+        """Windows ConPTY 读取 — 使用 ReadFile 直接读原始句柄"""
+        import ctypes
+        from ctypes import wintypes, byref
         import tempfile as _tf
-        _log = os.path.join(_tf.gettempdir(), 'devtools_terminal.log')
-        with open(_log, 'a', encoding='utf-8') as f:
-            f.write("[Terminal] _read_conpty: 读取循环已启动, fd=%s\n" % self._fd)
 
+        kernel32 = ctypes.WinDLL('kernel32', use_last_error=True)
+        _log = os.path.join(_tf.gettempdir(), 'devtools_terminal.log')
+
+        with open(_log, 'a', encoding='utf-8') as f:
+            f.write("[Terminal] _read_conpty: 启动, out_handle=%s\n" % self._conpty_out_handle)
+
+        buf = ctypes.create_string_buffer(4096)
         read_count = 0
         while self._running:
-            try:
-                data = os.read(self._fd, 4096)
-                if not data:
-                    with open(_log, 'a', encoding='utf-8') as f:
-                        f.write("[Terminal] _read_conpty: 读取到空数据（管道关闭）\n")
-                    break
-
-                read_count += 1
-                if read_count <= 3:
-                    with open(_log, 'a', encoding='utf-8') as f:
-                        f.write("[Terminal] _read_conpty: 读取 #%d, len=%d, repr=%s\n" % (
-                            read_count, len(data), repr(data[:100])))
-
-                if self._on_output:
-                    # Windows 控制台使用系统 OEM 编码（中文 Windows 为 GBK）
-                    try:
-                        text = data.decode('gbk')
-                    except Exception:
-                        text = data.decode('utf-8', errors='replace')
-                    self._on_output(text)
-            except (OSError, ValueError) as e:
+            bytes_read = wintypes.DWORD(0)
+            success = kernel32.ReadFile(
+                self._conpty_out_handle,
+                buf, 4096,
+                byref(bytes_read), None
+            )
+            if not success or bytes_read.value == 0:
+                err = ctypes.get_last_error()
                 with open(_log, 'a', encoding='utf-8') as f:
-                    f.write("[Terminal] _read_conpty: 读取异常: %s\n" % e)
+                    f.write("[Terminal] _read_conpty: ReadFile 结束, success=%s, bytes=%s, err=%s\n" % (
+                        success, bytes_read.value, err))
                 break
+
+            data = buf.raw[:bytes_read.value]
+            read_count += 1
+            if read_count <= 3:
+                with open(_log, 'a', encoding='utf-8') as f:
+                    f.write("[Terminal] _read_conpty: 读取 #%d, len=%d, repr=%s\n" % (
+                        read_count, len(data), repr(data[:100])))
+
+            if self._on_output:
+                try:
+                    text = data.decode('gbk')
+                except Exception:
+                    text = data.decode('utf-8', errors='replace')
+                self._on_output(text)
 
     # ==================== 写入 ====================
 
@@ -476,6 +487,7 @@ class TerminalSession:
             self._conpty_hpc = None
             self._conpty_in_write = None
             self._conpty_in_handle = None
+            self._conpty_out_handle = None
             self._fd = None
             self._conpty_pi = None
             self._proc = None
