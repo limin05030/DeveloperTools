@@ -101,56 +101,73 @@ class TerminalSession:
     # ---- ConPTY 实现 ----
 
     def _try_conpty(self, cols, rows):
-        """尝试使用 ConPTY 伪终端启动（Windows 10 1809+）"""
+        """尝试使用 ConPTY 伪终端启动（Windows 10 1809+, 通过 ctypes 调用 kernel32）"""
         try:
-            # 先尝试 _winapi（CPython 内置）
-            import _winapi
-
-            if not hasattr(_winapi, 'CreatePseudoConsole'):
-                _dbg("_winapi.CreatePseudoConsole 不存在")
-                raise ImportError("CreatePseudoConsole not in _winapi")
-
-            _dbg("使用 _winapi.CreatePseudoConsole")
-
-            # 创建管道
-            out_read, out_write = _winapi.CreatePipe(None, 0)
-            in_read, in_write = _winapi.CreatePipe(None, 0)
-            _dbg("管道已创建 out_read=%s out_write=%s in_read=%s in_write=%s",
-                 out_read, out_write, in_read, in_write)
-
-            # 创建伪控制台
-            hpc = _winapi.CreatePseudoConsole((cols, rows), in_read, out_write, 0)
-            if not hpc or hpc == _winapi.NULL:
-                _winapi.CloseHandle(in_read)
-                _winapi.CloseHandle(in_write)
-                _winapi.CloseHandle(out_read)
-                _winapi.CloseHandle(out_write)
-                _dbg("CreatePseudoConsole 返回无效句柄")
-                return False
-
-            _dbg("CreatePseudoConsole 成功, hpc=%s", hpc)
-
-            # 创建进程
             import ctypes
-            from ctypes import wintypes, byref, sizeof, POINTER, cast
+            from ctypes import wintypes, byref
 
             kernel32 = ctypes.WinDLL('kernel32', use_last_error=True)
 
+            # 检查 CreatePseudoConsole 是否可用
+            try:
+                create_pc = kernel32.CreatePseudoConsole
+            except AttributeError:
+                _dbg("kernel32.CreatePseudoConsole 不存在（需要 Windows 10 1809+）")
+                return False
+
+            # ---- 创建管道 ----
+            out_read = wintypes.HANDLE()
+            out_write = wintypes.HANDLE()
+            if not kernel32.CreatePipe(byref(out_read), byref(out_write), None, 0):
+                _dbg("CreatePipe (output) 失败, err=%s", ctypes.get_last_error())
+                return False
+
+            in_read = wintypes.HANDLE()
+            in_write = wintypes.HANDLE()
+            if not kernel32.CreatePipe(byref(in_read), byref(in_write), None, 0):
+                _dbg("CreatePipe (input) 失败, err=%s", ctypes.get_last_error())
+                kernel32.CloseHandle(out_read)
+                kernel32.CloseHandle(out_write)
+                return False
+
+            _dbg("管道已创建 out_read=%s in_write=%s", out_read.value, in_write.value)
+
+            # ---- 创建伪控制台 ----
+            class COORD(ctypes.Structure):
+                _fields_ = [('X', ctypes.c_short), ('Y', ctypes.c_short)]
+
+            size = COORD(ctypes.c_short(cols), ctypes.c_short(rows))
+            hpc = wintypes.HANDLE()
+
+            ret = create_pc(size, in_read, out_write, 0, byref(hpc))
+            if ret != 0:  # S_OK == 0
+                _dbg("CreatePseudoConsole 失败, HRESULT=0x%08X", ret & 0xFFFFFFFF)
+                kernel32.CloseHandle(in_read)
+                kernel32.CloseHandle(in_write)
+                kernel32.CloseHandle(out_read)
+                kernel32.CloseHandle(out_write)
+                return False
+
+            _dbg("CreatePseudoConsole 成功, hpc=%s", hpc.value)
+
+            # ---- 创建进程 ----
             success, pi = self._conpty_create_process(
-                kernel32, hpc, in_read, in_write, out_read, out_write
+                kernel32, hpc,
+                in_read.value, in_write.value,
+                out_read.value, out_write.value
             )
 
             if not success:
-                _winapi.ClosePseudoConsole(hpc)
+                kernel32.ClosePseudoConsole(hpc)
                 _dbg("CreateProcess 失败")
                 return False
 
             _dbg("CreateProcess 成功, pid=%s", pi.dwProcessId)
 
-            # 将 Win32 HANDLE 转为 CRT fd
+            # 将 Win32 HANDLE 转为 CRT fd（os.read/os.write 需要）
             import msvcrt
-            self._fd = msvcrt.open_osfhandle(out_read, os.O_RDONLY)
-            self._conpty_in_write = msvcrt.open_osfhandle(in_write, os.O_WRONLY)
+            self._fd = msvcrt.open_osfhandle(out_read.value, os.O_RDONLY)
+            self._conpty_in_write = msvcrt.open_osfhandle(in_write.value, os.O_WRONLY)
             _dbg("fd 转换完成: _fd=%s, _conpty_in_write=%s",
                  self._fd, self._conpty_in_write)
 
@@ -163,7 +180,7 @@ class TerminalSession:
         except Exception as e:
             _dbg("ConPTY 异常: %s: %s", type(e).__name__, e)
             import traceback
-            traceback.print_exc()
+            _dbg("Traceback: %s", traceback.format_exc())
             return False
 
     def _conpty_create_process(self, kernel32, hpc, in_read, in_write,
@@ -378,8 +395,12 @@ class TerminalSession:
         try:
             if self._conpty_hpc is not None:
                 try:
-                    import _winapi
-                    _winapi.ResizePseudoConsole(self._conpty_hpc, (cols, rows))
+                    import ctypes
+                    kernel32 = ctypes.WinDLL('kernel32', use_last_error=True)
+                    class COORD(ctypes.Structure):
+                        _fields_ = [('X', ctypes.c_short), ('Y', ctypes.c_short)]
+                    size = COORD(ctypes.c_short(cols), ctypes.c_short(rows))
+                    kernel32.ResizePseudoConsole(self._conpty_hpc, size)
                     _dbg("ConPTY resize 成功: %sx%s", cols, rows)
                 except Exception as e:
                     _dbg("ConPTY resize 失败: %s", e)
@@ -440,14 +461,11 @@ class TerminalSession:
                 if pi.hThread:
                     kernel32.CloseHandle(pi.hThread)
 
+            # 关闭伪控制台（先尝试 kernel32，失败则忽略）
             try:
-                import _winapi
-                _winapi.ClosePseudoConsole(self._conpty_hpc)
+                kernel32.ClosePseudoConsole(self._conpty_hpc)
             except Exception:
-                try:
-                    kernel32.ClosePseudoConsole(self._conpty_hpc)
-                except Exception:
-                    pass
+                pass
 
             for attr in ('_fd', '_conpty_in_write'):
                 fd = getattr(self, attr, None)
