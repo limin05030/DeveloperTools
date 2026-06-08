@@ -83,7 +83,7 @@ class TerminalSession:
         """尝试使用 ConPTY 伪终端启动（Windows 10 1809+）"""
         try:
             import ctypes
-            from ctypes import wintypes, byref
+            from ctypes import wintypes, byref, POINTER
 
             kernel32 = ctypes.WinDLL('kernel32', use_last_error=True)
 
@@ -92,6 +92,17 @@ class TerminalSession:
                 create_pc = kernel32.CreatePseudoConsole
             except AttributeError:
                 return False
+
+            # ---- 定义 COORD ----
+            class COORD(ctypes.Structure):
+                _fields_ = [('X', ctypes.c_short), ('Y', ctypes.c_short)]
+
+            # ---- 设置 CreatePseudoConsole 参数类型（确保 ctypes 正确传参） ----
+            create_pc.argtypes = [
+                COORD, wintypes.HANDLE, wintypes.HANDLE,
+                wintypes.DWORD, POINTER(wintypes.HANDLE),
+            ]
+            create_pc.restype = wintypes.HRESULT
 
             # 创建通信管道
             out_read = wintypes.HANDLE()
@@ -107,9 +118,6 @@ class TerminalSession:
                 return False
 
             # 创建伪控制台
-            class COORD(ctypes.Structure):
-                _fields_ = [('X', ctypes.c_short), ('Y', ctypes.c_short)]
-
             size = COORD(ctypes.c_short(cols), ctypes.c_short(rows))
             hpc = wintypes.HANDLE()
 
@@ -119,6 +127,10 @@ class TerminalSession:
                 kernel32.CloseHandle(in_write)
                 kernel32.CloseHandle(out_read)
                 kernel32.CloseHandle(out_write)
+                import tempfile as _tf
+                _log = os.path.join(_tf.gettempdir(), 'devtools_terminal.log')
+                with open(_log, 'a', encoding='utf-8') as f:
+                    f.write(f"[ConPTY] CreatePseudoConsole FAILED: HRESULT=0x{ret & 0xFFFFFFFF:08X}\n")
                 return False
 
             # 创建进程
@@ -156,7 +168,6 @@ class TerminalSession:
 
         PROC_THREAD_ATTRIBUTE_PSEUDOCONSOLE = 0x00020016
         EXTENDED_STARTUPINFO_PRESENT = 0x00080000
-        CREATE_NO_WINDOW = 0x08000000
 
         class STARTUPINFOW(ctypes.Structure):
             _fields_ = [
@@ -229,8 +240,7 @@ class TerminalSession:
         cmdline = ctypes.create_unicode_buffer(comspec)
         home = os.path.expanduser('~')
 
-        # CREATE_NO_WINDOW 阻止弹出独立控制台窗口
-        creation_flags = EXTENDED_STARTUPINFO_PRESENT | CREATE_NO_WINDOW
+        creation_flags = EXTENDED_STARTUPINFO_PRESENT
 
         # 诊断日志
         import tempfile as _tf
