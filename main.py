@@ -53,12 +53,41 @@ if __name__ == "__main__":
         js_api=api,
         width=1200,
         height=880,
-        resizable=False
+        resizable=False,
+        hidden=True,  # 先隐藏，等背景色设好后再显示，避免白屏闪烁
     )
     api.set_window(window)
 
-    if DEBUG_MODE and sys.platform != "win32":
-        # macOS / Linux: WKWebView/GTK 不会自动弹出 DevTools，注入 eruda 作为页内调试面板
-        window.events.loaded += lambda: window.evaluate_js(ERUDA_INJECT_JS)
+    def _on_loaded():
+        """页面加载完成后：设置原生背景色 → 显示窗口 → 注入调试工具"""
+        if sys.platform == "darwin":
+            try:
+                import AppKit
+                from Foundation import NSColor
+
+                for w in AppKit.NSApp.windows():
+                    if w.title() == "开发者工具":
+                        bg = NSColor.colorWithRed_green_blue_alpha_(
+                            0.949, 0.949, 0.969, 1.0  # #F2F2F7
+                        )
+                        w.setBackgroundColor_(bg)
+                        # 找到 WKWebView 并设置其底色
+                        for sv in w.contentView().subviews():
+                            name = (
+                                sv.className()
+                                if hasattr(sv, "className")
+                                else str(type(sv))
+                            )
+                            if "WKWebView" in name:
+                                sv.setValue_forKey_(bg, "underPageBackgroundColor")
+            except Exception:
+                pass
+
+        window.show()
+
+        if DEBUG_MODE and sys.platform != "win32":
+            window.evaluate_js(ERUDA_INJECT_JS)
+
+    window.events.loaded += _on_loaded
 
     webview.start(debug=DEBUG_MODE)

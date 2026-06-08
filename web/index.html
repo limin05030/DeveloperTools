@@ -4,6 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>开发者工具</title>
+    <meta name="color-scheme" content="light dark">
+    <!-- 避免页面加载前出现白屏：在外链 CSS 加载前先设置背景色 -->
+    <style>
+        html, body {
+            background-color: #F2F2F7;
+            margin: 0;
+            padding: 0;
+            height: 100%;
+        }
+    </style>
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5/css/xterm.css">
     <link rel="icon" href="../images/app.png" type="image/png">
