@@ -1284,6 +1284,14 @@ window.addEventListener('pywebviewready', () => {
         });
     });
 
+    // AI 聊天导航按钮
+    const aichatBackBtn = document.getElementById('aichat-btn-back');
+    const aichatForwardBtn = document.getElementById('aichat-btn-forward');
+    const aichatReloadBtn = document.getElementById('aichat-btn-reload');
+    if (aichatBackBtn) aichatBackBtn.addEventListener('click', () => pywebview.api.embed_browser_go_back());
+    if (aichatForwardBtn) aichatForwardBtn.addEventListener('click', () => pywebview.api.embed_browser_go_forward());
+    if (aichatReloadBtn) aichatReloadBtn.addEventListener('click', () => pywebview.api.embed_browser_reload());
+
     // 加密解密：算法子标签切换时更新 UI
     document.querySelectorAll('.sub-nav-item[data-sub^="crypto-algo-"]').forEach(btn => {
         btn.addEventListener('click', () => setTimeout(updateCryptoAlgoTabUI, 0));

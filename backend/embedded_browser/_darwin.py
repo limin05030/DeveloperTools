@@ -290,7 +290,10 @@ class EmbeddedBrowser:
             return self._views[tab_id]
 
         import AppKit
-        from WebKit import WKWebView, WKWebViewConfiguration, WKWebsiteDataStore
+        from WebKit import (
+            WKWebView, WKWebViewConfiguration, WKWebsiteDataStore,
+            WKUserContentController, WKUserScript,
+        )
         from Foundation import NSMakeRect, NSURL, NSURLRequest
 
         cw = self._main_content.frame().size.width
@@ -298,16 +301,57 @@ class EmbeddedBrowser:
 
         frame = NSMakeRect(SIDEBAR_W, TAB_BAR_H, max(cw - SIDEBAR_W, 100), ch - TAB_BAR_H)
 
+        # 检测当前外观模式，确定背景色
+        is_dark = False
+        try:
+            from AppKit import NSApp
+            best_match = NSApp.effectiveAppearance().bestMatchFromAppearancesWithNames_(
+                ["NSAppearanceNameDarkAqua", "NSAppearanceNameAqua"]
+            )
+            is_dark = best_match == "NSAppearanceNameDarkAqua"
+        except Exception:
+            pass
+
+        bg_hex = "#121212" if is_dark else "#F2F2F7"
+
         config = WKWebViewConfiguration.alloc().init()
         config.setWebsiteDataStore_(WKWebsiteDataStore.defaultDataStore())
         if self._process_pool:
             config.setProcessPool_(self._process_pool)
+
+        # 注入 CSS 在网页加载最早时机设置背景色，消除白色闪烁
+        try:
+            user_ctrl = WKUserContentController.alloc().init()
+            js_code = (
+                'var s=document.createElement("style");'
+                's.textContent="html,body{background-color:' + bg_hex + '}";'
+                'document.documentElement.appendChild(s);'
+            )
+            # WKUserScriptInjectionTimeAtDocumentStart = 0
+            script = WKUserScript.alloc().initWithSource_injectionTime_forMainFrameOnly_(
+                js_code, 0, True
+            )
+            user_ctrl.addUserScript_(script)
+            config.setUserContentController_(user_ctrl)
+        except Exception:
+            pass  # 非关键功能，静默忽略
 
         wv = WKWebView.alloc().initWithFrame_configuration_(frame, config)
         wv.setTranslatesAutoresizingMaskIntoConstraints_(True)
         wv.setAutoresizingMask_(
             AppKit.NSViewWidthSizable | AppKit.NSViewHeightSizable)
         wv.setHidden_(True)
+
+        # 设置原生层背景色（WKWebView 底层）
+        try:
+            from AppKit import NSColor
+            if is_dark:
+                bg_color = NSColor.colorWithRed_green_blue_alpha_(0.071, 0.071, 0.071, 1.0)
+            else:
+                bg_color = NSColor.colorWithRed_green_blue_alpha_(0.949, 0.949, 0.969, 1.0)
+            wv.setValue_forKey_(bg_color, "underPageBackgroundColor")
+        except Exception:
+            pass  # 非关键功能，静默忽略
 
         self._main_content.addSubview_(wv)
 
@@ -359,6 +403,45 @@ class EmbeddedBrowser:
             self._current = None
 
         self._run_on_main(_hide_and_save)
+
+    def go_back(self):
+        """当前标签页后退"""
+        if not self._current or self._current not in self._views:
+            return False
+        try:
+            def _back():
+                self._views[self._current].goBack()
+            self._run_on_main(_back)
+            return True
+        except Exception:
+            log.exception("go_back 失败")
+            return False
+
+    def go_forward(self):
+        """当前标签页前进"""
+        if not self._current or self._current not in self._views:
+            return False
+        try:
+            def _forward():
+                self._views[self._current].goForward()
+            self._run_on_main(_forward)
+            return True
+        except Exception:
+            log.exception("go_forward 失败")
+            return False
+
+    def reload(self):
+        """当前标签页刷新"""
+        if not self._current or self._current not in self._views:
+            return False
+        try:
+            def _reload():
+                self._views[self._current].reload()
+            self._run_on_main(_reload)
+            return True
+        except Exception:
+            log.exception("reload 失败")
+            return False
 
 
 _embedded_browser = None

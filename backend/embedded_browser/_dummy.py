@@ -9,6 +9,15 @@ class EmbeddedBrowser:
     def hide(self):
         pass
 
+    def go_back(self):
+        return False
+
+    def go_forward(self):
+        return False
+
+    def reload(self):
+        return False
+
 
 _embedded_browser = None
 

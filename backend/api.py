@@ -62,6 +62,36 @@ class Api:
         except Exception as e:
             return self._error(e)
 
+    def embed_browser_go_back(self):
+        """嵌入式浏览器后退"""
+        try:
+            from backend.embedded_browser import get_embedded_browser
+            eb = get_embedded_browser()
+            ok = eb.go_back()
+            return self._success(ok)
+        except Exception as e:
+            return self._error(e)
+
+    def embed_browser_go_forward(self):
+        """嵌入式浏览器前进"""
+        try:
+            from backend.embedded_browser import get_embedded_browser
+            eb = get_embedded_browser()
+            ok = eb.go_forward()
+            return self._success(ok)
+        except Exception as e:
+            return self._error(e)
+
+    def embed_browser_reload(self):
+        """嵌入式浏览器刷新"""
+        try:
+            from backend.embedded_browser import get_embedded_browser
+            eb = get_embedded_browser()
+            ok = eb.reload()
+            return self._success(ok)
+        except Exception as e:
+            return self._error(e)
+
     def get_local_permissions(self, platform):
         try:
             path = os.path.join(self.storage_dir, f"{platform}_perms.json")
