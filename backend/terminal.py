@@ -153,6 +153,7 @@ class TerminalSession:
 
         PROC_THREAD_ATTRIBUTE_PSEUDOCONSOLE = 0x00020016
         EXTENDED_STARTUPINFO_PRESENT = 0x00080000
+        CREATE_NO_WINDOW = 0x08000000
 
         class STARTUPINFOW(ctypes.Structure):
             _fields_ = [
@@ -190,24 +191,31 @@ class TerminalSession:
                 ('dwThreadId', wintypes.DWORD),
             ]
 
-        # 初始化属性列表
+        # 初始化属性列表（第一次调用获取大小，预期返回 FALSE）
         attr_size = ctypes.c_size_t()
         kernel32.InitializeProcThreadAttributeList(None, 1, 0, byref(attr_size))
+        if attr_size.value == 0:
+            self._close_handles(kernel32, in_read, in_write, out_read, out_write)
+            return False, None
+
         attr_list = ctypes.create_string_buffer(attr_size.value)
         if not kernel32.InitializeProcThreadAttributeList(attr_list, 1, 0, byref(attr_size)):
             self._close_handles(kernel32, in_read, in_write, out_read, out_write)
             return False, None
 
-        # 设置 ConPTY 属性（byref 传指针，sizeof(HANDLE) 为大小）
+        # 设置伪控制台属性 — 传递 HPCON 句柄
         if not kernel32.UpdateProcThreadAttribute(
-            attr_list, 0, PROC_THREAD_ATTRIBUTE_PSEUDOCONSOLE,
-            ctypes.byref(hpc), ctypes.sizeof(wintypes.HANDLE), None, None
+            attr_list, 0,
+            PROC_THREAD_ATTRIBUTE_PSEUDOCONSOLE,
+            ctypes.byref(hpc),
+            ctypes.sizeof(ctypes.c_void_p),
+            None, None
         ):
             kernel32.DeleteProcThreadAttributeList(attr_list)
             self._close_handles(kernel32, in_read, in_write, out_read, out_write)
             return False, None
 
-        # 创建进程
+        # 构建 STARTUPINFOEX
         si = STARTUPINFOEXW()
         si.StartupInfo.cb = sizeof(STARTUPINFOEXW)
         si.lpAttributeList = cast(attr_list, ctypes.c_void_p)
@@ -218,18 +226,31 @@ class TerminalSession:
         cmdline = ctypes.create_unicode_buffer(comspec)
         home = os.path.expanduser('~')
 
+        # CREATE_NO_WINDOW 阻止弹出独立控制台窗口
+        creation_flags = EXTENDED_STARTUPINFO_PRESENT | CREATE_NO_WINDOW
+
+        # 诊断日志
+        import tempfile as _tf
+        _log = os.path.join(_tf.gettempdir(), 'devtools_terminal.log')
+        with open(_log, 'a', encoding='utf-8') as f:
+            f.write(f"[ConPTY] CreateProcessW: hpc={hpc.value}, attr_size={attr_size.value}, flags=0x{creation_flags:08X}\n")
+
         success = kernel32.CreateProcessW(
             None, cmdline,
             None, None,
             False,
-            EXTENDED_STARTUPINFO_PRESENT,
+            creation_flags,
             None, home,
             ctypes.byref(si), ctypes.byref(pi),
         )
 
+        with open(_log, 'a', encoding='utf-8') as f:
+            err = ctypes.get_last_error()
+            f.write(f"[ConPTY] CreateProcessW result: success={success}, pid={pi.dwProcessId}, lastError={err}\n")
+
         kernel32.DeleteProcThreadAttributeList(attr_list)
 
-        # 关闭已被 ConPTY 接管的管道端
+        # ConPTY 已接管 in_read / out_write，关闭我们这边的引用
         kernel32.CloseHandle(in_read)
         kernel32.CloseHandle(out_write)
 
