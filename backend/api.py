@@ -25,7 +25,7 @@ class Api:
         self._window = None
         self._debug = is_debug
         self._raw_uuids = []
-        self._term = None       # TerminalSession
+        self._terms = {}        # id → TerminalSession
         self.APPLE_OFFSET = 978307200
         self.storage_dir = os.path.join(os.path.expanduser("~"), ".developer_tools")
         if not os.path.exists(self.storage_dir):
@@ -1490,45 +1490,49 @@ class Api:
             return self._error(f"还原失败: {str(e)}")
     # ---- Terminal ----
 
-    def term_start(self):
-        """启动终端会话"""
+    def term_create(self, tid):
+        """创建终端会话"""
         try:
             from backend.terminal import TerminalSession
-            if self._term:
-                self._term.stop()
-            self._term = TerminalSession()
+            tid = int(tid)
+            session = TerminalSession()
 
-            def _push(data):
-                import json as _json
-                encoded = _json.dumps(data)
-                js = f"if(window._termWrite)window._termWrite({encoded})"
-                try:
-                    self._window.evaluate_js(js)
-                except Exception:
-                    pass
+            def _make_push(term_id):
+                def _push(data):
+                    import json as _json
+                    encoded = _json.dumps(data)
+                    js = f"if(window._termWrites&&window._termWrites[{term_id}])window._termWrites[{term_id}]({encoded})"
+                    try:
+                        self._window.evaluate_js(js)
+                    except Exception:
+                        pass
+                return _push
 
-            self._term.start(on_output=_push)
-            return self._success(True)
+            session.start(on_output=_make_push(tid))
+            self._terms[tid] = session
+            return self._success({"id": tid})
         except Exception as e:
             return self._error(str(e))
 
-    def term_input(self, data):
+    def term_input(self, tid, data):
         """终端输入"""
-        if self._term:
-            self._term.write(data)
+        s = self._terms.get(int(tid))
+        if s:
+            s.write(data)
         return self._success(True)
 
-    def term_resize(self, cols, rows):
+    def term_resize(self, tid, cols, rows):
         """调整终端大小"""
-        if self._term:
-            self._term.resize(int(cols), int(rows))
+        s = self._terms.get(int(tid))
+        if s:
+            s.resize(int(cols), int(rows))
         return self._success(True)
 
-    def term_stop(self):
+    def term_stop(self, tid):
         """停止终端"""
-        if self._term:
-            self._term.stop()
-            self._term = None
+        s = self._terms.pop(int(tid), None)
+        if s:
+            s.stop()
         return self._success(True)
 
     def _get_translation_cache(self):

@@ -25,8 +25,12 @@ document.querySelectorAll('.nav-item').forEach(btn => {
         }
 
         // 终端管理
+        const content = document.querySelector('.content');
         if (target === 'terminal') {
+            if (content) { content.style.overflowY = 'hidden'; content.style.padding = '0'; }
             if (typeof initTerminal === 'function') initTerminal();
+        } else {
+            if (content) { content.style.overflowY = ''; content.style.padding = ''; }
         }
     });
 });

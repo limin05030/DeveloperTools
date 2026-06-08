@@ -1148,7 +1148,13 @@
 
             <!-- 终端 -->
             <section id="terminal" class="tab-content">
-                <div id="terminal-container" style="width: 100%; height: calc(100vh - 60px); overflow: hidden;"></div>
+                <div id="terminal-container" style="width:100%;height:calc(100vh + 8px);overflow:hidden;display:flex;flex-direction:column;">
+                    <div id="term-tab-bar" style="flex-shrink:0;display:flex;align-items:center;gap:2px;height:32px;padding:0 8px;background:#1e1e1e;border-bottom:1px solid var(--border-color);overflow-x:auto;">
+                        <div id="term-tabs" style="display:flex;gap:2px;"></div>
+                        <button id="term-new-btn" title="新建终端" style="flex-shrink:0;width:22px;height:22px;margin-left:4px;border:1px solid var(--border-color);border-radius:4px;background:#252526;color:#fff;font-size:15px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;border-color:#3a3a3a;">+</button>
+                    </div>
+                    <div id="term-panels" style="flex:1;position:relative;min-height:0;"></div>
+                </div>
             </section>
 
             <!-- AI Chat Tab -->
@@ -1186,100 +1192,119 @@
     </div>
     <script src="js/app.js"></script>
     <script>
-    // ---- 终端初始化（xterm.js 首次访问时动态加载） ----
-    let term = null;
-    let termFit = null;
-    let termStarted = false;
-    let _xtermLoading = false;
-    let _xtermLoaded = false;
-    let _termInitPending = false;
+    // ---- 终端初始化（多标签 + xterm 动态加载） ----
+    let _xtermLoading = false, _xtermLoaded = false;
+    let _termCounter = 0, _terms = {}, _activeTid = null;
 
-    function _loadXterm(callback) {
-        if (_xtermLoaded) { callback(); return; }
-        if (_xtermLoading) {
-            setTimeout(() => _loadXterm(callback), 50);
-            return;
-        }
+    function _loadXterm(cb) {
+        if (_xtermLoaded) { cb(); return; }
+        if (_xtermLoading) { setTimeout(() => _loadXterm(cb), 50); return; }
         _xtermLoading = true;
         var css = document.createElement('link');
-        css.rel = 'stylesheet';
-        css.href = 'https://cdn.jsdelivr.net/npm/xterm@5/css/xterm.css';
+        css.rel = 'stylesheet'; css.href = 'https://cdn.jsdelivr.net/npm/xterm@5/css/xterm.css';
         document.head.appendChild(css);
-        var script = document.createElement('script');
-        script.src = 'https://cdn.jsdelivr.net/npm/xterm@5/lib/xterm.js';
-        script.onload = function() {
-            var fitScript = document.createElement('script');
-            fitScript.src = 'https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.8/lib/xterm-addon-fit.js';
-            fitScript.onload = function() {
-                _xtermLoaded = true;
-                _xtermLoading = false;
-                callback();
-            };
-            document.head.appendChild(fitScript);
+        var s = document.createElement('script');
+        s.src = 'https://cdn.jsdelivr.net/npm/xterm@5/lib/xterm.js';
+        s.onload = function() {
+            var fs = document.createElement('script');
+            fs.src = 'https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.8/lib/xterm-addon-fit.js';
+            fs.onload = function() { _xtermLoaded = true; _xtermLoading = false; cb(); };
+            document.head.appendChild(fs);
         };
-        document.head.appendChild(script);
+        document.head.appendChild(s);
+    }
+
+    function _newTermPanel(tid) {
+        var p = document.createElement('div');
+        p.className = 'term-panel'; p.id = 'term-panel-' + tid;
+        document.getElementById('term-panels').appendChild(p);
+
+        var t = new Terminal({
+            fontSize: 14, fontFamily: 'Menlo, Monaco, "Courier New", monospace',
+            theme: { background: '#1e1e1e', foreground: '#d4d4d4', cursor: '#ffffff' },
+            cursorBlink: true, allowProposedApi: true,
+        });
+        var f = new FitAddon.FitAddon();
+        t.loadAddon(f); t.open(p);
+
+        t.onData(function(d) { pywebview.api.term_input(tid, d); });
+
+        window._termWrites = window._termWrites || {};
+        window._termWrites[tid] = function(d) { t.write(d); };
+
+        _terms[tid] = { term: t, fit: f, started: false, panel: p };
+
+        pywebview.api.term_create(tid).then(function(r) {
+            if (r && r.success) { _terms[tid].started = true; t.focus(); }
+        });
+
+        setTimeout(function() { if (_terms[tid]) f.fit(); }, 80);
+        setTimeout(function() { if (_terms[tid]) f.fit(); }, 300);
+    }
+
+    function _switchTerm(tid) {
+        if (_activeTid === tid) return;
+        Object.values(_terms).forEach(function(t) { t.panel.style.display = 'none'; });
+        document.querySelectorAll('.term-tab').forEach(function(t) { t.classList.remove('active'); });
+        if (_terms[tid]) {
+            _terms[tid].panel.style.display = '';
+            var tab = document.getElementById('term-tab-' + tid);
+            if (tab) tab.classList.add('active');
+            _activeTid = tid;
+            setTimeout(function() { if (_terms[tid]) _terms[tid].fit.fit(); }, 50);
+        }
+    }
+
+    function _addTermTab() {
+        _termCounter++; var tid = _termCounter;
+
+        var tab = document.createElement('div');
+        tab.className = 'term-tab active'; tab.id = 'term-tab-' + tid;
+        tab.innerHTML = '<span class="tab-name">终端 ' + tid + '</span><span class="tab-close">&times;</span>';
+        tab.querySelector('.tab-name').onclick = function() { _switchTerm(tid); };
+        tab.querySelector('.tab-close').onclick = function(e) { e.stopPropagation(); _closeTerm(tid); };
+        document.querySelectorAll('.term-tab').forEach(function(t) { t.classList.remove('active'); });
+        document.getElementById('term-tabs').appendChild(tab);
+
+        Object.values(_terms).forEach(function(t) { t.panel.style.display = 'none'; });
+        _newTermPanel(tid);
+        _switchTerm(tid);
+    }
+
+    function _closeTerm(tid) {
+        var t = _terms[tid]; if (!t) return;
+        pywebview.api.term_stop(tid).catch(function(){});
+        try { t.term.dispose(); } catch(e) {}
+        if (t.panel.parentNode) t.panel.remove();
+        delete window._termWrites[tid]; delete _terms[tid];
+        var tab = document.getElementById('term-tab-' + tid);
+        if (tab) tab.remove();
+        if (_activeTid === tid) {
+            var ids = Object.keys(_terms);
+            if (ids.length) _switchTerm(parseInt(ids[ids.length - 1]));
+            else _activeTid = null;
+        }
     }
 
     function initTerminal() {
-        if (term) return;
-        if (_termInitPending) return;
-        const container = document.getElementById('terminal-container');
-        if (!container) return;
-
-        _termInitPending = true;
-        _loadXterm(function() {
-            _termInitPending = false;
-            if (term) return;
-
-            term = new Terminal({
-                fontSize: 14,
-                fontFamily: 'Menlo, Monaco, "Courier New", monospace',
-                theme: { background: '#1e1e1e', foreground: '#d4d4d4', cursor: '#ffffff' },
-                cursorBlink: true,
-                allowProposedApi: true,
-            });
-
-            termFit = new FitAddon.FitAddon();
-            term.loadAddon(termFit);
-            term.open(container);
-            setTimeout(() => { if (termFit) termFit.fit(); }, 50);
-
-            term.onData(data => {
-                if (termStarted) {
-                    pywebview.api.term_input(data);
-                }
-            });
-
-            window._termWrite = function(text) {
-                if (term) term.write(text);
-            };
-
-            pywebview.api.term_start().then(() => {
-                termStarted = true;
-                term.focus();
-            });
-
-            window.addEventListener('resize', () => {
-                if (termFit) termFit.fit();
-                if (termStarted) {
-                    pywebview.api.term_resize(term.cols, term.rows);
-                }
-            });
-        });
+        if (Object.keys(_terms).length > 0) { _switchTerm(_activeTid || parseInt(Object.keys(_terms)[0])); return; }
+        _loadXterm(function() { _addTermTab(); });
     }
 
+    document.getElementById('term-new-btn').onclick = function() {
+        if (!_xtermLoaded) { _loadXterm(function() { _addTermTab(); }); }
+        else { _addTermTab(); }
+    };
+
+    window.addEventListener('resize', function() {
+        Object.entries(_terms).forEach(function(e) {
+            e[1].fit.fit();
+            if (e[1].started) pywebview.api.term_resize(parseInt(e[0]), e[1].term.cols, e[1].term.rows).catch(function(){});
+        });
+    });
+
     function stopTerminal() {
-        if (termStarted) {
-            pywebview.api.term_stop();
-            termStarted = false;
-        }
-        if (term) {
-            term.dispose();
-            term = null;
-            termFit = null;
-            window._termWrite = null;
-        }
-        _termInitPending = false;
+        Object.keys(_terms).forEach(function(tid) { _closeTerm(parseInt(tid)); });
     }
     </script>
 </body>
