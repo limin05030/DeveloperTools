@@ -127,7 +127,17 @@ class TerminalSession:
                 if sys.platform == 'win32':
                     self._proc.kill()
                 else:
+                    # SIGTERM 优雅终止进程组
                     os.killpg(os.getpgid(self._proc.pid), signal.SIGTERM)
+                # 等待子进程退出，避免僵尸进程阻塞应用关闭
+                try:
+                    self._proc.wait(timeout=2)
+                except subprocess.TimeoutExpired:
+                    try:
+                        self._proc.kill()
+                        self._proc.wait(timeout=1)
+                    except Exception:
+                        pass
             except Exception:
                 pass
             self._proc = None

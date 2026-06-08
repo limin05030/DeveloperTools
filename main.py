@@ -1,16 +1,10 @@
 # -*- coding: utf-8 -*-
-import logging
 import os
 import sys
-
 import certifi
-
 os.environ['SSL_CERT_FILE'] = certifi.where()
-
 import webview
 from backend.api import Api
-
-logging.basicConfig(level=logging.INFO, format='[%(levelname)s] %(name)s: %(message)s')
 
 # pip freeze > requirements.txt （不要使用这个命令更新requirements.txt，有些库是 macOS 平台专有的）
 # pip install -r requirements.txt
@@ -92,12 +86,6 @@ if __name__ == "__main__":
 
         if DEBUG_MODE and sys.platform != "win32":
             window.evaluate_js(ERUDA_INJECT_JS)
-
-    # macOS：关闭窗口时隐藏而非退出，保留会话 Cookie（模仿 Safari 行为）
-    if sys.platform == "darwin":
-        def _on_closing():
-            window.hide()
-        window.events.closing += _on_closing
 
     window.events.loaded += _on_loaded
 

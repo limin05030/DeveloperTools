@@ -118,6 +118,7 @@ class EmbeddedBrowser:
 
     def _save_cookies(self):
         """异步保存 cookies 到磁盘（fire-and-forget，不阻塞主线程）"""
+        return  # TODO: 排查卡死，暂时禁用
         if not self._views:
             return
 
@@ -175,12 +176,9 @@ class EmbeddedBrowser:
     # ---------- Cookies 恢复 ----------
 
     def _restore_cookies(self):
-        """同步恢复 cookies 到 NSHTTPCookieStorage（必须在主线程调用）
-
-        NSHTTPCookieStorage.setCookie_() 是同步方法，无需等待异步回调。
-        WKWebView 在 macOS 上与 NSHTTPCookieStorage 共享底层 cookie 存储，
-        因此写入 NSHTTPCookieStorage 后 WKWebView 能直接读取。
-        """
+        """同步恢复 cookies 到 NSHTTPCookieStorage（必须在主线程调用）"""
+        self._cookies_restored = True
+        return  # TODO: 排查卡死，暂时禁用
         if not os.path.exists(COOKIE_FILE):
             self._cookies_restored = True
             return
