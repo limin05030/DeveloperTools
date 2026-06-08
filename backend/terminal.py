@@ -3,7 +3,6 @@
 
 import os
 import sys
-import pty
 import subprocess
 import threading
 import signal
@@ -63,7 +62,8 @@ class TerminalSession:
 
     def _start_unix(self, cols, rows):
         """Unix: 通过 pty 伪终端启动"""
-        master_fd, slave_fd = pty.openpty()
+        import pty as _pty
+        master_fd, slave_fd = _pty.openpty()
         self._fd = master_fd
 
         try:
