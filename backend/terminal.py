@@ -7,15 +7,23 @@ import pty
 import subprocess
 import threading
 import signal
+import tempfile
 
 _instances = {}
 
+# 调试日志文件（Windows 上无控制台，写文件才能看到）
+_DBG_FILE = os.path.join(tempfile.gettempdir(), 'devtools_terminal.log')
+
 
 def _dbg(msg, *args):
-    """调试输出，确保在所有环境下都可见"""
+    """调试输出：写入临时文件"""
     if args:
         msg = msg % args
-    print(f"[Terminal] {msg}", flush=True)
+    try:
+        with open(_DBG_FILE, 'a', encoding='utf-8') as f:
+            f.write(f"[Terminal] {msg}\n")
+    except Exception:
+        pass
 
 
 class TerminalSession:
