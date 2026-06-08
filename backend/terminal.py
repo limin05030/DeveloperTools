@@ -24,6 +24,7 @@ class TerminalSession:
         # Windows ConPTY 专用
         self._conpty_hpc = None       # 伪控制台句柄
         self._conpty_in_write = None  # 写入端 fd（用户输入 → 进程）
+        self._conpty_in_handle = None # 写入端原始 HANDLE（绕过 CRT 缓冲）
         self._conpty_pi = None        # PROCESS_INFORMATION
         self._conpty_mode = False     # 是否成功启用 ConPTY
 
@@ -133,6 +134,7 @@ class TerminalSession:
             # Win32 HANDLE → CRT fd
             import msvcrt
             self._fd = msvcrt.open_osfhandle(out_read.value, os.O_RDONLY)
+            self._conpty_in_handle = in_write.value  # 保存原始句柄，用于 WriteFile 绕过 CRT 缓冲
             self._conpty_in_write = msvcrt.open_osfhandle(in_write.value, os.O_WRONLY)
             self._conpty_hpc = hpc
             self._conpty_pi = pi
@@ -318,10 +320,26 @@ class TerminalSession:
         if not self._running:
             return
         try:
-            if self._conpty_mode and self._conpty_in_write is not None:
-                os.write(self._conpty_in_write, data.encode('utf-8'))
+            if self._conpty_mode and self._conpty_in_handle is not None:
+                # 使用 WriteFile 直接写入句柄，绕过 CRT 缓冲
+                import ctypes
+                from ctypes import wintypes, byref
+                kernel32 = ctypes.WinDLL('kernel32', use_last_error=True)
+                # Windows 控制台需要 \r\n，xterm.js 只发送 \r
+                payload = data.replace('\r', '\r\n').encode('utf-8')
+                written = wintypes.DWORD(0)
+                kernel32.WriteFile(
+                    self._conpty_in_handle,
+                    payload, len(payload),
+                    byref(written), None
+                )
+            elif self._conpty_mode and self._conpty_in_write is not None:
+                # 备用：CRT fd 方式
+                payload = data.replace('\r', '\r\n')
+                os.write(self._conpty_in_write, payload.encode('utf-8'))
             elif sys.platform == 'win32' and isinstance(self._proc, subprocess.Popen):
-                self._proc.stdin.write(data.encode('utf-8'))
+                payload = data.replace('\r', '\r\n')
+                self._proc.stdin.write(payload.encode('utf-8'))
                 self._proc.stdin.flush()
             elif self._fd is not None:
                 os.write(self._fd, data.encode('utf-8'))
@@ -421,6 +439,7 @@ class TerminalSession:
         finally:
             self._conpty_hpc = None
             self._conpty_in_write = None
+            self._conpty_in_handle = None
             self._fd = None
             self._conpty_pi = None
             self._proc = None
