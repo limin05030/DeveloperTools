@@ -27,8 +27,6 @@ document.querySelectorAll('.nav-item').forEach(btn => {
         // 终端管理
         if (target === 'terminal') {
             if (typeof initTerminal === 'function') initTerminal();
-        } else if (prevId === 'terminal') {
-            if (typeof stopTerminal === 'function') stopTerminal();
         }
     });
 });

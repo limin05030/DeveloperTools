@@ -30,11 +30,7 @@ class Api:
         self.storage_dir = os.path.join(os.path.expanduser("~"), ".developer_tools")
         if not os.path.exists(self.storage_dir):
             os.makedirs(self.storage_dir)
-        try:
-            from pillow_heif import register_heif_opener
-            register_heif_opener()
-        except ImportError:
-            pass
+        # pillow_heif 改为按需加载（首次处理 HEIC 图片时）
 
     def set_window(self, window):
         self._window = window
@@ -1503,7 +1499,6 @@ class Api:
             self._term = TerminalSession()
 
             def _push(data):
-                # 使用 JSON 编码安全传递任意字符
                 import json as _json
                 encoded = _json.dumps(data)
                 js = f"if(window._termWrite)window._termWrite({encoded})"

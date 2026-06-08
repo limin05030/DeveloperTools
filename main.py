@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 import os
 import sys
-import certifi
-os.environ['SSL_CERT_FILE'] = certifi.where()
 import webview
 from backend.api import Api
 
@@ -45,6 +43,10 @@ def get_entrypoint():
 
 
 if __name__ == "__main__":
+    # SSL 证书路径（仅需在启动时设置一次）
+    import certifi
+    os.environ['SSL_CERT_FILE'] = certifi.where()
+
     api = Api(DEBUG_MODE)
     window = webview.create_window(
         "开发者工具",

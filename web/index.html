@@ -15,7 +15,7 @@
         }
     </style>
     <link rel="stylesheet" href="css/style.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5/css/xterm.css">
+    <!-- xterm CSS 改为终端标签首次访问时动态加载 -->
     <link rel="icon" href="../images/app.png" type="image/png">
 </head>
 <body>
@@ -1146,7 +1146,7 @@
                 </div>
             </section>
 
-            <!-- Claude Code Tab -->
+            <!-- 终端 -->
             <section id="terminal" class="tab-content">
                 <div id="terminal-container" style="width: 100%; height: calc(100vh - 60px);"></div>
             </section>
@@ -1154,6 +1154,20 @@
                 #terminal-container .xterm-screen { padding: 10px !important; box-sizing: border-box !important; }
                 #terminal-container .xterm-viewport { padding: 0 !important; }
                 #terminal-container .xterm { padding: 0 !important; }
+                .term-panel { position:absolute; top:0; left:0; width:100%; height:100%; }
+                .term-panel .xterm-screen { padding: 10px !important; box-sizing: border-box !important; }
+                .term-panel .xterm { padding: 0 !important; }
+                .term-tab {
+                    display:flex;align-items:center;gap:8px;
+                    padding:4px 16px;border:1px solid var(--border-color);border-bottom:none;
+                    border-radius:6px 6px 0 0;background:var(--bg-primary);color:var(--text-secondary);
+                    font-size:13px;cursor:pointer;white-space:nowrap;user-select:none;
+                    min-width:100px;
+                }
+                .term-tab .tab-name { overflow:hidden;text-overflow:ellipsis;flex:1;text-align:center; }
+                .term-tab .tab-close { flex-shrink:0;font-size:14px;line-height:1;opacity:0.4;padding:0 2px;margin-left:2px;border-radius:3px; }
+                .term-tab .tab-close:hover { opacity:1;color:#fff;background:var(--danger-color); }
+                .term-tab.active { background:var(--bg-primary);color:var(--text-primary);font-weight:600;border-bottom:2px solid var(--accent-color); }
             </style>
 
             <!-- AI Chat Tab -->
@@ -1189,66 +1203,90 @@
             <li id="menu-copy-all">复制整行</li>
         </ul>
     </div>
-    <script src="https://cdn.jsdelivr.net/npm/xterm@5/lib/xterm.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.8/lib/xterm-addon-fit.js"></script>
     <script src="js/app.js"></script>
     <script>
-    // ---- 终端初始化 ----
+    // ---- 终端初始化（xterm.js 首次访问时动态加载） ----
     let term = null;
     let termFit = null;
     let termStarted = false;
+    let _xtermLoading = false;
+    let _xtermLoaded = false;
+    let _termInitPending = false;
+
+    function _loadXterm(callback) {
+        if (_xtermLoaded) { callback(); return; }
+        if (_xtermLoading) {
+            setTimeout(() => _loadXterm(callback), 50);
+            return;
+        }
+        _xtermLoading = true;
+        var css = document.createElement('link');
+        css.rel = 'stylesheet';
+        css.href = 'https://cdn.jsdelivr.net/npm/xterm@5/css/xterm.css';
+        document.head.appendChild(css);
+        var script = document.createElement('script');
+        script.src = 'https://cdn.jsdelivr.net/npm/xterm@5/lib/xterm.js';
+        script.onload = function() {
+            var fitScript = document.createElement('script');
+            fitScript.src = 'https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.8/lib/xterm-addon-fit.js';
+            fitScript.onload = function() {
+                _xtermLoaded = true;
+                _xtermLoading = false;
+                callback();
+            };
+            document.head.appendChild(fitScript);
+        };
+        document.head.appendChild(script);
+    }
 
     function initTerminal() {
         if (term) return;
+        if (_termInitPending) return;
         const container = document.getElementById('terminal-container');
         if (!container) return;
 
-        term = new Terminal({
-            fontSize: 14,
-            fontFamily: 'Menlo, Monaco, "Courier New", monospace',
-            theme: {
-                background: '#1e1e1e',
-                foreground: '#d4d4d4',
-                cursor: '#ffffff',
-            },
-            cursorBlink: true,
-            allowProposedApi: true,
-        });
+        _termInitPending = true;
+        _loadXterm(function() {
+            _termInitPending = false;
+            if (term) return;
 
-        termFit = new FitAddon.FitAddon();
-        term.loadAddon(termFit);
-        term.open(container);
-        // 延迟 fit 确保容器已完成布局
-        setTimeout(() => { if (termFit) termFit.fit(); }, 50);
+            term = new Terminal({
+                fontSize: 14,
+                fontFamily: 'Menlo, Monaco, "Courier New", monospace',
+                theme: { background: '#1e1e1e', foreground: '#d4d4d4', cursor: '#ffffff' },
+                cursorBlink: true,
+                allowProposedApi: true,
+            });
 
-        // 用户输入 → 后端
-        term.onData(data => {
-            if (termStarted) {
-                pywebview.api.term_input(data);
-            }
-        });
+            termFit = new FitAddon.FitAddon();
+            term.loadAddon(termFit);
+            term.open(container);
+            setTimeout(() => { if (termFit) termFit.fit(); }, 50);
 
-        // 后端输出 → 终端（由 Python evaluate_js 调用）
-        window._termWrite = function(text) {
-            if (term) term.write(text);
-        };
+            term.onData(data => {
+                if (termStarted) {
+                    pywebview.api.term_input(data);
+                }
+            });
 
-        // 启动终端会话
-        pywebview.api.term_start().then(() => {
-            termStarted = true;
-            term.focus();
-        });
+            window._termWrite = function(text) {
+                if (term) term.write(text);
+            };
 
-        // 窗口大小变化时调整
-        window.addEventListener('resize', () => {
-            if (termFit) termFit.fit();
-            if (termStarted) {
-                pywebview.api.term_resize(term.cols, term.rows);
-            }
+            pywebview.api.term_start().then(() => {
+                termStarted = true;
+                term.focus();
+            });
+
+            window.addEventListener('resize', () => {
+                if (termFit) termFit.fit();
+                if (termStarted) {
+                    pywebview.api.term_resize(term.cols, term.rows);
+                }
+            });
         });
     }
 
-    // 离开终端标签时停止
     function stopTerminal() {
         if (termStarted) {
             pywebview.api.term_stop();
@@ -1260,6 +1298,7 @@
             termFit = null;
             window._termWrite = null;
         }
+        _termInitPending = false;
     }
     </script>
 </body>
