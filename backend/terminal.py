@@ -359,7 +359,12 @@ class TerminalSession:
                 if not data:
                     break
                 if self._on_output:
-                    self._on_output(data.decode('utf-8', errors='replace'))
+                    # Windows 控制台使用系统 OEM 编码（中文 Windows 为 GBK）
+                    try:
+                        text = data.decode('gbk')
+                    except Exception:
+                        text = data.decode('utf-8', errors='replace')
+                    self._on_output(text)
             except (OSError, ValueError):
                 break
 
