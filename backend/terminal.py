@@ -198,12 +198,10 @@ class TerminalSession:
             self._close_handles(kernel32, in_read, in_write, out_read, out_write)
             return False, None
 
-        # 设置 ConPTY 属性
-        hpc_val = hpc.value if hasattr(hpc, 'value') else hpc
-        hpc_void = ctypes.c_void_p(hpc_val)
+        # 设置 ConPTY 属性（byref 传指针，sizeof(HANDLE) 为大小）
         if not kernel32.UpdateProcThreadAttribute(
             attr_list, 0, PROC_THREAD_ATTRIBUTE_PSEUDOCONSOLE,
-            hpc_void, ctypes.sizeof(hpc_void), None, None
+            ctypes.byref(hpc), ctypes.sizeof(wintypes.HANDLE), None, None
         ):
             kernel32.DeleteProcThreadAttributeList(attr_list)
             self._close_handles(kernel32, in_read, in_write, out_read, out_write)

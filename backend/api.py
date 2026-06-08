@@ -1528,14 +1528,32 @@ class Api:
             session = TerminalSession()
 
             def _make_push(term_id):
+                _push_count = [0]  # 用列表包装以便在闭包中修改
                 def _push(data):
                     import json as _json
+                    _push_count[0] += 1
                     encoded = _json.dumps(data)
                     js = f"if(window._termWrites&&window._termWrites[{term_id}])window._termWrites[{term_id}]({encoded})"
                     try:
                         self._window.evaluate_js(js)
-                    except Exception:
-                        pass
+                    except Exception as e:
+                        try:
+                            import tempfile, os as _os
+                            _log = _os.path.join(tempfile.gettempdir(), 'devtools_terminal.log')
+                            with open(_log, 'a', encoding='utf-8') as f:
+                                f.write(f"[API] evaluate_js FAILED (call #{_push_count[0]}): {e}\n")
+                        except Exception:
+                            pass
+                    # 只记录前 5 次输出
+                    if _push_count[0] <= 5:
+                        try:
+                            import tempfile, os as _os
+                            _log = _os.path.join(tempfile.gettempdir(), 'devtools_terminal.log')
+                            with open(_log, 'a', encoding='utf-8') as f:
+                                preview = data[:100].replace('\n', '\\n').replace('\r', '\\r')
+                                f.write(f"[API] _push #{_push_count[0]}: len={len(data)}, preview={preview}\n")
+                        except Exception:
+                            pass
                 return _push
 
             session.start(on_output=_make_push(tid))
