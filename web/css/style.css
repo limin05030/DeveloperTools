@@ -143,6 +143,7 @@ textarea, input[type="text"], input[type="number"], select {
     color: var(--text-primary);
     font-size: 14px;
     margin-bottom: 10px;
+    -webkit-autocorrect: off;
 }
 
 select {
@@ -792,3 +793,8 @@ input[type="radio"] {
         filter: brightness(0) invert(1);  /* 先变黑再反转为白色 */
     }
 }
+
+/* ---- xterm 终端样式 ---- */
+#terminal-container .xterm-screen { padding: 10px !important; box-sizing: border-box !important; }
+#terminal-container .xterm-viewport { padding: 0 !important; }
+#terminal-container .xterm { padding: 0 0 20px 0 !important; }

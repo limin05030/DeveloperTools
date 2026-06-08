@@ -49,12 +49,12 @@
             <section id="translate" class="tab-content active">
                 <div class="card">
                     <div class="card-header">待翻译文本</div>
-                    <textarea autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" id="translate-input" placeholder="输入待翻译文本..." style="min-height: 200px; height: 200px;"></textarea>
+                    <textarea autocomplete="off" autocapitalize="off" spellcheck="false" id="translate-input" placeholder="输入待翻译文本..." style="min-height: 200px; height: 200px;" aria-label="输入待翻译文本"></textarea>
                 </div>
                 <div class="card">
                     <div class="card-header">翻译设置</div>
                     <div class="input-row" style="align-items: center;">
-                        <select id="translate-source-lang" style="flex: 1;">
+                        <select id="translate-source-lang" style="flex: 1;" aria-label="源语言">
                             <option value="auto">自动检测</option>
                             <option value="zh-CN">中文（简体）</option>
                             <option value="zh-TW">中文（繁体）</option>
@@ -88,7 +88,7 @@
                             <option value="no">挪威语</option>
                         </select>
                         <button onclick="swapTranslateLangs()" title="交换语言" style="min-width: auto; padding: 4px 8px; flex-shrink: 0;">⇄</button>
-                        <select id="translate-target-lang" style="flex: 1;">
+                        <select id="translate-target-lang" style="flex: 1;" aria-label="目标语言">
                             <option value="zh-CN">中文（简体）</option>
                             <option value="zh-TW">中文（繁体）</option>
                             <option value="en" selected>英语</option>
@@ -126,7 +126,7 @@
                 </div>
                 <div class="card">
                     <div class="card-header">翻译结果</div>
-                    <textarea autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" id="translate-output" readonly style="min-height: 200px; height: 200px;"></textarea>
+                    <textarea autocomplete="off" autocapitalize="off" spellcheck="false" id="translate-output" readonly style="min-height: 200px; height: 200px;" aria-label="翻译结果"></textarea>
                     <div class="btn-group">
                         <button onclick="copyToClipboard('translate-output')">复制结果</button>
                         <button onclick="clearTranslate()">清空全部</button>
@@ -143,11 +143,11 @@
                         <button class="sub-nav-item" data-sub="hash-file">文件模式</button>
                     </div>
                     <div id="hash-text" class="sub-tab-content active">
-                        <textarea autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" id="hash-input" aria-label="待计算文本" placeholder="输入待计算文本..."></textarea>
+                        <textarea autocomplete="off" autocapitalize="off" spellcheck="false" id="hash-input" aria-label="待计算文本" placeholder="输入待计算文本..."></textarea>
                     </div>
                     <div id="hash-file" class="sub-tab-content">
                         <div class="input-group">
-                            <input type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" id="hash-file-path" readonly placeholder="选择文件...">
+                            <input type="text" autocomplete="off" autocapitalize="off" spellcheck="false" id="hash-file-path" readonly placeholder="选择文件..." aria-label="选择文件">
                             <button onclick="selectFile('hash-file-path')">浏览</button>
                         </div>
                     </div>
@@ -190,14 +190,14 @@
                         </div>
                         <div class="input-group" style="margin-top: 15px;">
                             <label for="hash-key">密钥 (KEY):</label>
-                            <input type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" id="hash-key" placeholder="输入密钥...">
+                            <input type="text" autocomplete="off" autocapitalize="off" spellcheck="false" id="hash-key" placeholder="输入密钥..." aria-label="密钥">
                         </div>
                     </div>
                 </div>
 
                 <div class="card">
                     <div class="card-header">结果</div>
-                    <textarea autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" id="hash-output" aria-label="哈希结果" readonly class="mono"></textarea>
+                    <textarea autocomplete="off" autocapitalize="off" spellcheck="false" id="hash-output" aria-label="哈希结果" readonly class="mono"></textarea>
                     <div class="btn-group">
                         <button onclick="copyToClipboard('hash-output')">复制结果</button>
                         <button onclick="toggleCase('hash-output')">转换大小写</button>
@@ -215,11 +215,11 @@
                         <button class="sub-nav-item" data-sub="crypto-file">文件模式</button>
                     </div>
                     <div id="crypto-text" class="sub-tab-content active">
-                        <textarea autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" id="crypto-input" aria-label="待加解密文本" placeholder="输入待加密或解密的文本..." style="min-height: 65px; height: 65px;"></textarea>
+                        <textarea autocomplete="off" autocapitalize="off" spellcheck="false" id="crypto-input" aria-label="待加解密文本" placeholder="输入待加密或解密的文本..." style="min-height: 65px; height: 65px;"></textarea>
                     </div>
                     <div id="crypto-file" class="sub-tab-content">
                         <div class="input-group">
-                            <input type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" id="crypto-file-path" readonly placeholder="选择文件...">
+                            <input type="text" autocomplete="off" autocapitalize="off" spellcheck="false" id="crypto-file-path" readonly placeholder="选择文件..." aria-label="选择文件">
                             <button onclick="selectCryptoFile()">浏览</button>
                         </div>
                     </div>
@@ -242,13 +242,13 @@
                     <div id="crypto-algo-aes" class="sub-tab-content active">
                         <div class="input-row">
                             <label for="crypto-aes-variant" style="min-width: 40px;">变体:</label>
-                            <select id="crypto-aes-variant" onchange="onCryptoCfgChange()" style="width: 100px;">
+                            <select id="crypto-aes-variant" onchange="onCryptoCfgChange()" style="width: 100px;" aria-label="AES 变体">
                                 <option value="AES-128" selected>AES-128</option>
                                 <option value="AES-192">AES-192</option>
                                 <option value="AES-256">AES-256</option>
                             </select>
                             <label for="crypto-aes-mode" style="min-width: 40px; margin-left: 10px;">模式:</label>
-                            <select id="crypto-aes-mode" onchange="onCryptoCfgChange()" style="width: 90px;">
+                            <select id="crypto-aes-mode" onchange="onCryptoCfgChange()" style="width: 90px;" aria-label="AES 模式">
                                 <option value="CBC" selected>CBC</option>
                                 <option value="ECB">ECB</option>
                                 <option value="CFB">CFB</option>
@@ -257,7 +257,7 @@
                                 <option value="GCM">GCM</option>
                             </select>
                             <label for="crypto-aes-padding" style="min-width: 40px; margin-left: 10px;">填充:</label>
-                            <select id="crypto-aes-padding" onchange="onCryptoCfgChange()" style="width: 110px;">
+                            <select id="crypto-aes-padding" onchange="onCryptoCfgChange()" style="width: 110px;" aria-label="AES 填充">
                                 <option value="pkcs7" selected>PKCS7</option>
                                 <option value="iso7816">ISO 7816-4</option>
                                 <option value="iso10126">ISO 10126</option>
@@ -271,12 +271,12 @@
                     <div id="crypto-algo-des" class="sub-tab-content">
                         <div class="input-row">
                             <label for="crypto-des-variant" style="min-width: 40px;">变体:</label>
-                            <select id="crypto-des-variant" onchange="onCryptoCfgChange()" style="width: 100px;">
+                            <select id="crypto-des-variant" onchange="onCryptoCfgChange()" style="width: 100px;" aria-label="DES 变体">
                                 <option value="DES" selected>DES</option>
                                 <option value="3DES">3DES</option>
                             </select>
                             <label for="crypto-des-mode" style="min-width: 40px; margin-left: 10px;">模式:</label>
-                            <select id="crypto-des-mode" onchange="onCryptoCfgChange()" style="width: 90px;">
+                            <select id="crypto-des-mode" onchange="onCryptoCfgChange()" style="width: 90px;" aria-label="DES 模式">
                                 <option value="CBC" selected>CBC</option>
                                 <option value="ECB">ECB</option>
                                 <option value="CFB">CFB</option>
@@ -284,7 +284,7 @@
                                 <option value="CTR">CTR</option>
                             </select>
                             <label for="crypto-des-padding" style="min-width: 40px; margin-left: 10px;">填充:</label>
-                            <select id="crypto-des-padding" style="width: 110px;">
+                            <select id="crypto-des-padding" style="width: 110px;" aria-label="DES 填充">
                                 <option value="pkcs7" selected>PKCS7</option>
                                 <option value="iso7816">ISO 7816-4</option>
                                 <option value="iso10126">ISO 10126</option>
@@ -298,7 +298,7 @@
                     <div id="crypto-algo-rc2" class="sub-tab-content">
                         <div class="input-row">
                             <label for="crypto-rc2-mode" style="min-width: 40px;">模式:</label>
-                            <select id="crypto-rc2-mode" onchange="onCryptoCfgChange()" style="width: 90px;">
+                            <select id="crypto-rc2-mode" onchange="onCryptoCfgChange()" style="width: 90px;" aria-label="RC2 模式">
                                 <option value="CBC" selected>CBC</option>
                                 <option value="ECB">ECB</option>
                                 <option value="CFB">CFB</option>
@@ -306,7 +306,7 @@
                                 <option value="CTR">CTR</option>
                             </select>
                             <label for="crypto-rc2-padding" style="min-width: 40px; margin-left: 10px;">填充:</label>
-                            <select id="crypto-rc2-padding" style="width: 110px;">
+                            <select id="crypto-rc2-padding" style="width: 110px;" aria-label="RC2 填充">
                                 <option value="pkcs7" selected>PKCS7</option>
                                 <option value="iso7816">ISO 7816-4</option>
                                 <option value="iso10126">ISO 10126</option>
@@ -324,7 +324,7 @@
                     <div id="crypto-algo-rc5" class="sub-tab-content">
                         <div class="input-row">
                             <label for="crypto-rc5-mode" style="min-width: 40px;">模式:</label>
-                            <select id="crypto-rc5-mode" onchange="onCryptoCfgChange()" style="width: 90px;">
+                            <select id="crypto-rc5-mode" onchange="onCryptoCfgChange()" style="width: 90px;" aria-label="RC5 模式">
                                 <option value="CBC" selected>CBC</option>
                                 <option value="ECB">ECB</option>
                                 <option value="CFB">CFB</option>
@@ -332,7 +332,7 @@
                                 <option value="CTR">CTR</option>
                             </select>
                             <label for="crypto-rc5-padding" style="min-width: 40px; margin-left: 10px;">填充:</label>
-                            <select id="crypto-rc5-padding" style="width: 110px;">
+                            <select id="crypto-rc5-padding" style="width: 110px;" aria-label="RC5 填充">
                                 <option value="pkcs7" selected>PKCS7</option>
                                 <option value="iso7816">ISO 7816-4</option>
                                 <option value="iso10126">ISO 10126</option>
@@ -346,7 +346,7 @@
                     <div id="crypto-algo-rc6" class="sub-tab-content">
                         <div class="input-row">
                             <label for="crypto-rc6-mode" style="min-width: 40px;">模式:</label>
-                            <select id="crypto-rc6-mode" onchange="onCryptoCfgChange()" style="width: 90px;">
+                            <select id="crypto-rc6-mode" onchange="onCryptoCfgChange()" style="width: 90px;" aria-label="RC6 模式">
                                 <option value="CBC" selected>CBC</option>
                                 <option value="ECB">ECB</option>
                                 <option value="CFB">CFB</option>
@@ -354,7 +354,7 @@
                                 <option value="CTR">CTR</option>
                             </select>
                             <label for="crypto-rc6-padding" style="min-width: 40px; margin-left: 10px;">填充:</label>
-                            <select id="crypto-rc6-padding" style="width: 110px;">
+                            <select id="crypto-rc6-padding" style="width: 110px;" aria-label="RC6 填充">
                                 <option value="pkcs7" selected>PKCS7</option>
                                 <option value="iso7816">ISO 7816-4</option>
                                 <option value="iso10126">ISO 10126</option>
@@ -377,11 +377,11 @@
                     <!-- 密钥 / IV（同一行） -->
                     <div class="input-row" style="margin-top: 10px;">
                         <label for="crypto-key" style="min-width: 40px;">密钥:</label>
-                        <input type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" id="crypto-key" placeholder="十六进制密钥..." style="flex: 1; margin-bottom: 0;">
+                        <input type="text" autocomplete="off" autocapitalize="off" spellcheck="false" id="crypto-key" placeholder="十六进制密钥..." style="flex: 1; margin-bottom: 0;" aria-label="密钥">
                         <button onclick="cryptoGenerateKey()" title="生成随机密钥" style="min-width: auto; padding: 4px 8px; margin-right: 8px;">🎲</button>
                         <span id="crypto-iv-group" style="display: flex; align-items: center; flex: 1;">
                             <label for="crypto-iv" style="min-width: 28px; margin-right: 4px;">IV:</label>
-                            <input type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" id="crypto-iv" placeholder="十六进制 IV / Nonce..." style="flex: 1; margin-bottom: 0; margin-right: 10px;">
+                            <input type="text" autocomplete="off" autocapitalize="off" spellcheck="false" id="crypto-iv" placeholder="十六进制 IV / Nonce..." style="flex: 1; margin-bottom: 0; margin-right: 10px;" aria-label="IV / Nonce">
                             <button onclick="cryptoGenerateIV()" title="生成随机 IV" style="min-width: auto; padding: 4px 8px;">🎲</button>
                         </span>
                     </div>
@@ -393,7 +393,7 @@
                         <button class="primary" onclick="cryptoOperation('encrypt')" style="min-width: 100px; padding: 8px 16px;">🔒 加密</button>
                         <span id="crypto-out-fmt-wrap" style="display: flex; align-items: center; gap: 6px;">
                             <label for="crypto-out-fmt" style="white-space: nowrap; min-width: auto; font-size: 13px;">输出格式:</label>
-                            <select id="crypto-out-fmt" style="min-width: 80px;">
+                            <select id="crypto-out-fmt" style="min-width: 80px;" aria-label="输出格式">
                                 <option value="hex">Hex</option>
                                 <option value="base64">Base64</option>
                             </select>
@@ -402,7 +402,7 @@
                         <button class="primary" onclick="cryptoOperation('decrypt')" style="min-width: 100px; padding: 8px 16px;">🔓 解密</button>
                         <span id="crypto-in-fmt-wrap" style="display: flex; align-items: center; gap: 6px;">
                             <label for="crypto-in-fmt" style="white-space: nowrap; min-width: auto; font-size: 13px;">输入格式:</label>
-                            <select id="crypto-in-fmt" style="min-width: 80px;">
+                            <select id="crypto-in-fmt" style="min-width: 80px;" aria-label="输入格式">
                                 <option value="hex">Hex</option>
                                 <option value="base64">Base64</option>
                             </select>
@@ -412,7 +412,7 @@
 
                 <div class="card" id="crypto-result-card">
                     <div class="card-header">结果</div>
-                    <textarea autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" id="crypto-output" aria-label="加解密结果" readonly class="mono" style="min-height: 70px; height: 70px;"></textarea>
+                    <textarea autocomplete="off" autocapitalize="off" spellcheck="false" id="crypto-output" aria-label="加解密结果" readonly class="mono" style="min-height: 70px; height: 70px;"></textarea>
                     <div class="btn-group">
                         <button onclick="copyToClipboard('crypto-output')">复制结果</button>
                         <button onclick="clearCrypto()">清空全部</button>
@@ -424,7 +424,7 @@
             <section id="encode" class="tab-content">
                 <div class="card">
                     <div class="card-header">输入</div>
-                    <textarea autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" id="encode-input" aria-label="待编码文本"></textarea>
+                    <textarea autocomplete="off" autocapitalize="off" spellcheck="false" id="encode-input" aria-label="待编码文本"></textarea>
                 </div>
                 <div class="card">
                     <div class="card-header">操作</div>
@@ -462,7 +462,7 @@
                 </div>
                 <div class="card">
                     <div class="card-header">结果</div>
-                    <textarea autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" id="encode-output" aria-label="编码结果" readonly class="mono" style="min-height: 100px;"></textarea>
+                    <textarea autocomplete="off" autocapitalize="off" spellcheck="false" id="encode-output" aria-label="编码结果" readonly class="mono" style="min-height: 100px;"></textarea>
                     <div class="btn-group">
                         <button onclick="copyToClipboard('encode-output')">复制结果</button>
                         <button onclick="clearEncode()">清理全部</button>
@@ -476,7 +476,7 @@
                     <div class="card-header">进制转换</div>
                     <div class="input-group">
                         <label for="base-input">输入数值:</label>
-                        <input type="text" id="base-input" placeholder="输入待转换数值..." style="flex: 1; margin-bottom: 0;">
+                        <input type="text" id="base-input" placeholder="输入待转换数值..." style="flex: 1; margin-bottom: 0;" aria-label="待转换数值">
                     </div>
                     <div class="input-row" style="margin-top: 15px; align-items: flex-start;">
                         <label style="min-width: 80px;">输入进制:</label>
@@ -504,7 +504,7 @@
                 <div class="card">
                     <div class="card-header">转换结果</div>
                     <div class="input-row">
-                        <input type="text" id="base-output" readonly class="mono" placeholder="结果..." style="flex: 1;">
+                        <input type="text" id="base-output" readonly class="mono" placeholder="结果..." style="flex: 1;" aria-label="转换结果">
                         <div class="btn-group">
                             <button onclick="copyToClipboard('base-output')">复制结果</button>
                             <button onclick="clearBase()">清空全部</button>
@@ -519,17 +519,17 @@
                     <div class="card-header">当前时间</div>
                     <div class="input-group compact">
                         <label for="time-tz-select">时区:</label>
-                        <select id="time-tz-select"></select>
+                        <select id="time-tz-select" aria-label="时区选择"></select>
                         <button onclick="updateClock()">刷新</button>
                     </div>
                     <div class="input-group">
                         <label for="time-now-date">本地时间:</label>
-                        <input type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" id="time-now-date" readonly class="mono">
+                        <input type="text" autocomplete="off" autocapitalize="off" spellcheck="false" id="time-now-date" readonly class="mono" aria-label="当前日期时间">
                         <button onclick="copyValue('time-now-date')">复制</button>
                     </div>
                     <div class="input-group">
                         <label for="time-now-ts">时间戳:</label>
-                        <input type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" id="time-now-ts" readonly class="mono">
+                        <input type="text" autocomplete="off" autocapitalize="off" spellcheck="false" id="time-now-ts" readonly class="mono" aria-label="当前时间戳">
                         <button onclick="copyValue('time-now-ts')">复制</button>
                     </div>
                 </div>
@@ -537,26 +537,26 @@
                     <div class="card-header">时间戳 转 日期</div>
                     <div class="input-group compact">
                         <label for="t2d-tz-select">时区:</label>
-                        <select id="t2d-tz-select"></select>
+                        <select id="t2d-tz-select" aria-label="时区选择"></select>
                         <label class="checkbox-label"><input type="checkbox" id="t2d-ios"> iOS 格式</label>
                     </div>
                     <div class="input-row">
-                        <input type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" id="ts-input" placeholder="输入时间戳...">
+                        <input type="text" autocomplete="off" autocapitalize="off" spellcheck="false" id="ts-input" placeholder="输入时间戳..." aria-label="输入时间戳">
                         <button onclick="tsToDate()">转换</button>
-                        <input type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" id="date-output" readonly class="mono">
+                        <input type="text" autocomplete="off" autocapitalize="off" spellcheck="false" id="date-output" readonly class="mono" aria-label="转换日期结果">
                     </div>
                 </div>
                 <div class="card">
                     <div class="card-header">日期 转 时间戳</div>
                     <div class="input-group compact">
                         <label for="d2t-tz-select">时区:</label>
-                        <select id="d2t-tz-select"></select>
+                        <select id="d2t-tz-select" aria-label="时区选择"></select>
                         <label class="checkbox-label"><input type="checkbox" id="d2t-ios"> iOS 格式</label>
                     </div>
                     <div class="input-row">
-                        <input type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" id="date-input" placeholder="YYYY-MM-DD HH:MM:SS">
+                        <input type="text" autocomplete="off" autocapitalize="off" spellcheck="false" id="date-input" placeholder="YYYY-MM-DD HH:MM:SS" aria-label="输入日期">
                         <button onclick="dateToTs()">转换</button>
-                        <input type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" id="ts-output" readonly class="mono">
+                        <input type="text" autocomplete="off" autocapitalize="off" spellcheck="false" id="ts-output" readonly class="mono" aria-label="转换时间戳结果">
                     </div>
                 </div>
             </section>
@@ -570,11 +570,11 @@
                         <button class="sub-nav-item" data-sub="format-file">文件模式</button>
                     </div>
                     <div id="format-text" class="sub-tab-content active">
-                        <textarea autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" id="format-input" aria-label="待格式化文本" placeholder="输入待格式化文本..."></textarea>
+                        <textarea autocomplete="off" autocapitalize="off" spellcheck="false" id="format-input" aria-label="待格式化文本" placeholder="输入待格式化文本..."></textarea>
                     </div>
                     <div id="format-file" class="sub-tab-content">
                         <div class="input-group">
-                            <input type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" id="format-file-path" readonly placeholder="选择文件...">
+                            <input type="text" autocomplete="off" autocapitalize="off" spellcheck="false" id="format-file-path" readonly placeholder="选择文件..." aria-label="选择文件">
                             <button onclick="selectFile('format-file-path')">浏览</button>
                         </div>
                     </div>
@@ -596,7 +596,7 @@
                 </div>
                 <div class="card">
                     <div class="card-header">结果</div>
-                    <textarea autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" id="format-output" aria-label="格式化结果" readonly class="mono"></textarea>
+                    <textarea autocomplete="off" autocapitalize="off" spellcheck="false" id="format-output" aria-label="格式化结果" readonly class="mono"></textarea>
                     <div class="btn-group">
                         <button onclick="copyToClipboard('format-output')">复制结果</button>
                         <button onclick="clearFormat()">清理全部</button>
@@ -621,12 +621,12 @@
                     <div id="img-conv" class="sub-tab-content active">
                         <div class="input-group">
                             <label for="img-conv-src">源图片:</label>
-                            <input type="text" id="img-conv-src" readonly>
+                            <input type="text" id="img-conv-src" readonly aria-label="选择图片">
                             <button onclick="selectFile('img-conv-src', ['Image files (*.jpg;*.jpeg;*.png;*.webp;*.bmp;*.ico)', 'All files (*.*)'])">浏览</button>
                         </div>
                         <div class="input-group">
                             <label for="img-conv-fmt">目标格式:</label>
-                            <select id="img-conv-fmt">
+                            <select id="img-conv-fmt" aria-label="目标格式">
                                 <option>PNG</option><option>JPEG</option><option>WEBP</option>
                                 <option>BMP</option><option>ICO</option><option>TIFF</option>
                                 <option>SVG</option>
@@ -639,12 +639,12 @@
                     <div id="img-comp" class="sub-tab-content">
                         <div class="input-group">
                             <label for="img-comp-src">源图片:</label>
-                            <input type="text" id="img-comp-src" readonly>
+                            <input type="text" id="img-comp-src" readonly aria-label="选择图片">
                             <button onclick="selectFile('img-comp-src', ['Image files (*.jpg;*.jpeg;*.png;*.webp;*.bmp;*.ico)', 'All files (*.*)'])">浏览</button>
                         </div>
                         <div class="input-group">
                             <label for="img-comp-quality">质量 (1-100):</label>
-                            <input type="range" id="img-comp-quality" min="1" max="100" value="75">
+                            <input type="range" id="img-comp-quality" min="1" max="100" value="75" aria-label="压缩质量">
                             <span id="quality-val">75</span>
                         </div>
                         <button id="btn-img-comp" class="primary" onclick="imgCompress()">保存</button>
@@ -654,12 +654,12 @@
                     <div id="img-size" class="sub-tab-content">
                         <div class="input-group">
                             <label for="img-size-src">源图片:</label>
-                            <input type="text" id="img-size-src" readonly>
+                            <input type="text" id="img-size-src" readonly aria-label="选择图片">
                             <button onclick="selectFile('img-size-src', ['Image files (*.jpg;*.jpeg;*.png;*.webp;*.bmp;*.ico)', 'All files (*.*)'])">浏览</button>
                         </div>
                         <div class="input-group">
                             <label for="img-size-mode">调整方式:</label>
-                            <select id="img-size-mode">
+                            <select id="img-size-mode" aria-label="缩放模式">
                                 <option value="resize">缩放</option>
                                 <option value="center">中心裁剪</option>
                                 <option value="tl">左上裁剪</option><option value="tr">右上裁剪</option>
@@ -668,8 +668,8 @@
                         </div>
                         <div class="input-row">
                             <label for="img-width">目标尺寸:</label>
-                            <label for="img-width">宽:</label><input type="number" id="img-width" min="1">
-                            <label for="img-height">高:</label><input type="number" id="img-height" min="1">
+                            <label for="img-width">宽:</label><input type="number" id="img-width" min="1" aria-label="宽度">
+                            <label for="img-height">高:</label><input type="number" id="img-height" min="1" aria-label="高度">
                             <label class="checkbox-label"><input type="checkbox" id="img-ratio" checked> 保持比例</label>
                         </div>
                         <button id="btn-img-size" class="primary" onclick="imgSize()">保存</button>
@@ -679,20 +679,20 @@
                     <div id="img-radius" class="sub-tab-content">
                         <div class="input-group">
                             <label for="img-radius-src">源图片:</label>
-                            <input type="text" id="img-radius-src" readonly>
+                            <input type="text" id="img-radius-src" readonly aria-label="选择图片">
                             <button onclick="selectFile('img-radius-src', ['Image files (*.jpg;*.jpeg;*.png;*.webp;*.bmp;*.ico)', 'All files (*.*)'])">浏览</button>
                         </div>
                         <div class="card-sub-header">圆角设置:</div><div class="radius-settings">
                             <div class="input-row">
                                 <label for="rad-all" class="checkbox-label"><input type="radio" name="rad-mode" id="rad-mode-unified" checked onchange="toggleRadiusMode()"> 统一设置:</label>
-                                <input type="number" id="rad-all" value="0" min="0">
+                                <input type="number" id="rad-all" value="0" min="0" aria-label="统一圆角">
                             </div>
                             <div class="input-row">
                                 <label class="checkbox-label"><input type="radio" name="rad-mode" id="rad-mode-individual" onchange="toggleRadiusMode()"> 单独设置:</label>
-                                <label for="rad-tl">左上:</label><input type="number" id="rad-tl" value="0" min="0" disabled>
-                                <label for="rad-tr">右上:</label><input type="number" id="rad-tr" value="0" min="0" disabled>
-                                <label for="rad-bl">左下:</label><input type="number" id="rad-bl" value="0" min="0" disabled>
-                                <label for="rad-br">右下:</label><input type="number" id="rad-br" value="0" min="0" disabled>
+                                <label for="rad-tl">左上:</label><input type="number" id="rad-tl" value="0" min="0" disabled aria-label="左上圆角">
+                                <label for="rad-tr">右上:</label><input type="number" id="rad-tr" value="0" min="0" disabled aria-label="右上圆角">
+                                <label for="rad-bl">左下:</label><input type="number" id="rad-bl" value="0" min="0" disabled aria-label="左下圆角">
+                                <label for="rad-br">右下:</label><input type="number" id="rad-br" value="0" min="0" disabled aria-label="右下圆角">
                             </div>
                         </div>
                         <button id="btn-img-radius" class="primary" onclick="imgRadius()">保存</button>
@@ -702,7 +702,7 @@
                                         <div id="img-color" class="sub-tab-content">
                         <div class="input-group">
                             <label for="img-color-src">源图片:</label>
-                            <input type="text" id="img-color-src" readonly placeholder="选择图片以提取颜色...">
+                            <input type="text" id="img-color-src" readonly placeholder="选择图片以提取颜色..." aria-label="选择图片">
                             <button onclick="selectColorPickerFile()">浏览</button>
                         </div>
                         <div id="color-picker-main" style="display: none;">
@@ -740,13 +740,13 @@
                     <div id="img-b64" class="sub-tab-content">
                         <div class="card-sub-header">图片 转 Base64</div>
                         <div class="input-group">
-                            <input type="text" id="img2b64-src" readonly>
+                            <input type="text" id="img2b64-src" readonly aria-label="选择图片">
                             <button onclick="selectFile('img2b64-src', ['Image files (*.jpg;*.jpeg;*.png;*.webp;*.bmp;*.ico)', 'All files (*.*)'])">浏览</button>
                             <button onclick="imgToBase64()">转换</button>
                         </div>
                         <div class="card-sub-header">Base64 转 图片</div>
                         <div class="input-group">
-                            <textarea id="b64-input" placeholder="输入 Base64 字符串..."></textarea>
+                            <textarea id="b64-input" placeholder="输入 Base64 字符串..." aria-label="Base64 编码输入"></textarea>
                         </div>
                         <div class="btn-group">
                             <button id="btn-load-b64" onclick="loadBase64File()">从文件读取</button>
@@ -763,12 +763,12 @@
                 <div class="card">
                     <div class="card-header">批量生成 UUID</div>
                     <div class="input-group">
-                        <label for="uuid-count">数量:</label><input type="number" id="uuid-count" value="5" class="small-num">
+                        <label for="uuid-count">数量:</label><input type="number" id="uuid-count" value="5" class="small-num" aria-label="生成数量">
                         <label class="checkbox-label"><input type="checkbox" id="uuid-hyphen" checked> 带分割线</label>
                         <label class="checkbox-label"><input type="checkbox" id="uuid-upper" checked> 字母大写</label>
                         <label class="checkbox-label"><input type="checkbox" id="uuid-braces"> 带花括号</label>
                     </div>
-                    <textarea autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" id="uuid-output" readonly class="mono uuid-textarea"></textarea>
+                    <textarea autocomplete="off" autocapitalize="off" spellcheck="false" id="uuid-output" readonly class="mono uuid-textarea" aria-label="UUID 生成结果"></textarea>
                     <div class="btn-group">
                         <button onclick="generateUUIDs()">生成</button>
                         <button onclick="copyToClipboard('uuid-output')">复制结果</button>
@@ -808,12 +808,12 @@
                     <div id="qr-rec" class="sub-tab-content">
                         <div class="input-group">
                             <label for="qr-rec-src">选择图片:</label>
-                            <input type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" id="qr-rec-src" readonly placeholder="选择二维码图片...">
+                            <input type="text" autocomplete="off" autocapitalize="off" spellcheck="false" id="qr-rec-src" readonly placeholder="选择二维码图片..." aria-label="选择二维码图片">
                             <button onclick="selectFile('qr-rec-src', ['Image files (*.jpg;*.jpeg;*.png;*.webp;*.bmp;*.ico)', 'All files (*.*)'])">浏览</button>
                             <button onclick="decodeQR()">识别</button>
                         </div>
                         <div class="card-sub-header">识别结果:</div>
-                        <textarea autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" id="qr-rec-output" aria-label="二维码识别结果" readonly style="min-height: 100px;"></textarea>
+                        <textarea autocomplete="off" autocapitalize="off" spellcheck="false" id="qr-rec-output" aria-label="二维码识别结果" readonly style="min-height: 100px;"></textarea>
                         <button onclick="copyToClipboard('qr-rec-output')">复制结果</button>
                     </div>
                 </div>
@@ -1017,7 +1017,7 @@
                     <div id="query-android" class="sub-tab-content">
                         <div class="input-row" style="margin-bottom: 10px;">
                             <label for="android-perm-search" style="margin-right: 5px;">搜索：</label>
-                            <input type="text" id="android-perm-search" placeholder="输入关键字搜索权限或描述..." style="flex: 1; margin-right: 10px;">
+                            <input type="text" id="android-perm-search" placeholder="输入关键字搜索权限或描述..." style="flex: 1; margin-right: 10px;" aria-label="搜索权限">
                             <button id="android-fetch-btn" onclick="fetchPermissions('android')" style="margin-right: 10px;">获取权限</button>
                             <button onclick="openDoc('android')">官方文档</button>
                         </div>
@@ -1052,18 +1052,18 @@
                         <div style="margin: 15px 0;">
                             <div class="input-row">
                                 <label for="api-url" style="min-width: 80px; text-align: right; padding-right: 10px;">请求 URL:</label>
-                                <input type="text" id="api-url" aria-label="请求URL" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="https://api.example.com" style="flex: 1;">
+                                <input type="text" id="api-url" aria-label="请求URL" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="https://api.example.com" style="flex: 1;">
                             </div>
                             <div class="input-row" style="margin-top: 10px;">
                                 <label for="api-method" style="min-width: 80px; text-align: right; padding-right: 10px;">请求方法:</label>
-                                <select id="api-method" style="width: 100px;">
+                                <select id="api-method" style="width: 100px;" aria-label="HTTP 方法">
                                     <option>GET</option><option>POST</option><option>PUT</option>
                                     <option>DELETE</option><option>PATCH</option><option>HEAD</option>
                                 </select>
                             </div>
                             <div class="input-row" style="margin-top: 10px;">
                                 <label for="api-content-type" style="min-width: 80px; text-align: right; padding-right: 10px;">Content-Type:</label>
-                                <select id="api-content-type" style="width: 300px;">
+                                <select id="api-content-type" style="width: 300px;" aria-label="Content-Type">
                                     <option value="application/x-www-form-urlencoded">application/x-www-form-urlencoded</option>
                                     <option value="multipart/form-data">multipart/form-data</option>
                                     <option value="application/json">application/json</option>
@@ -1086,12 +1086,12 @@
 
                         <div style="font-size: 13px; font-weight: bold; margin-bottom: 5px; color: var(--text-secondary);">请求体 (Body)</div>
                         <div id="api-body" style="height: 130px; padding: 10px 0; display: flex; flex-direction: column;">
-                            <textarea id="api-body-content" aria-label="请求体内容" class="scroll-area" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="输入请求体内容 (JSON, 文本等)..." style="width: 100%; height: 110px; font-family: monospace; resize: none; box-sizing: border-box;"></textarea>
+                            <textarea id="api-body-content" aria-label="请求体内容" class="scroll-area" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="输入请求体内容 (JSON, 文本等)..." style="width: 100%; height: 110px; font-family: monospace; resize: none; box-sizing: border-box;"></textarea>
                         </div>
 
                         
                         <div style="display: flex; align-items: center; margin-bottom: 2px;">
-                            <input type="checkbox" id="api-ignore-ssl" style="width: 16px; height: 16px; margin-right: 8px; cursor: pointer;">
+                            <input type="checkbox" id="api-ignore-ssl" style="width: 16px; height: 16px; margin-right: 8px; cursor: pointer;" aria-label="忽略SSL证书验证">
                             <label for="api-ignore-ssl" style="cursor: pointer; font-size: 13px; color: var(--text-secondary);">忽略 SSL 证书验证 (用于测试自签名或过期证书的 API)</label>
                         </div>
                         <div style="padding-top: 5px; margin-top: auto;">
@@ -1137,7 +1137,7 @@
                         </div>
                         <div id="api-error-container" style="display: none; flex-direction: column; flex: 1; padding: 20px; color: #FF3B30;">
                             <div style="font-weight: bold; font-size: 1.2rem; margin-bottom: 10px;">请求失败</div>
-                            <textarea id="api-error-message" readonly class="mono" style="flex: 1; width: 100%; min-height: 80px; background-color: var(--bg-window); resize: none; color: #FF3B30; border: none; padding: 8px; cursor: text;"></textarea>
+                            <textarea id="api-error-message" readonly class="mono" style="flex: 1; width: 100%; min-height: 80px; background-color: var(--bg-window); resize: none; color: #FF3B30; border: none; padding: 8px; cursor: text;" aria-label="API 错误信息"></textarea>
                         </div>
                         <div id="api-empty-res-hint" class="empty-hint" style="flex: 1; display: flex; align-items: center; justify-content: center;">
                             <p>尚未发送请求或正在等待响应...</p>
@@ -1148,27 +1148,8 @@
 
             <!-- 终端 -->
             <section id="terminal" class="tab-content">
-                <div id="terminal-container" style="width: 100%; height: calc(100vh - 60px);"></div>
+                <div id="terminal-container" style="width: 100%; height: calc(100vh - 60px); overflow: hidden;"></div>
             </section>
-            <style>
-                #terminal-container .xterm-screen { padding: 10px !important; box-sizing: border-box !important; }
-                #terminal-container .xterm-viewport { padding: 0 !important; }
-                #terminal-container .xterm { padding: 0 !important; }
-                .term-panel { position:absolute; top:0; left:0; width:100%; height:100%; }
-                .term-panel .xterm-screen { padding: 10px !important; box-sizing: border-box !important; }
-                .term-panel .xterm { padding: 0 !important; }
-                .term-tab {
-                    display:flex;align-items:center;gap:8px;
-                    padding:4px 16px;border:1px solid var(--border-color);border-bottom:none;
-                    border-radius:6px 6px 0 0;background:var(--bg-primary);color:var(--text-secondary);
-                    font-size:13px;cursor:pointer;white-space:nowrap;user-select:none;
-                    min-width:100px;
-                }
-                .term-tab .tab-name { overflow:hidden;text-overflow:ellipsis;flex:1;text-align:center; }
-                .term-tab .tab-close { flex-shrink:0;font-size:14px;line-height:1;opacity:0.4;padding:0 2px;margin-left:2px;border-radius:3px; }
-                .term-tab .tab-close:hover { opacity:1;color:#fff;background:var(--danger-color); }
-                .term-tab.active { background:var(--bg-primary);color:var(--text-primary);font-weight:600;border-bottom:2px solid var(--accent-color); }
-            </style>
 
             <!-- AI Chat Tab -->
             <section id="aichat" class="tab-content">
