@@ -64,6 +64,7 @@ class TerminalSession:
     def _start_windows(self, cols, rows):
         if self._try_conpty(cols, rows):
             return
+        # ConPTY 不可用，回退到 pipe 模式
         self._start_windows_pipe()
 
     def _try_conpty(self, cols, rows):
@@ -74,10 +75,11 @@ class TerminalSession:
 
             kernel32 = ctypes.WinDLL('kernel32', use_last_error=True)
 
+            # 检查 CreatePseudoConsole 是否存在
             try:
                 create_pc = kernel32.CreatePseudoConsole
             except AttributeError:
-                return False
+                return False  # Windows 版本过旧（< 1809），不支持 ConPTY
 
             class COORD(ctypes.Structure):
                 _fields_ = [('X', ctypes.c_short), ('Y', ctypes.c_short)]
@@ -103,7 +105,8 @@ class TerminalSession:
             # 创建伪控制台 (hInput=in_read, hOutput=out_write)
             size = COORD(ctypes.c_short(cols), ctypes.c_short(rows))
             hpc = wintypes.HANDLE()
-            if create_pc(size, in_read, out_write, 0, byref(hpc)) != 0:
+            hr = create_pc(size, in_read, out_write, 0, byref(hpc))
+            if hr != 0:
                 for h in (in_read, in_write, out_read, out_write):
                     kernel32.CloseHandle(h)
                 return False
@@ -224,13 +227,47 @@ class TerminalSession:
 
     # ---- PIPE 回退 ----
 
+    @staticmethod
+    def _get_clean_env():
+        """获取干净的环境变量，PATH 从注册表读取系统+用户路径，避免继承 venv 等修改过的 PATH"""
+        env = os.environ.copy()
+        try:
+            import winreg
+            paths = []
+            # 系统 PATH
+            try:
+                with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE,
+                                    r'SYSTEM\CurrentControlSet\Control\Session Manager\Environment') as key:
+                    paths.append(winreg.QueryValueEx(key, 'Path')[0])
+            except Exception:
+                pass
+            # 用户 PATH
+            try:
+                with winreg.OpenKey(winreg.HKEY_CURRENT_USER, 'Environment') as key:
+                    paths.append(winreg.QueryValueEx(key, 'Path')[0])
+            except Exception:
+                pass
+            if paths:
+                env['PATH'] = ';'.join(paths)
+        except Exception:
+            pass  # 非 Windows 或注册表读取失败，保持原有 PATH
+        return env
+
     def _start_windows_pipe(self):
+        env = self._get_clean_env()
         self._proc = subprocess.Popen(
             os.environ.get('COMSPEC', 'cmd.exe'),
             stdin=subprocess.PIPE, stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT, cwd=os.path.expanduser('~'),
+            env=env,
         )
         self._fd = self._proc.stdout.fileno()
+        # 发送空行触发 cmd.exe 输出初始提示符（pipe 模式下默认不显示）
+        try:
+            self._proc.stdin.write(b'\r\n')
+            self._proc.stdin.flush()
+        except Exception:
+            pass
 
     # ==================== 读取 ====================
 
@@ -252,7 +289,14 @@ class TerminalSession:
                 if not data:
                     break
                 if self._on_output:
-                    self._on_output(data.decode('utf-8', errors='replace'))
+                    try:
+                        text = data.decode('utf-8')
+                    except UnicodeDecodeError:
+                        try:
+                            text = data.decode('gbk')
+                        except Exception:
+                            text = data.decode('utf-8', errors='replace')
+                    self._on_output(text)
             except (OSError, ValueError):
                 break
 
@@ -261,7 +305,16 @@ class TerminalSession:
             if not self._running:
                 break
             if self._on_output:
-                self._on_output(line.decode('utf-8', errors='replace'))
+                # Windows cmd.exe 输出使用系统代码页（中文系统为 GBK），
+                # 先尝试 UTF-8，失败则用 GBK 解码
+                try:
+                    text = line.decode('utf-8')
+                except UnicodeDecodeError:
+                    try:
+                        text = line.decode('gbk')
+                    except Exception:
+                        text = line.decode('utf-8', errors='replace')
+                self._on_output(text)
 
     def _read_conpty(self):
         """ConPTY 输出读取 — ReadFile 直读句柄"""

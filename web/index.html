@@ -1198,6 +1198,7 @@
         </ul>
     </div>
     <script src="js/app.js"></script>
+    <script src="js/term.js"></script>
     <script>
     // ---- 终端初始化（多标签 + xterm 动态加载） ----
     let _xtermLoading = false, _xtermLoaded = false;
@@ -1229,29 +1230,157 @@
         var t = new Terminal({
             fontSize: 14, fontFamily: 'Menlo, Monaco, "Courier New", monospace',
             theme: { background: '#1e1e1e', foreground: '#d4d4d4', cursor: '#ffffff' },
-            cursorBlink: true, allowProposedApi: true,
+            cursorBlink: true, cursorStyle: 'bar', allowProposedApi: true,
         });
         var f = new FitAddon.FitAddon();
         t.loadAddon(f); t.open(p);
 
-        t.onData(function(d) { pywebview.api.term_input(tid, d); });
-
+        // ====== 行缓冲输出 ======
+        // cmd.exe 输出逐行到达，用缓冲+防抖区分「中间行」和「最后一行」。
+        // 中间行保留 \r\n 正常写入，最后一行识别为提示符则去 \r\n 写入，
+        // 否则补发空回车触发 cmd.exe 吐出更新后的提示符。
         window._termWrites = window._termWrites || {};
-        window._termWrites[tid] = function(d) { t.write(d); };
+        window._termSavedPrompt = window._termSavedPrompt || '';
+        if (!window._termLineBuf) window._termLineBuf = {};
+        if (!window._termLineTimers) window._termLineTimers = {};
+        window._termWrites[tid] = function (d) {
+            if (window._termLineBuf[tid] === undefined) {
+                if (!window._termInputBuf) window._termInputBuf = {};
+                if (!window._termInputPos) window._termInputPos = {};
+                window._termInputBuf[tid] = ''; window._termInputPos[tid] = 0;
+            }
+            var isFirst = (window._termLineBuf[tid] === undefined);
+            if (!isFirst) { t.write(window._termLineBuf[tid]); window._termLineBuf[tid] = undefined; }
 
-        _terms[tid] = { term: t, fit: f, started: false, panel: p };
+            var trimmed = d.replace(/[\r\n]+$/, '');
+            // 从新输出块第一行（echo 行 "提示符>命令"）提取提示符文本
+            if (isFirst) {
+                var gt = trimmed.lastIndexOf('>');
+                if (gt > 0 && gt < trimmed.length - 1) {
+                    var pp = trimmed.substring(0, gt + 1);
+                    if (pp.length < 120) window._termSavedPrompt = pp;
+                }
+            }
+            // 纯提示符行直接保存
+            if (trimmed.length > 0 && trimmed.length < 120 && trimmed.slice(-1) === '>' &&
+                trimmed.indexOf('<DIR>') === -1 && trimmed.indexOf('<JUNCTION>') === -1) {
+                window._termSavedPrompt = trimmed;
+            }
 
-        // 点击终端区域时强制聚焦（WebView2 可能需要手动触发）
-        p.addEventListener('click', function() { t.focus(); });
-        // 文本选区变化时也尝试聚焦
-        t.onSelectionChange(function() { t.focus(); });
+            window._termLineBuf[tid] = d;
+            clearTimeout(window._termLineTimers[tid]);
+            window._termLineTimers[tid] = setTimeout(function () {
+                var pending = window._termLineBuf[tid];
+                if (pending === undefined) return;
+                var pt = pending.replace(/[\r\n]+$/, '');
+                var isPrompt = (pt.length > 0 && pt.length < 120 && pt.slice(-1) === '>' &&
+                    pt.indexOf('<DIR>') === -1 && pt.indexOf('<JUNCTION>') === -1);
+                if (isPrompt) { t.write(pt); }
+                else { t.write(pending); pywebview.api.term_input(tid, '\r\n'); }
+                window._termLineBuf[tid] = undefined;
+            }, 50);
+        };
 
-        pywebview.api.term_create(tid).then(function(r) {
-            if (r && r.success) { _terms[tid].started = true; t.focus(); }
+        // ====== Bridge 离屏输入（WebView2 键盘捕获） ======
+        var bridge = document.createElement('input');
+        bridge.type = 'text'; bridge.setAttribute('autocomplete', 'off');
+        bridge.style.cssText = 'position:absolute;left:-9999px;width:1px;height:1px;border:none;outline:none;background:transparent;color:transparent;';
+        bridge.setAttribute('data-term-bridge', tid);
+        p.appendChild(bridge);
+        p.setAttribute('tabindex', '-1'); p.style.outline = 'none';
+
+        // 按键处理公用函数
+        function _handleKey(e, term, bid) {
+            if (_isLocalEditKey(e)) { _handleLocalEdit(e, term, bid); return true; }
+            if (e.ctrlKey && e.shiftKey && (e.key === 'C' || e.key === 'c')) { _termCopy(term); return true; }
+            if (e.ctrlKey && e.shiftKey && (e.key === 'V' || e.key === 'v')) { _termPaste(term, bid); return true; }
+            var data = _keyToTermData(e);
+            if (data !== null) {
+                var lo = _localEcho(term, data, bid);
+                if (lo !== 'local-only') window._termOnDataCallbacks[bid](data);
+                return true;
+            }
+            return false;
+        }
+
+        var _lastBridgeKeyTime = 0;
+        bridge.addEventListener('keydown', function (e) {
+            _lastBridgeKeyTime = Date.now();
+            if (_activeTid !== tid) return;
+            if (_handleKey(e, t, tid)) { e.preventDefault(); e.stopPropagation(); }
+            bridge.value = '';
+        }, true);
+        bridge.addEventListener('input', function () {
+            if (_activeTid !== tid) return;
+            var val = bridge.value;
+            if (val.length > 0) { window._termOnDataCallbacks[tid](val); _localEcho(t, val, tid); bridge.value = ''; }
+        }, true);
+
+        // 面板级兜底（bridge 失焦时）
+        p.addEventListener('keydown', function (e) {
+            if (_activeTid !== tid || Date.now() - _lastBridgeKeyTime < 50) return;
+            if (_handleKey(e, t, tid)) { e.preventDefault(); e.stopPropagation(); bridge.focus(); }
+        }, true);
+
+        // 文档级兜底（全局，仅注册一次）
+        if (!window._termDocHandlerInstalled) {
+            window._termDocHandlerInstalled = true;
+            document.addEventListener('keydown', function (e) {
+                if (_activeTid === null) return; var entry = _terms[_activeTid]; if (!entry) return;
+                var tgt = e.target, inTerm = false, el = tgt;
+                while (el) { if (el === entry.panel || (el.classList && el.classList.contains('term-panel'))) { inTerm = true; break; } el = el.parentElement; }
+                if (!inTerm) return;
+                if (tgt && tgt.getAttribute && tgt.getAttribute('data-term-bridge')) return;
+                if (tgt === entry.term.textarea) return;
+                if (_handleKey(e, entry.term, _activeTid)) { e.preventDefault(); e.stopPropagation(); }
+            }, true);
+        }
+
+        // ====== 光标闪烁注入（WebView2 中 xterm 始终未聚焦） ======
+        if (!document.getElementById('term-blink-css')) {
+            var bc = document.createElement('style'); bc.id = 'term-blink-css';
+            bc.textContent = '@keyframes termBlink{0%,49%{opacity:1}50%,100%{opacity:0}}';
+            document.head.appendChild(bc);
+        }
+        function _injectBlink() {
+            var c = p.querySelector('.xterm-cursor');
+            if (c && (!c.style.animation || c.style.animation === 'none')) {
+                c.style.setProperty('animation', 'termBlink 1.06s step-end infinite', 'important');
+                c.style.setProperty('visibility', 'visible', 'important');
+            }
+        }
+        setTimeout(_injectBlink, 200);
+        if (!window._termBlinkTimers) window._termBlinkTimers = {};
+        window._termBlinkTimers[tid] = setInterval(function () { if (!_terms[tid]) { clearInterval(window._termBlinkTimers[tid]); return; } _injectBlink(); }, 200);
+
+        // ====== 右键菜单 ======
+        p.addEventListener('contextmenu', function (e) {
+            e.preventDefault(); e.stopPropagation();
+            var old = document.getElementById('term-ctx-menu'); if (old) old.remove();
+            var m = document.createElement('div'); m.id = 'term-ctx-menu';
+            m.style.cssText = 'position:fixed;z-index:99999;background:#2d2d2d;border:1px solid #555;border-radius:6px;padding:4px 0;min-width:160px;box-shadow:0 4px 12px rgba(0,0,0,0.5);font-size:13px;color:#ccc;';
+            m.style.left = e.clientX + 'px'; m.style.top = e.clientY + 'px';
+            function _mi(l, s, a) { var it = document.createElement('div'); it.style.cssText = 'padding:6px 16px;cursor:pointer;display:flex;justify-content:space-between;white-space:nowrap;'; it.innerHTML = '<span>' + l + '</span><span style="color:#888;margin-left:24px;font-size:11px;">' + (s || '') + '</span>'; it.onmouseenter = function () { it.style.background = '#094771'; }; it.onmouseleave = function () { it.style.background = ''; }; it.onclick = function () { m.remove(); a(); }; m.appendChild(it); }
+            _mi('复制', 'Ctrl+Shift+C', function () { _termCopy(t); }); _mi('粘贴', 'Ctrl+Shift+V', function () { _termPaste(t, tid); });
+            var sep = document.createElement('div'); sep.style.cssText = 'height:1px;background:#444;margin:4px 8px;'; m.appendChild(sep);
+            _mi('全选', 'Ctrl+A', function () { t.selectAll(); }); if (t.getSelection().length > 0) _mi('清除选中', '', function () { t.clearSelection(); });
+            document.body.appendChild(m);
+            var _ch = function (ev) { if (!m.contains(ev.target)) { m.remove(); document.removeEventListener('mousedown', _ch); } };
+            setTimeout(function () { document.addEventListener('mousedown', _ch); }, 0);
         });
 
-        setTimeout(function() { if (_terms[tid]) f.fit(); }, 80);
-        setTimeout(function() { if (_terms[tid]) f.fit(); }, 300);
+        // ====== 启动终端会话 ======
+        if (!window._termOnDataCallbacks) window._termOnDataCallbacks = {};
+        window._termOnDataCallbacks[tid] = function (d) { pywebview.api.term_input(tid, d); };
+        t.onData(window._termOnDataCallbacks[tid]);
+
+        if (!window._termBridges) window._termBridges = {};
+        window._termBridges[tid] = bridge;
+        _terms[tid] = { term: t, fit: f, started: false, panel: p };
+
+        pywebview.api.term_create(tid).then(function (r) { if (r && r.success) { _terms[tid].started = true; bridge.focus(); } });
+        setTimeout(function () { if (_terms[tid]) f.fit(); }, 80);
+        setTimeout(function () { if (_terms[tid]) f.fit(); }, 300);
     }
 
     function _switchTerm(tid) {
@@ -1263,7 +1392,9 @@
             var tab = document.getElementById('term-tab-' + tid);
             if (tab) tab.classList.add('active');
             _activeTid = tid;
-            setTimeout(function() { if (_terms[tid]) _terms[tid].fit.fit(); }, 50);
+            setTimeout(function() {
+                if (_terms[tid]) { _terms[tid].fit.fit(); var br = window._termBridges && window._termBridges[tid]; if (br) br.focus(); }
+            }, 50);
         }
     }
 
@@ -1288,7 +1419,14 @@
         pywebview.api.term_stop(tid).catch(function(){});
         try { t.term.dispose(); } catch(e) {}
         if (t.panel.parentNode) t.panel.remove();
-        delete window._termWrites[tid]; delete _terms[tid];
+        delete window._termWrites[tid]; delete window._termOnDataCallbacks[tid];
+        if (window._termBridges) delete window._termBridges[tid];
+        if (window._termLineBuf) delete window._termLineBuf[tid];
+        if (window._termLineTimers) { clearTimeout(window._termLineTimers[tid]); delete window._termLineTimers[tid]; }
+        if (window._termBlinkTimers) { clearInterval(window._termBlinkTimers[tid]); delete window._termBlinkTimers[tid]; }
+        if (window._termInputBuf) delete window._termInputBuf[tid];
+        if (window._termHistory) delete window._termHistory[tid];
+        delete _terms[tid];
         var tab = document.getElementById('term-tab-' + tid);
         if (tab) tab.remove();
         if (_activeTid === tid) {

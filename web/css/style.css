@@ -799,6 +799,13 @@ input[type="radio"] {
 .term-panel .xterm-screen { padding: 10px !important; box-sizing: border-box !important; }
 .term-panel .xterm-viewport { padding: 0 !important; }
 .term-panel .xterm { padding: 0 0 20px 0 !important; }
+/* 光标强制竖线样式 */
+.term-panel .xterm-cursor {
+    display: inline-block !important;
+    width: 2px !important;
+    min-width: 2px !important;
+    max-width: 2px !important;
+}
 .term-tab {
     display:flex;align-items:center;gap:6px;
     padding:2px 10px;border:1px solid #3a3a3a;border-bottom:none;
