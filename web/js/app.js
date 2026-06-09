@@ -1257,10 +1257,15 @@ window.addEventListener('pywebviewready', () => {
     initPermissionSearch();
     initCustomTooltip();
     initQRCharCount();
-    // AI 聊天仅 macOS 可用
+
     if (!navigator.platform.toLowerCase().includes('mac')) {
+        // AI 聊天仅 macOS 可用
         const aichatBtn = document.querySelector('[data-tab="aichat"]');
         if (aichatBtn) aichatBtn.style.display = 'none';
+
+        // 终端仅 macOS 可用（Windows/Linux 隐藏）
+        const termBtn = document.querySelector('[data-tab="terminal"]');
+        if (termBtn) termBtn.style.display = 'none';
     }
 
     addApiHeaderRow("User-Agent", "Mozilla/5.0 (DeveloperTools)");

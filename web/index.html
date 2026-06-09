@@ -19,6 +19,26 @@
     <link rel="icon" href="../images/app.png" type="image/png">
 </head>
 <body>
+    <!-- eruda DevTools — 通过 hash #eruda=1 激活，由 main.py 自动注入 -->
+    <script>
+    (function() {
+        if (!/eruda=1/.test(location.hash) || document.getElementById('eruda-script')) return;
+        var script = document.createElement('script');
+        script.id = 'eruda-script';
+        script.src = 'https://cdn.jsdelivr.net/npm/eruda@3';
+        script.onload = function() {
+            eruda.init({
+                tool: ['console', 'elements', 'network', 'resources', 'sources', 'info']
+            });
+            eruda.position({x: window.innerWidth - 50, y: window.innerHeight / 2 - 100});
+            console.log('[eruda] DevTools ready');
+        };
+        script.onerror = function() {
+            console.warn('[eruda] Failed to load from CDN (offline?). DevTools unavailable.');
+        };
+        document.head.appendChild(script);
+    })();
+    </script>
     <div class="container">
         <aside class="sidebar">
             <div class="logo">开发者工具</div>
