@@ -277,12 +277,12 @@ class TerminalSession:
                 break
             data = buf.raw[:bytes_read.value]
             if self._on_output:
-                # 优先 GBK（中文 Windows cmd.exe 输出），失败则 UTF-8
+                # UTF-8 严格模式可区分：合法 UTF-8 不会误判，失败则用 GBK
                 try:
-                    text = data.decode('gbk')
-                except Exception:
+                    text = data.decode('utf-8')
+                except UnicodeDecodeError:
                     try:
-                        text = data.decode('utf-8')
+                        text = data.decode('gbk')
                     except Exception:
                         text = data.decode('utf-8', errors='replace')
                 self._on_output(text)
