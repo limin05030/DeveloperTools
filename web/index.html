@@ -1235,10 +1235,22 @@
         var f = new FitAddon.FitAddon();
         t.loadAddon(f); t.open(p);
 
-        // ====== 行缓冲输出 ======
-        // cmd.exe 输出逐行到达，用缓冲+防抖区分「中间行」和「最后一行」。
-        // 中间行保留 \r\n 正常写入，最后一行识别为提示符则去 \r\n 写入，
-        // 否则补发空回车触发 cmd.exe 吐出更新后的提示符。
+        // macOS / Linux：xterm.js 原生输入正常工作，无需桥接
+        var _isWin = navigator.platform.indexOf('Win') >= 0;
+        if (!_isWin) {
+            window._termWrites = window._termWrites || {};
+            window._termWrites[tid] = function (d) { t.write(d); };
+            if (!window._termOnDataCallbacks) window._termOnDataCallbacks = {};
+            window._termOnDataCallbacks[tid] = function (d) { pywebview.api.term_input(tid, d); };
+            t.onData(window._termOnDataCallbacks[tid]);
+            _terms[tid] = { term: t, fit: f, started: false, panel: p };
+            pywebview.api.term_create(tid).then(function (r) { if (r && r.success) { _terms[tid].started = true; t.focus(); } });
+            setTimeout(function () { if (_terms[tid]) f.fit(); }, 80);
+            setTimeout(function () { if (_terms[tid]) f.fit(); }, 300);
+            return;
+        }
+
+        // ====== Windows：cmd.exe pipe 模式需要行缓冲 + 键盘桥接 + 光标注入 ======
         window._termWrites = window._termWrites || {};
         window._termSavedPrompt = window._termSavedPrompt || '';
         if (!window._termLineBuf) window._termLineBuf = {};
