@@ -107,6 +107,7 @@
                             <option value="da">丹麦语</option>
                             <option value="no">挪威语</option>
                         </select>
+                        <span id="translate-detected-lang" style="font-size: 11px; color: var(--accent); white-space: nowrap; flex-shrink: 0; display: none; margin-right: 4px;"></span>
                         <button onclick="swapTranslateLangs()" title="交换语言" style="min-width: auto; padding: 4px 8px; flex-shrink: 0;">⇄</button>
                         <select id="translate-target-lang" style="flex: 1;" aria-label="目标语言">
                             <option value="zh-CN">中文（简体）</option>
@@ -141,6 +142,9 @@
                             <option value="no">挪威语</option>
                         </select>
                         <button id="translate-btn" class="primary" onclick="doTranslate()" style="min-width: 100px; width: 100px; padding: 6px 14px; flex-shrink: 0;">翻译</button>
+                        <label title="输入停止 0.5 秒后自动翻译" style="display: flex; align-items: center; gap: 4px; font-size: 12px; cursor: pointer; white-space: nowrap; flex-shrink: 0; user-select: none;">
+                            <input type="checkbox" id="translate-auto-toggle" onchange="toggleAutoTranslate(this.checked)"> 自动翻译
+                        </label>
                         <span style="font-size: 11px; color: var(--text-secondary); opacity: 0.5; white-space: nowrap; flex-shrink: 0;">由 Google GTX 提供翻译支持</span>
                     </div>
                 </div>
@@ -1265,8 +1269,20 @@
             t.onData(window._termOnDataCallbacks[tid]);
             _terms[tid] = { term: t, fit: f, started: false, panel: p };
             pywebview.api.term_create(tid).then(function (r) { if (r && r.success) { _terms[tid].started = true; t.focus(); } });
-            setTimeout(function () { if (_terms[tid]) f.fit(); }, 80);
-            setTimeout(function () { if (_terms[tid]) f.fit(); }, 300);
+            // 初始化时 fit() 后必须同步尺寸到后端 PTY，否则 TUI 程序（如 claude）会
+            // 以默认 80 列渲染，无法铺满终端实际宽度
+            setTimeout(function () {
+                if (_terms[tid]) {
+                    f.fit();
+                    if (_terms[tid].started) pywebview.api.term_resize(tid, t.cols, t.rows).catch(function(){});
+                }
+            }, 80);
+            setTimeout(function () {
+                if (_terms[tid]) {
+                    f.fit();
+                    if (_terms[tid].started) pywebview.api.term_resize(tid, t.cols, t.rows).catch(function(){});
+                }
+            }, 300);
             return;
         }
 
@@ -1411,8 +1427,18 @@
         _terms[tid] = { term: t, fit: f, started: false, panel: p };
 
         pywebview.api.term_create(tid).then(function (r) { if (r && r.success) { _terms[tid].started = true; bridge.focus(); } });
-        setTimeout(function () { if (_terms[tid]) f.fit(); }, 80);
-        setTimeout(function () { if (_terms[tid]) f.fit(); }, 300);
+        setTimeout(function () {
+            if (_terms[tid]) {
+                f.fit();
+                if (_terms[tid].started) pywebview.api.term_resize(tid, t.cols, t.rows).catch(function(){});
+            }
+        }, 80);
+        setTimeout(function () {
+            if (_terms[tid]) {
+                f.fit();
+                if (_terms[tid].started) pywebview.api.term_resize(tid, t.cols, t.rows).catch(function(){});
+            }
+        }, 300);
     }
 
     function _switchTerm(tid) {
@@ -1425,7 +1451,11 @@
             if (tab) tab.classList.add('active');
             _activeTid = tid;
             setTimeout(function() {
-                if (_terms[tid]) { _terms[tid].fit.fit(); var br = window._termBridges && window._termBridges[tid]; if (br) br.focus(); }
+                if (_terms[tid]) {
+                    _terms[tid].fit.fit();
+                    if (_terms[tid].started) pywebview.api.term_resize(tid, _terms[tid].term.cols, _terms[tid].term.rows).catch(function(){});
+                    var br = window._termBridges && window._termBridges[tid]; if (br) br.focus();
+                }
             }, 50);
         }
     }

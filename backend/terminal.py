@@ -52,8 +52,11 @@ class TerminalSession:
             pass
         env = os.environ.copy()
         env['TERM'] = 'xterm-256color'
+        # 以登录 shell + 交互模式启动，确保加载用户的 .zshrc/.zprofile/.bash_profile 等配置，
+        # 这样 Homebrew 路径、自定义 PATH 等环境变量才能正确生效。
+        # 格式：/bin/zsh -l -i 或 /bin/bash -l -i
         self._proc = subprocess.Popen(
-            [self._shell], stdin=slave_fd, stdout=slave_fd, stderr=slave_fd,
+            [self._shell, '-l', '-i'], stdin=slave_fd, stdout=slave_fd, stderr=slave_fd,
             close_fds=True, preexec_fn=os.setsid, env=env,
             cwd=os.path.expanduser('~'),
         )

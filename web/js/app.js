@@ -139,6 +139,22 @@ function toggleCase(id) {
 }
 
 // Translate Tools
+
+// 语言代码 → 中文名称映射（用于自动检测结果显示）
+const _LANG_NAMES = {
+    'zh-CN': '中文（简体）', 'zh-TW': '中文（繁体）', 'en': '英语', 'ja': '日语',
+    'ko': '韩语', 'fr': '法语', 'de': '德语', 'es': '西班牙语', 'pt': '葡萄牙语',
+    'ru': '俄语', 'ar': '阿拉伯语', 'hi': '印地语', 'th': '泰语', 'vi': '越南语',
+    'it': '意大利语', 'tr': '土耳其语', 'nl': '荷兰语', 'pl': '波兰语', 'sv': '瑞典语',
+    'el': '希腊语', 'he': '希伯来语', 'id': '印尼语', 'uk': '乌克兰语', 'fa': '波斯语',
+    'fi': '芬兰语', 'cs': '捷克语', 'hu': '匈牙利语', 'ro': '罗马尼亚语', 'da': '丹麦语',
+    'no': '挪威语', 'ms': '马来语', 'tl': '菲律宾语', 'bn': '孟加拉语', 'ur': '乌尔都语',
+    'ta': '泰米尔语', 'te': '泰卢固语', 'mr': '马拉地语', 'gu': '古吉拉特语', 'kn': '卡纳达语',
+    'ml': '马拉雅拉姆语', 'pa': '旁遮普语', 'bg': '保加利亚语', 'sr': '塞尔维亚语',
+    'hr': '克罗地亚语', 'sk': '斯洛伐克语', 'sl': '斯洛文尼亚语', 'lt': '立陶宛语',
+    'lv': '拉脱维亚语', 'et': '爱沙尼亚语',
+};
+
 async function doTranslate() {
     const text = document.getElementById('translate-input').value;
     if (!text) { showAlert('请输入待翻译文本'); return; }
@@ -150,10 +166,20 @@ async function doTranslate() {
     btn.disabled = true;
     btn.textContent = '翻译中...';
 
+    // 翻译开始前隐藏上次的检测结果
+    const detectedEl = document.getElementById('translate-detected-lang');
+    detectedEl.style.display = 'none';
+
     try {
         const res = await pywebview.api.translate(text, source, target);
         if (res.success) {
             document.getElementById('translate-output').value = res.data.translated;
+            // 如果选择了自动检测，显示后端返回的检测语言
+            if (source === 'auto' && res.data.detected) {
+                const name = _LANG_NAMES[res.data.detected] || res.data.detected;
+                detectedEl.textContent = '检测: ' + name;
+                detectedEl.style.display = '';
+            }
         } else {
             showAlert(res.error);
         }
@@ -175,6 +201,29 @@ function swapTranslateLangs() {
 function clearTranslate() {
     document.getElementById('translate-input').value = '';
     document.getElementById('translate-output').value = '';
+    document.getElementById('translate-detected-lang').style.display = 'none';
+}
+
+// ---- 自动翻译（防抖 0.5 秒） ----
+let _autoTranslateTimer = null;
+
+function toggleAutoTranslate(on) {
+    const input = document.getElementById('translate-input');
+    if (on) {
+        input.addEventListener('input', _onTranslateInput);
+    } else {
+        input.removeEventListener('input', _onTranslateInput);
+        // 关闭自动翻译时清除等待中的定时器
+        if (_autoTranslateTimer) { clearTimeout(_autoTranslateTimer); _autoTranslateTimer = null; }
+    }
+}
+
+function _onTranslateInput() {
+    if (_autoTranslateTimer) clearTimeout(_autoTranslateTimer);
+    _autoTranslateTimer = setTimeout(function () {
+        _autoTranslateTimer = null;
+        doTranslate();
+    }, 500);
 }
 
 // Hash Tools
