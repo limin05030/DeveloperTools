@@ -116,11 +116,20 @@ jobs:
               /usr/libexec/PlistBuddy -c "Add :CFBundleShortVersionString string $VERSION" "$INFO_PLIST"
             fi
           
-            # CFBundleVersion (可能不存在)
+            # CFBundleVersion —— 根据版本号计算，格式：MAJOR * 10000 + MINOR * 100 + PATCH
+            # 示例：2.14.3 → 21403（第二段和第三段各占两位，最大 99）
+            IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
+            if [ "$MINOR" -gt 99 ] 2>/dev/null || [ "$PATCH" -gt 99 ] 2>/dev/null; then
+              echo "❌ 错误：MINOR 和 PATCH 版本号不能超过 99"
+              exit 1
+            fi
+            BUNDLE_VERSION=$((MAJOR * 10000 + MINOR * 100 + PATCH))
+            echo "CFBundleVersion = $BUNDLE_VERSION"
+
             if /usr/libexec/PlistBuddy -c "Print :CFBundleVersion" "$INFO_PLIST" &>/dev/null; then
-              /usr/libexec/PlistBuddy -c "Set :CFBundleVersion 315" "$INFO_PLIST"
+              /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUNDLE_VERSION" "$INFO_PLIST"
             else
-              /usr/libexec/PlistBuddy -c "Add :CFBundleVersion string 315" "$INFO_PLIST"
+              /usr/libexec/PlistBuddy -c "Add :CFBundleVersion string $BUNDLE_VERSION" "$INFO_PLIST"
             fi
           
             # NSHumanReadableCopyright

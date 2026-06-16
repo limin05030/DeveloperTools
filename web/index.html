@@ -1252,9 +1252,10 @@
         document.getElementById('term-panels').appendChild(p);
 
         var t = new Terminal({
-            fontSize: 14, fontFamily: 'Menlo, Monaco, "Courier New", monospace',
+            fontSize: 14, fontFamily: '"SF Mono", Menlo, Monaco, "Courier New", "PingFang SC", monospace',
+            lineHeight: 1.25,
             theme: { background: '#1e1e1e', foreground: '#d4d4d4', cursor: '#ffffff' },
-            cursorBlink: true, cursorStyle: 'bar', allowProposedApi: true,
+            cursorBlink: true, cursorStyle: 'bar', rendererType: 'canvas',
         });
         var f = new FitAddon.FitAddon();
         t.loadAddon(f); t.open(p);
@@ -1268,6 +1269,10 @@
             window._termOnDataCallbacks[tid] = function (d) { pywebview.api.term_input(tid, d); };
             t.onData(window._termOnDataCallbacks[tid]);
             _terms[tid] = { term: t, fit: f, started: false, panel: p };
+
+            // 保持 xterm 内部 textarea 聚焦（点击时触发，不影响拖拽选择）
+            p.addEventListener('click', function() { t.focus(); });
+
             pywebview.api.term_create(tid).then(function (r) { if (r && r.success) { _terms[tid].started = true; t.focus(); } });
             // 初始化时 fit() 后必须同步尺寸到后端 PTY，否则 TUI 程序（如 claude）会
             // 以默认 80 列渲染，无法铺满终端实际宽度
