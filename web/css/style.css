@@ -346,6 +346,19 @@ button.primary:disabled {
     border-radius: 4px;
 }
 
+/* 查询工具：内容高度自适应窗口，仅表格区域内部滚动，整页不滚动 */
+#query .sub-tab-content.active {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+#query .table-container {
+    flex: 1;
+    min-height: 0;
+    max-height: none;
+}
+
 table {
     width: 100%;
     border-collapse: separate;
@@ -712,6 +725,31 @@ textarea {
     box-shadow: 0 4px 12px rgba(0,0,0,0.1);
 }
 .cp-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; } .cp-btn-group { gap: 5px; } .small-btn { min-width: 32px; height: 32px; padding: 0; }
+
+/* 颜色提取：画布高度自适应窗口，整页不滚动 */
+#image:has(#img-color.sub-tab-content.active) .card {
+    height: calc(100vh - 64px);
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+#image:has(#img-color.sub-tab-content.active) #img-color.sub-tab-content.active {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+#image:has(#img-color.sub-tab-content.active) #color-picker-main {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+#image:has(#img-color.sub-tab-content.active) #color-canvas-container {
+    flex: 1;
+    min-height: 0;
+    height: auto !important;
+}
 
 /* API Test Styles */
 #api-header-list .input-row {

@@ -37,7 +37,8 @@ if __name__ == "__main__":
         js_api=api,
         width=1200,
         height=880,
-        resizable=False,
+        min_size=(1200, 880),
+        resizable=True,
         hidden=True,  # 先隐藏，等背景色设好后再显示，避免白屏闪烁
     )
     api.set_window(window)

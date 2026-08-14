@@ -832,7 +832,7 @@ async function selectColorPickerFile() {
         if (fileRes.success) {
             cpState.img = new Image();
             cpState.img.onload = function() {
-                document.getElementById('color-picker-main').style.display = 'block';
+                document.getElementById('color-picker-main').style.display = 'flex';
                 document.getElementById('color-result-container').style.display = 'block';
                 resetColorPicker();
             };

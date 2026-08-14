@@ -845,7 +845,7 @@
 
                         <!-- Query Tab -->
             <section id="query" class="tab-content">
-                <div class="card">
+                <div class="card" style="height: calc(100vh - 60px); display: flex; flex-direction: column; min-height: 0;">
                     <div class="tab-sub-nav">
                         <button class="sub-nav-item active" data-sub="query-ascii">ASCII 码对照表</button>
                         <button class="sub-nav-item" data-sub="query-http">HTTP 状态码对照表</button>
@@ -856,7 +856,7 @@
 
                     <!-- HTTP Status Codes -->
                     <div id="query-http" class="sub-tab-content">
-                        <div class="table-container" style="max-height: 680px;">
+                        <div class="table-container">
                             <table id="http-status-table">
                                 <thead>
                                     <tr>
@@ -931,7 +931,7 @@
 
                     <!-- ASCII Table -->
                     <div id="query-ascii" class="sub-tab-content active">
-                        <div class="table-container" style="max-height: 680px;">
+                        <div class="table-container">
                             <table id="ascii-table">
                                 <thead>
                                     <tr>
@@ -945,7 +945,7 @@
 
                     <!-- Port Table -->
                     <div id="query-port" class="sub-tab-content">
-                        <div class="table-container" style="max-height: 680px;">
+                        <div class="table-container">
                             <table id="port-table">
                                 <thead>
                                     <tr>
@@ -1045,7 +1045,7 @@
                             <button id="android-fetch-btn" onclick="fetchPermissions('android')" style="margin-right: 10px;">获取权限</button>
                             <button onclick="openDoc('android')">官方文档</button>
                         </div>
-                        <div id="android-table-container" class="table-container" style="max-height: 640px; display: none;">
+                        <div id="android-table-container" class="table-container" style="display: none;">
                             <table id="android-perm-table">
                                 <thead>
                                     <tr>
@@ -1061,7 +1061,7 @@
             
             <!-- API Test Tab -->
             <section id="api-test" class="tab-content">
-                <div class="card" style="height: calc(100vh - 80px); display: flex; flex-direction: column; padding: 15px;">
+                <div class="card" style="height: calc(100vh - 64px); display: flex; flex-direction: column; padding: 15px;">
                     <div class="tab-sub-nav">
                         <button class="sub-nav-item active" data-sub="api-req-tab" id="api-req-nav-btn">请求</button>
                         <button class="sub-nav-item" data-sub="api-res-tab" id="api-res-nav-btn">响应</button>
